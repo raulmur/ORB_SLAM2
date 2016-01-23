@@ -144,7 +144,7 @@ This will create **libORB_SLAM.so**  at *lib* folder and the executables **mono_
   ```
   
 #8. Processing your own sequences
-You will need to create a settings file with the calibration of your camera. See the settings file provided for the TUM and KITTI datasets for monocular, stereo and RGB-D cameras. We use the calibration model of OpenCV. See the examples to learn how to create a program that makes use of the ORB-SLAM library and how to pass images to the SLAM system. Stereo input must be synchronized and rectified. RGB-D input must be synchronized.
+You will need to create a settings file with the calibration of your camera. See the settings file provided for the TUM and KITTI datasets for monocular, stereo and RGB-D cameras. We use the calibration model of OpenCV. See the examples to learn how to create a program that makes use of the ORB-SLAM2 library and how to pass images to the SLAM system. Stereo input must be synchronized and rectified. RGB-D input must be synchronized.
 
 #9. Need Help?
 
