@@ -138,3 +138,14 @@ This will create **libORB_SLAM.so**  at *lib* folder and the exectuables **mono_
   ```
 
 4. For an RGB-D input from topics `/camera/rgb/image_raw` and `/camera/depth_registered/image_raw`, run node ORB_SLAM2/RGBD. You will need to provide the vocabulary file and a settings file. See the RGB-D example above.
+
+  ```
+  rosrun ORB_SLAM2 RGBD PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE
+  ```
+  
+#8. Processing your own sequences
+You will need to create a settings file with the calibration of your camera. See the settings file provided for the TUM and KITTI datasets for the monocular, stereo and RGB-D. We use the calibration model of OpenCV. See the examples to learn how to create a program that makes use of the ORB-SLAM library and how to pass images to the SLAM system. Stereo input must be synchronized and rectified. RGB-D input must be synchronized.
+
+#9. Need Help?
+
+If you have any trouble installing or using ORB-SLAM2, contact the authors.
