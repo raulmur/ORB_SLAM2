@@ -60,6 +60,7 @@ git clone https://github.com/raulmur/ORB_SLAM2.git ORB_SLAM2
 
 We provide a script `build.sh` to build the *Thirdparty* libraries and *ORB-SLAM2*. You will need to give first execute permissions. At ORB_SLAM2 directory, execute:
 ```
+cd ORB_SLAM2
 chmod +x build.sh
 ./build.sh
 ```
