@@ -106,9 +106,6 @@ public:
     // See format details at: http://www.cvlibs.net/datasets/kitti/eval_odometry.php
     void SaveTrajectoryKITTI(const string &filename);
 
-    // TODO: Reset function
-    // Reset();
-
     // TODO: Save/Load functions
     // SaveMap(const string &filename);
     // LoadMap(const string &filename);
