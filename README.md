@@ -4,7 +4,7 @@
 ORB-SLAM2 is a real-time SLAM library for **Monocular**, **Stereo** and **RGB-D** cameras, that computes the camera trajectory and a sparse 3D reconstruction (in the stereo and RGB-D case with true scale). It is able to detect loops and relocalize the camera in real time. We provide examples to run the system in the [KITTI dataset](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) as stereo or monocular, and in the [TUM dataset](http://vision.in.tum.de/data/datasets/rgbd-dataset) as RGB-D or monocular. We also provide a ROS node to process live monocular or RGB-D streams. **The system can be compiled without ROS**. ORB-SLAM2 provides an interface to change between *SLAM Mode* and *Localization Mode* (only camera tracking, no map building).
 
 **Notice for ORB-SLAM Monocular users:**
-The monocular capabilities of ORB-SLAM2 compared to [ORB-SLAM Monocular](https://github.com/raulmur/ORB_SLAM), are similar. However in ORB-SLAM2 we apply a full bundle adjustment after a loop closure, the extraction of ORB is slightly different (trying to improve the dispersion on the image) and the tracking is also slighly faster. The interface of ORB-SLAM2 also provides you new capabilities as the *modes* mentioned above and a reset button. We recommend you to try this new software :)
+The monocular capabilities of ORB-SLAM2 compared to [ORB-SLAM Monocular](https://github.com/raulmur/ORB_SLAM), are similar. However in ORB-SLAM2 we apply a full bundle adjustment after a loop closure, the extraction of ORB is slightly different (trying to improve the dispersion on the image) and the tracking is also slightly faster. The interface of ORB-SLAM2 also provides you new capabilities as the *modes* mentioned above and a reset button. We recommend you to try this new software :)
 
 ###Related Publications:
 
@@ -46,7 +46,7 @@ We use [OpenCV](http://opencv.org) to manipulate images and features. Dowload an
 Required by g2o (see below). Download and install instructions can be found at: http://eigen.tuxfamily.org. **Required at least 3.1.0**.
 
 ##2.4 DBoW2 and g2o (Included in Thirdparty folder)
-We use modified versions of the [DBoW2](https://github.com/dorian3d/DBoW2) library to perform place recognition and [g2o](https://github.com/RainerKuemmerle/g2o) library to perform non-linear optimizations. Both modified libraries (which are both BSD) are included in the Thirdparty folder).
+We use modified versions of the [DBoW2](https://github.com/dorian3d/DBoW2) library to perform place recognition and [g2o](https://github.com/RainerKuemmerle/g2o) library to perform non-linear optimizations. Both modified libraries (which are both BSD) are included in the Thirdparty folder.
 
 ##2.5 ROS (optional)
 We provide some examples to process the live input of a monocular or RGB-D camera using [ROS](ros.org). Building these examples is optional. In case you want to use ROS, a version Hydro or newer is needed.
@@ -58,13 +58,13 @@ Clone the repository:
 git clone https://github.com/raulmur/ORB_SLAM2.git ORB_SLAM2
 ```
 
-We provide a script `build.sh` to build the *Thirdparty* libraries and *ORB-SLAM2*. You will need to give first execute persmissions. At ORB_SLAM2 directory, execute:
+We provide a script `build.sh` to build the *Thirdparty* libraries and *ORB-SLAM2*. You will need to give first execute permissions. At ORB_SLAM2 directory, execute:
 ```
 chmod +x build.sh
 ./build.sh
 ```
 
-This will create **libORB_SLAM.so**  at *lib* folder and the exectuables **mono_tum**, **mono_kitti**, **rgbd_tum**, **stereo_kitti** in *Examples* folder.
+This will create **libORB_SLAM.so**  at *lib* folder and the executables **mono_tum**, **mono_kitti**, **rgbd_tum**, **stereo_kitti** in *Examples* folder.
 
 #4. Monocular Examples
 
@@ -117,7 +117,7 @@ This will create **libORB_SLAM.so**  at *lib* folder and the exectuables **mono_
 
 #7. ROS Examples
 
-1. First add the path including *Examples/ROS/ORB_SLAM2* to the ROS_PACKAGE_PATH enviroment variable. Open .bashrc file and add at the end the following line. Replace PATH by the folder where you cloned ORB_SLAM2:
+1. First add the path including *Examples/ROS/ORB_SLAM2* to the ROS_PACKAGE_PATH environment variable. Open .bashrc file and add at the end the following line. Replace PATH by the folder where you cloned ORB_SLAM2:
 
   ```
   export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:PATH/ORB_SLAM2/Examples/ROS
