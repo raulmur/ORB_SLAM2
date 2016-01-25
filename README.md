@@ -3,6 +3,17 @@
 
 ORB-SLAM2 is a real-time SLAM library for **Monocular**, **Stereo** and **RGB-D** cameras that computes the camera trajectory and a sparse 3D reconstruction (in the stereo and RGB-D case with true scale). It is able to detect loops and relocalize the camera in real time. We provide examples to run the SLAM system in the [KITTI dataset](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) as stereo or monocular, and in the [TUM dataset](http://vision.in.tum.de/data/datasets/rgbd-dataset) as RGB-D or monocular. We also provide a ROS node to process live monocular or RGB-D streams. **The library can be compiled without ROS**. ORB-SLAM2 provides a GUI to change between a *SLAM Mode* and *Localization Mode*, see section 9 of this document.
 
+#####Videos showing ORB-SLAM2:
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=dF7_I2Lin54
+" target="_blank"><img src="http://img.youtube.com/vi/dF7_I2Lin54/0.jpg" 
+alt="Tsukuba Dataset" width="240" height="180" border="10" /></a>
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=51NQvg5n-FE
+" target="_blank"><img src="http://img.youtube.com/vi/51NQvg5n-FE/0.jpg" 
+alt="KITTI Dataset" width="240" height="180" border="10" /></a>
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=LnbAI-o7YHk
+" target="_blank"><img src="http://img.youtube.com/vi/LnbAI-o7YHk/0.jpg" 
+alt="TUM RGBD Dataset" width="240" height="180" border="10" /></a>
+
 **Notice for ORB-SLAM Monocular users:**
 The monocular capabilities of ORB-SLAM2 compared to [ORB-SLAM Monocular](https://github.com/raulmur/ORB_SLAM) are similar. However in ORB-SLAM2 we apply a full bundle adjustment after a loop closure, the extraction of ORB is slightly different (trying to improve the dispersion on the image) and the tracking is also slightly faster. The GUI of ORB-SLAM2 also provides you new capabilities as the *modes* mentioned above and a reset button. We recommend you to try this new software :)
 
