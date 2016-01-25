@@ -169,7 +169,10 @@ protected:
     KeyFrame* mpReferenceKF;
     std::vector<KeyFrame*> mvpLocalKeyFrames;
     std::vector<MapPoint*> mvpLocalMapPoints;
-
+    
+    // System
+    System* mpSystem;
+    
     //Drawers
     Viewer* mpViewer;
     FrameDrawer* mpFrameDrawer;
