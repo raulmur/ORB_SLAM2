@@ -1,7 +1,7 @@
 # ORB-SLAM2
 #### Current version: 1.0.0 
 
-ORB-SLAM2 is a real-time SLAM library for **Monocular**, **Stereo** and **RGB-D** cameras that computes the camera trajectory and a sparse 3D reconstruction (in the stereo and RGB-D case with true scale). It is able to detect loops and relocalize the camera in real time. We provide examples to run the SLAM system in the [KITTI dataset](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) as stereo or monocular, and in the [TUM dataset](http://vision.in.tum.de/data/datasets/rgbd-dataset) as RGB-D or monocular. We also provide a ROS node to process live monocular or RGB-D streams. **The library can be compiled without ROS**. ORB-SLAM2 provides an interface to change between a *SLAM Mode* and *Localization Mode* (only camera tracking, no map building).
+ORB-SLAM2 is a real-time SLAM library for **Monocular**, **Stereo** and **RGB-D** cameras that computes the camera trajectory and a sparse 3D reconstruction (in the stereo and RGB-D case with true scale). It is able to detect loops and relocalize the camera in real time. We provide examples to run the SLAM system in the [KITTI dataset](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) as stereo or monocular, and in the [TUM dataset](http://vision.in.tum.de/data/datasets/rgbd-dataset) as RGB-D or monocular. We also provide a ROS node to process live monocular or RGB-D streams. **The library can be compiled without ROS**. ORB-SLAM2 provides an interface to change between a *SLAM Mode* and *Localization Mode*, see section 9 of this document.
 
 **Notice for ORB-SLAM Monocular users:**
 The monocular capabilities of ORB-SLAM2 compared to [ORB-SLAM Monocular](https://github.com/raulmur/ORB_SLAM) are similar. However in ORB-SLAM2 we apply a full bundle adjustment after a loop closure, the extraction of ORB is slightly different (trying to improve the dispersion on the image) and the tracking is also slightly faster. The interface of ORB-SLAM2 also provides you new capabilities as the *modes* mentioned above and a reset button. We recommend you to try this new software :)
@@ -34,22 +34,22 @@ If you use ORB-SLAM2 in an academic work, please cite:
 #2. Prerequisites
 We have tested the library in Ubuntu 12.04 and 14.04, but it should be easy to compile in other platforms.
 
-## 2.0 C++11 or C++0x Compiler
+## C++11 or C++0x Compiler
 We use the new thread and chrono functionalities of C++11.
 
-## 2.1 Pangolin
+## Pangolin
 We use [Pangolin](https://github.com/stevenlovegrove/Pangolin) for visualization and user interface. Dowload and install instructions can be found at: https://github.com/stevenlovegrove/Pangolin.
 
-##2.2 OpenCV
+## OpenCV
 We use [OpenCV](http://opencv.org) to manipulate images and features. Dowload and install instructions can be found at: http://opencv.org. **Required at leat 2.4.3. Tested with OpenCV 2.4.11**.
 
-##2.3 Eigen3
+## Eigen3
 Required by g2o (see below). Download and install instructions can be found at: http://eigen.tuxfamily.org. **Required at least 3.1.0**.
 
-##2.4 DBoW2 and g2o (Included in Thirdparty folder)
+## DBoW2 and g2o (Included in Thirdparty folder)
 We use modified versions of the [DBoW2](https://github.com/dorian3d/DBoW2) library to perform place recognition and [g2o](https://github.com/RainerKuemmerle/g2o) library to perform non-linear optimizations. Both modified libraries (which are BSD) are included in the *Thirdparty* folder.
 
-##2.5 ROS (optional)
+## ROS (optional)
 We provide some examples to process the live input of a monocular or RGB-D camera using [ROS](ros.org). Building these examples is optional. In case you want to use ROS, a version Hydro or newer is needed.
 
 #3. Building ORB-SLAM2 library and TUM/KITTI examples
@@ -70,7 +70,7 @@ This will create **libORB_SLAM.so**  at *lib* folder and the executables **mono_
 
 #4. Monocular Examples
 
-##4.1 TUM Dataset
+## TUM Dataset
 
 1. Download a sequence from http://vision.in.tum.de/data/datasets/rgbd-dataset/download and uncompress it.
 
@@ -79,7 +79,7 @@ This will create **libORB_SLAM.so**  at *lib* folder and the executables **mono_
 ./Examples/Monocular/mono_tum Vocabulary/ORBvoc.txt Examples/Monocular/TUMX.yaml PATH_TO_SEQUENCE_FOLDER
 ```
 
-##4.2 KITTI Dataset  
+## KITTI Dataset  
 
 1. Download the dataset (grayscale images) from http://www.cvlibs.net/datasets/kitti/eval_odometry.php 
 
@@ -90,7 +90,7 @@ This will create **libORB_SLAM.so**  at *lib* folder and the executables **mono_
 
 #5. Stereo Example
 
-##5.1 KITTI Dataset
+## KITTI Dataset
 
 1. Download the dataset (grayscale images) from http://www.cvlibs.net/datasets/kitti/eval_odometry.php 
 
@@ -101,7 +101,7 @@ This will create **libORB_SLAM.so**  at *lib* folder and the executables **mono_
 
 #6. RGB-D Example
 
-##6.1 TUM Dataset
+## TUM Dataset
 
 1. Download a sequence from http://vision.in.tum.de/data/datasets/rgbd-dataset/download and uncompress it.
 
