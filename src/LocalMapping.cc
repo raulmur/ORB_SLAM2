@@ -89,10 +89,12 @@ void LocalMapping::Run()
         else if(Stop())
         {
             // Safe area to stop
-            while(isStopped())
+            while(isStopped() && !CheckFinish())
             {
                 usleep(3000);
             }
+            if(CheckFinish())
+                break;
         }
 
         ResetIfRequested();
