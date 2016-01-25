@@ -1,10 +1,10 @@
 # ORB-SLAM2
 #### Current version: 1.0.0 
 
-ORB-SLAM2 is a real-time SLAM library for **Monocular**, **Stereo** and **RGB-D** cameras that computes the camera trajectory and a sparse 3D reconstruction (in the stereo and RGB-D case with true scale). It is able to detect loops and relocalize the camera in real time. We provide examples to run the SLAM system in the [KITTI dataset](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) as stereo or monocular, and in the [TUM dataset](http://vision.in.tum.de/data/datasets/rgbd-dataset) as RGB-D or monocular. We also provide a ROS node to process live monocular or RGB-D streams. **The library can be compiled without ROS**. ORB-SLAM2 provides an interface to change between a *SLAM Mode* and *Localization Mode*, see section 9 of this document.
+ORB-SLAM2 is a real-time SLAM library for **Monocular**, **Stereo** and **RGB-D** cameras that computes the camera trajectory and a sparse 3D reconstruction (in the stereo and RGB-D case with true scale). It is able to detect loops and relocalize the camera in real time. We provide examples to run the SLAM system in the [KITTI dataset](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) as stereo or monocular, and in the [TUM dataset](http://vision.in.tum.de/data/datasets/rgbd-dataset) as RGB-D or monocular. We also provide a ROS node to process live monocular or RGB-D streams. **The library can be compiled without ROS**. ORB-SLAM2 provides a GUI to change between a *SLAM Mode* and *Localization Mode*, see section 9 of this document.
 
 **Notice for ORB-SLAM Monocular users:**
-The monocular capabilities of ORB-SLAM2 compared to [ORB-SLAM Monocular](https://github.com/raulmur/ORB_SLAM) are similar. However in ORB-SLAM2 we apply a full bundle adjustment after a loop closure, the extraction of ORB is slightly different (trying to improve the dispersion on the image) and the tracking is also slightly faster. The interface of ORB-SLAM2 also provides you new capabilities as the *modes* mentioned above and a reset button. We recommend you to try this new software :)
+The monocular capabilities of ORB-SLAM2 compared to [ORB-SLAM Monocular](https://github.com/raulmur/ORB_SLAM) are similar. However in ORB-SLAM2 we apply a full bundle adjustment after a loop closure, the extraction of ORB is slightly different (trying to improve the dispersion on the image) and the tracking is also slightly faster. The GUI of ORB-SLAM2 also provides you new capabilities as the *modes* mentioned above and a reset button. We recommend you to try this new software :)
 
 ###Related Publications:
 
@@ -149,7 +149,7 @@ This will create **libORB_SLAM.so**  at *lib* folder and the executables **mono_
 You will need to create a settings file with the calibration of your camera. See the settings file provided for the TUM and KITTI datasets for monocular, stereo and RGB-D cameras. We use the calibration model of OpenCV. See the examples to learn how to create a program that makes use of the ORB-SLAM2 library and how to pass images to the SLAM system. Stereo input must be synchronized and rectified. RGB-D input must be synchronized.
 
 #9. SLAM and Localization Modes
-You can change between the *SLAM* and *Localization mode* using the interface of the map viewer.
+You can change between the *SLAM* and *Localization mode* using the GUI of the map viewer.
 
 ### SLAM Mode
 This is the default mode. The system runs in parallal three threads: Tracking, Local Mapping and Loop Closing. The system localizes the camera, builds new map and tries to close loops.
