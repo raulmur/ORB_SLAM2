@@ -32,6 +32,7 @@ If you use ORB-SLAM2 in an academic work, please cite:
      }
 
 #2. Prerequisites
+We have tested the library in Ubuntu 12.04 and 14.04, but it should be easy to compile in other platforms.
 
 ## 2.0 C++11 or C++0x Compiler
 We use the new thread and chrono functions of C++11.
