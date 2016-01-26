@@ -36,6 +36,27 @@
 #include "ORBVocabulary.h"
 #include "Viewer.h"
 
+
+#ifdef _MSC_VER
+// We are using a Microsoft compiler:
+
+#ifdef WINDOWS
+#ifdef ORBSLAM_EXPORT
+	#define EXPORT __declspec(dllexport)
+#else
+	#define EXPORT __declspec(dllimport)
+#endif
+
+#else
+#define EXPORT
+#endif
+
+#else
+// Not Microsoft compiler so set empty definition:
+#define EXPORT
+#endif
+
+
 namespace ORB_SLAM2
 {
 
@@ -46,7 +67,7 @@ class Tracking;
 class LocalMapping;
 class LoopClosing;
 
-class System
+class EXPORT System
 {
 public:
     // Input sensor
