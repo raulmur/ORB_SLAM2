@@ -1,0 +1,28 @@
+<launch>
+
+  <arg name="bagfile" default="<!-- your bagfile here -->" />
+
+  <!-- Setup the camera -->
+  <arg name="camera" default="<!-- your camera basename here -->"/>
+
+  <!-- Play the bagfile -->
+  <node pkg="rosbag" type="play" name="rosbag" args="--clock $(arg bagfile)" />
+
+  <!-- ORB_SLAM2 Mono -->
+  <node pkg="orb_slam2" type="mono" name="mono" output="screen" args="$(find orb_slam2)../../../Vocabulary/ORBvoc.txt <!-- Your config file here -->">
+    <remap from="/camera/image_raw" to="$(arg camera)/image_raw"/>
+  </node>
+
+  <!-- ORB_SLAM2 RGBD -->
+  <node pkg="orb_slam2" type="rgbd" name="rgbd" output="screen" args="$(find orb_slam2)../../../Vocabulary/ORBvoc.txt <!-- Your config file here -->">
+    <remap from="/camera/rgb/image_raw" to="$(arg camera)/rgbd/image_raw"/>
+    <remap from="camera/depth_registered/image_raw" to="$(arg camera)/depth_registered/image_raw"/>
+  </node>
+
+  <!-- ORB_SLAM2 Stereo -->
+  <node pkg="orb_slam2" type="stereo" name="stereo" output="screen" args="$(find orb_slam2)../../../Vocabulary/ORBvoc.txt <!-- Your config file here -->">
+    <remap from="/camera/left/image_raw" to="$(arg camera)/left/image_raw"/>
+    <remap from="/camera/right/image_raw" to="$(arg camera)/right/image_raw"/>
+  </node>
+
+</launch>

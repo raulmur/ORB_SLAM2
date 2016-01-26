@@ -1,5 +1,5 @@
 # ORB-SLAM2
-#### Current version: 1.0.0 
+#### Current version: 1.0.0
 
 ORB-SLAM2 is a real-time SLAM library for **Monocular**, **Stereo** and **RGB-D** cameras, that computes the camera trajectory and a sparse 3D reconstruction (in the stereo and RGB-D case with true scale). It is able to detect loops and relocalize the camera in real time. We provide examples to run the system in the [KITTI dataset](http://www.cvlibs.net/datasets/kitti/eval_odometry.php) as stereo or monocular, and in the [TUM dataset](http://vision.in.tum.de/data/datasets/rgbd-dataset) as RGB-D or monocular. We also provide a ROS node to process live monocular or RGB-D streams. **The library can be compiled without ROS**. ORB-SLAM2 provides an interface to change between *SLAM Mode* and *Localization Mode* (only camera tracking, no map building).
 
@@ -8,7 +8,7 @@ The monocular capabilities of ORB-SLAM2 compared to [ORB-SLAM Monocular](https:/
 
 ###Related Publications:
 
-[1] Raúl Mur-Artal, J. M. M. Montiel and Juan D. Tardós. **ORB-SLAM: A Versatile and Accurate Monocular SLAM System**. *IEEE Transactions on Robotics,* vol. 31, no. 5, pp. 1147-1163, 2015. 
+[1] Raúl Mur-Artal, J. M. M. Montiel and Juan D. Tardós. **ORB-SLAM: A Versatile and Accurate Monocular SLAM System**. *IEEE Transactions on Robotics,* vol. 31, no. 5, pp. 1147-1163, 2015.
 
 Link to pdf: http://webdiis.unizar.es/~raulmur/MurMontielTardosTRO15.pdf
 
@@ -16,7 +16,7 @@ Link to pdf: http://webdiis.unizar.es/~raulmur/MurMontielTardosTRO15.pdf
 
 ORB-SLAM2 is released under a [GPLv3 license](https://github.com/raulmur/ORB_SLAM2/blob/master/License-gpl.txt). For a list of all code/library dependencies (and associated licenses), please see [Dependencies.md](https://github.com/raulmur/ORB_SLAM2/blob/master/Dependencies.md).
 
-For a closed-source version of ORB-SLAM2 for commercial purposes, please contact the authors. 
+For a closed-source version of ORB-SLAM2 for commercial purposes, please contact the authors.
 
 If you use ORB-SLAM2 in an academic work, please cite:
 
@@ -49,7 +49,7 @@ Required by g2o (see below). Download and install instructions can be found at: 
 We use modified versions of the [DBoW2](https://github.com/dorian3d/DBoW2) library to perform place recognition and [g2o](https://github.com/RainerKuemmerle/g2o) library to perform non-linear optimizations. Both modified libraries (which are both BSD) are included in the Thirdparty folder.
 
 ##2.5 ROS (optional)
-We provide some examples to process the live input of a monocular or RGB-D camera using [ROS](ros.org). Building these examples is optional. In case you want to use ROS, a version Hydro or newer is needed.
+We provide some examples to process the live input of a monocular, stereo or RGB-D camera using [ROS](ros.org). Building these examples is optional. In case you want to use ROS, a version Hydro or newer is needed.
 
 #3. Building ORB-SLAM2 library and TUM/KITTI examples
 
@@ -78,11 +78,11 @@ This will create **libORB_SLAM.so**  at *lib* folder and the executables **mono_
 ./Examples/Monocular/mono_tum Vocabulary/ORBvoc.txt Examples/Monocular/TUMX.yaml PATH_TO_SEQUENCE_FOLDER
 ```
 
-##4.2 KITTI Dataset  
+##4.2 KITTI Dataset
 
-1. Download the dataset (grayscale images) from http://www.cvlibs.net/datasets/kitti/eval_odometry.php 
+1. Download the dataset (grayscale images) from http://www.cvlibs.net/datasets/kitti/eval_odometry.php
 
-2. Execute the following command. Change `KITTIX.yaml`by KITTI00-02.yaml, KITTI03.yaml or KITTI04-12.yaml for sequence 0 to 2, 3, and 4 to 12 respectively. Change `PATH_TO_DATASET_FOLDER` to the uncompressed dataset folder. Change `SEQUENCE_NUMBER` to 00, 01, 02,.., 11. 
+2. Execute the following command. Change `KITTIX.yaml`by KITTI00-02.yaml, KITTI03.yaml or KITTI04-12.yaml for sequence 0 to 2, 3, and 4 to 12 respectively. Change `PATH_TO_DATASET_FOLDER` to the uncompressed dataset folder. Change `SEQUENCE_NUMBER` to 00, 01, 02,.., 11.
 ```
 ./Examples/Monocular/mono_kitti Vocabulary/ORBvoc.txt Examples/Monocular/KITTIX.yaml PATH_TO_DATASET_FOLDER/dataset/sequences/SEQUENCE_NUMBER
 ```
@@ -91,9 +91,9 @@ This will create **libORB_SLAM.so**  at *lib* folder and the executables **mono_
 
 ##5.1 KITTI Dataset
 
-1. Download the dataset (grayscale images) from http://www.cvlibs.net/datasets/kitti/eval_odometry.php 
+1. Download the dataset (grayscale images) from http://www.cvlibs.net/datasets/kitti/eval_odometry.php
 
-2. Execute the following command. Change `KITTIX.yaml`to KITTI00-02.yaml, KITTI03.yaml or KITTI04-12.yaml for sequence 0 to 2, 3, and 4 to 12 respectively. Change `PATH_TO_DATASET_FOLDER` to the uncompressed dataset folder. Change `SEQUENCE_NUMBER` to 00, 01, 02,.., 11. 
+2. Execute the following command. Change `KITTIX.yaml`to KITTI00-02.yaml, KITTI03.yaml or KITTI04-12.yaml for sequence 0 to 2, 3, and 4 to 12 respectively. Change `PATH_TO_DATASET_FOLDER` to the uncompressed dataset folder. Change `SEQUENCE_NUMBER` to 00, 01, 02,.., 11.
 ```
 ./Examples/Stereo/stereo_kitti Vocabulary/ORBvoc.txt Examples/Stereo/KITTIX.yaml PATH_TO_DATASET_FOLDER/dataset/sequences/SEQUENCE_NUMBER
 ```
@@ -123,7 +123,7 @@ This will create **libORB_SLAM.so**  at *lib* folder and the executables **mono_
   ```
   export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:PATH/ORB_SLAM2/Examples/ROS
   ```
-  
+
 2. Go to *Examples/ROS/ORB_SLAM2* folder and execute:
 
   ```
@@ -138,12 +138,18 @@ This will create **libORB_SLAM.so**  at *lib* folder and the executables **mono_
   rosrun ORB_SLAM2 Mono PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE
   ```
 
-4. For an RGB-D input from topics `/camera/rgb/image_raw` and `/camera/depth_registered/image_raw`, run node ORB_SLAM2/RGBD. You will need to provide the vocabulary file and a settings file. See the RGB-D example above.
+4. For a stereo input from topics `/camera/left/image_raw` and `/camera/right/image_raw` run node ORB_SLAM2/Stereo. You will need to provide the vocabulary file and a settings file. See the stereo examples above.
+
+  ```
+  rosrun ORB_SLAM2 Stereo PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE
+  ```
+
+5. For an RGB-D input from topics `/camera/rgb/image_raw` and `/camera/depth_registered/image_raw`, run node ORB_SLAM2/RGBD. You will need to provide the vocabulary file and a settings file. See the RGB-D example above.
 
   ```
   rosrun ORB_SLAM2 RGBD PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE
   ```
-  
+
 #8. Processing your own sequences
 You will need to create a settings file with the calibration of your camera. See the settings file provided for the TUM and KITTI datasets for monocular, stereo and RGB-D cameras. We use the calibration model of OpenCV. See the examples to learn how to create a program that makes use of the ORB-SLAM2 library and how to pass images to the SLAM system. Stereo input must be synchronized and rectified. RGB-D input must be synchronized.
 
