@@ -1,7 +1,11 @@
-Windows Version of ORB_SLAM2, see website. https://github.com/raulmur/ORB_SLAM2
+Windows Version of ORB_SLAM2, see website: https://github.com/raulmur/ORB_SLAM2
+
 This version should compile the library under Windows fine.
 **The only running example I edited is "mono_kitti.cc".**
-Tested under Windows 7, Visual Studio 2013 (MSVC 12).
+
+Tested under Windows 7, Visual Studio 2013 (MSVC 12), OpenCV3.
+Follow the install instructions from the original author, but instead of executing the build.sh you have to build the Thirdparty libraries manually.
+
 
 
 # ORB-SLAM2
