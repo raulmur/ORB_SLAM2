@@ -1,3 +1,9 @@
+Windows Version of ORB_SLAM2, see website. https://github.com/raulmur/ORB_SLAM2
+This version should compile the library under Windows fine.
+**The only running example I edited is "mono_kitti.cc".**
+Tested under Windows 7, Visual Studio 2013 (MSVC 12).
+
+
 # ORB-SLAM2
 #### Current version: 1.0.0 
 
