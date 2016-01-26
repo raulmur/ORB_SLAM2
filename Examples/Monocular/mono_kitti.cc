@@ -23,7 +23,8 @@
 #include<algorithm>
 #include<fstream>
 #include<chrono>
-
+#include <thread>
+#include <iomanip>
 #include<opencv2/core/core.hpp>
 
 #include"System.h"
@@ -35,37 +36,50 @@ void LoadImages(const string &strSequence, vector<string> &vstrImageFilenames,
 
 int main(int argc, char **argv)
 {
-    if(argc != 4)
+    /*if(argc != 4)
     {
         cerr << endl << "Usage: ./mono_kitti path_to_vocabulary path_to_settings path_to_sequence" << endl;
         return 1;
-    }
+    }*/
+	std::string dataPath = "../data/";
+
+	std::string videoFile = dataPath + "ORBSLAM_Example_Video.mp4";
+	std::string voc = "../Vocabulary/ORBvoc.txt";
+	std::string settings = dataPath + "Settings_Complete.yaml";
 
     // Retrieve paths to images
     vector<string> vstrImageFilenames;
     vector<double> vTimestamps;
-    LoadImages(string(argv[3]), vstrImageFilenames, vTimestamps);
+    //LoadImages(string(argv[3]), vstrImageFilenames, vTimestamps);
 
-    int nImages = vstrImageFilenames.size();
+    //int nImages = vstrImageFilenames.size();
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
+	ORB_SLAM2::System SLAM(voc, settings, ORB_SLAM2::System::MONOCULAR, true);
 
     // Vector for tracking time statistics
-    vector<float> vTimesTrack;
-    vTimesTrack.resize(nImages);
+    //vector<float> vTimesTrack;
+    //vTimesTrack.resize(nImages);
 
     cout << endl << "-------" << endl;
     cout << "Start processing sequence ..." << endl;
-    cout << "Images in the sequence: " << nImages << endl << endl;
+    //cout << "Images in the sequence: " << nImages << endl << endl;
 
     // Main loop
+	bool open = true;
+	cv::VideoCapture cap;
+	open = cap.open(videoFile);
     cv::Mat im;
-    for(int ni=0; ni<nImages; ni++)
-    {
+	int ni = 0;
+    //for(int ni=0; ni<nImages; ni++)
+	while (open) {
+		open = cap.read(im);
+		if (!open)
+			break;
+
         // Read image and depthmap from file
-        im = cv::imread(vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
-        double tframe = vTimestamps[ni];
+        //im = cv::imread(vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
+		double tframe = 33.3; // vTimestamps[ni];
 
         if(im.empty())
         {
@@ -90,24 +104,26 @@ int main(int argc, char **argv)
 
         double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
 
-        vTimesTrack[ni]=ttrack;
+        //vTimesTrack[ni]=ttrack;
 
-        // Wait to load the next frame
+        /*// Wait to load the next frame
         double T=0;
         if(ni<nImages-1)
             T = vTimestamps[ni+1]-tframe;
         else if(ni>0)
             T = tframe-vTimestamps[ni-1];
 
-        if(ttrack<T)
-            usleep((T-ttrack)*1e6);
+		if (ttrack < T) {
+			//usleep((T - ttrack)*1e6);
+			std::this_thread::sleep_for(std::chrono::milliseconds((int)((T - ttrack)*1e6)));
+		}*/
     }
 
     // Stop all threads
     SLAM.Shutdown();
 
     // Tracking time statistics
-    sort(vTimesTrack.begin(),vTimesTrack.end());
+    /*sort(vTimesTrack.begin(),vTimesTrack.end());
     float totaltime = 0;
     for(int ni=0; ni<nImages; ni++)
     {
@@ -118,7 +134,7 @@ int main(int argc, char **argv)
     cout << "mean tracking time: " << totaltime/nImages << endl;
 
     // Save camera trajectory
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");*/
 
     return 0;
 }

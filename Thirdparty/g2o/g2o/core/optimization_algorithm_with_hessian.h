@@ -28,6 +28,7 @@
 #define G2O_OPTIMIZATION_ALGORITHM_WITH_HESSIAN_H
 
 #include "optimization_algorithm.h"
+#include "g2o_core_api.h"
 
 namespace g2o {
 
@@ -36,7 +37,7 @@ namespace g2o {
   /**
    * \brief Base for solvers operating on the approximated Hessian, e.g., Gauss-Newton, Levenberg
    */
-  class  OptimizationAlgorithmWithHessian : public OptimizationAlgorithm
+  class G2O_CORE_API OptimizationAlgorithmWithHessian : public OptimizationAlgorithm
   {
     public:
       explicit OptimizationAlgorithmWithHessian(Solver* solver);

@@ -41,7 +41,7 @@ namespace g2o {
    * \brief traits to summarize the properties of the fixed size optimization problem
    */
   template <int _PoseDim, int _LandmarkDim>
-  struct BlockSolverTraits
+  struct G2O_CORE_API BlockSolverTraits
   {
     static const int PoseDim = _PoseDim;
     static const int LandmarkDim = _LandmarkDim;
@@ -61,7 +61,7 @@ namespace g2o {
    * \brief traits to summarize the properties of the dynamic size optimization problem
    */
   template <>
-  struct BlockSolverTraits<Eigen::Dynamic, Eigen::Dynamic>
+  struct G2O_CORE_API BlockSolverTraits<Eigen::Dynamic, Eigen::Dynamic>
   {
     static const int PoseDim = Eigen::Dynamic;
     static const int LandmarkDim = Eigen::Dynamic;
@@ -83,7 +83,7 @@ namespace g2o {
   class BlockSolverBase : public Solver
   {
     public:
-      virtual ~BlockSolverBase() {}
+		  virtual ~BlockSolverBase() {}
       /**
        * compute dest = H * src
        */
@@ -94,7 +94,7 @@ namespace g2o {
    * \brief Implementation of a solver operating on the blocks of the Hessian
    */
   template <typename Traits>
-  class BlockSolver: public BlockSolverBase {
+  class BlockSolver : public BlockSolverBase {
     public:
 
       static const int PoseDim = Traits::PoseDim;
@@ -118,7 +118,7 @@ namespace g2o {
        * in its destructor.
        */
       BlockSolver(LinearSolverType* linearSolver);
-      ~BlockSolver();
+	  ~BlockSolver();
 
       virtual bool init(SparseOptimizer* optmizer, bool online = false);
       virtual bool buildStructure(bool zeroBlocks = false);
@@ -177,13 +177,13 @@ namespace g2o {
 
 
   //variable size solver
-  typedef BlockSolver< BlockSolverTraits<Eigen::Dynamic, Eigen::Dynamic> > BlockSolverX;
+  G2O_CORE_API typedef BlockSolver< BlockSolverTraits<Eigen::Dynamic, Eigen::Dynamic> > BlockSolverX;
   // solver for BA/3D SLAM
-  typedef BlockSolver< BlockSolverTraits<6, 3> > BlockSolver_6_3;  
+  G2O_CORE_API typedef BlockSolver< BlockSolverTraits<6, 3> > BlockSolver_6_3;
   // solver fo BA with scale
-  typedef BlockSolver< BlockSolverTraits<7, 3> > BlockSolver_7_3;  
+  G2O_CORE_API typedef BlockSolver< BlockSolverTraits<7, 3> > BlockSolver_7_3;
   // 2Dof landmarks 3Dof poses
-  typedef BlockSolver< BlockSolverTraits<3, 2> > BlockSolver_3_2;
+  G2O_CORE_API typedef BlockSolver< BlockSolverTraits<3, 2> > BlockSolver_3_2;
 
 } // end namespace
 

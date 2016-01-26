@@ -28,6 +28,7 @@
 #define G2O_ROBUST_KERNEL_IMPL_H
 
 #include "robust_kernel.h"
+#include "g2o_core_api.h"
 
 namespace g2o {
 
@@ -38,7 +39,7 @@ namespace g2o {
    * one implements a kernel which only is designed for a fixed window
    * size.
    */
-  class  RobustKernelScaleDelta : public RobustKernel
+	class G2O_CORE_API RobustKernelScaleDelta : public RobustKernel
   {
     public:
       /**
@@ -73,7 +74,7 @@ namespace g2o {
    *               1/2    2
    * rho(e) = 2 d e    - d
    */
-  class  RobustKernelHuber : public RobustKernel
+	class G2O_CORE_API RobustKernelHuber : public RobustKernel
   {
     public:
       virtual void setDelta(double delta);
@@ -95,7 +96,7 @@ namespace g2o {
    *              
    * rho(e) = delta2
    */
-  class  RobustKernelTukey : public RobustKernel
+	class G2O_CORE_API RobustKernelTukey : public RobustKernel
   {
     public:
 
@@ -118,7 +119,7 @@ namespace g2o {
    *             2
    *            d
    */
-  class  RobustKernelPseudoHuber : public RobustKernel
+	class G2O_CORE_API RobustKernelPseudoHuber : public RobustKernel
   {
     public:
       virtual void robustify(double e2, Eigen::Vector3d& rho) const;
@@ -132,7 +133,7 @@ namespace g2o {
    *         2
    *        d
    */
-  class  RobustKernelCauchy : public RobustKernel
+	class G2O_CORE_API RobustKernelCauchy : public RobustKernel
   {
     public:
       virtual void robustify(double e2, Eigen::Vector3d& rho) const;
@@ -143,7 +144,7 @@ namespace g2o {
    *
    * The error is at most delta^2
    */
-  class  RobustKernelSaturated : public RobustKernel
+	class G2O_CORE_API RobustKernelSaturated : public RobustKernel
   {
     public:
       virtual void robustify(double e2, Eigen::Vector3d& rho) const;
@@ -156,7 +157,7 @@ namespace g2o {
    *
    * delta is used as $phi$
    */
-  class  RobustKernelDCS : public RobustKernel
+	class G2O_CORE_API RobustKernelDCS : public RobustKernel
   {
     public:
       virtual void robustify(double e2, Eigen::Vector3d& rho) const;

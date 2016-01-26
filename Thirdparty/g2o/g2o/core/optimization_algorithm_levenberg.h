@@ -28,13 +28,14 @@
 #define G2O_SOLVER_LEVENBERG_H
 
 #include "optimization_algorithm_with_hessian.h"
+#include "g2o_core_api.h"
 
 namespace g2o {
 
   /**
    * \brief Implementation of the Levenberg Algorithm
    */
-  class  OptimizationAlgorithmLevenberg : public OptimizationAlgorithmWithHessian
+	class G2O_CORE_API OptimizationAlgorithmLevenberg : public OptimizationAlgorithmWithHessian
   {
     public:
       /**

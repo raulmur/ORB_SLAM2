@@ -30,13 +30,18 @@
 #include <iostream>
 #include <vector>
 
+#include "g2o_core_api.h"
+
 
 namespace g2o {
 
   /**
    * \brief statistics about the optimization
    */
-  struct  G2OBatchStatistics {
+	//typedef struct G2O_CORE_API G2OBatchStatistics G2OBatchStatistics;
+	//typedef struct G2OBatchStatistics G2OBatchStatistics;
+
+	struct G2OBatchStatistics {
     G2OBatchStatistics();
     int iteration;                    ///< which iteration
     int numVertices;                  ///< how many vertices are involved
@@ -69,15 +74,15 @@ namespace g2o {
     size_t hessianLandmarkDimension;  ///< dimension of the landmark matrix in Schur
     size_t choleskyNNZ;               ///< number of non-zeros in the cholesky factor
 
-    static G2OBatchStatistics* globalStats() {return _globalStats;}
-    static void setGlobalStats(G2OBatchStatistics* b);
+	static G2O_CORE_API G2OBatchStatistics* globalStats() { return _globalStats; }
+	static G2O_CORE_API void setGlobalStats(G2OBatchStatistics* b);
     protected:
-    static G2OBatchStatistics* _globalStats;
-  };
+		static G2O_CORE_API G2OBatchStatistics* _globalStats;
+	};
 
-   std::ostream& operator<<(std::ostream&, const G2OBatchStatistics&);
+	G2O_CORE_API std::ostream& operator<<(std::ostream&, const G2OBatchStatistics&);
 
-  typedef std::vector<G2OBatchStatistics> BatchStatisticsContainer;
+	typedef std::vector<G2OBatchStatistics> BatchStatisticsContainer;
 }
 
 #endif

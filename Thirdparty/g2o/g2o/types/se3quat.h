@@ -28,7 +28,7 @@
 #define G2O_SE3QUAT_H_
 
 #include "se3_ops.h"
-
+#include "../core/g2o_core_api.h"
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
@@ -38,7 +38,7 @@ namespace g2o {
   typedef Matrix<double, 6, 1> Vector6d;
   typedef Matrix<double, 7, 1> Vector7d;
 
-  class SE3Quat {
+  class G2O_CORE_API SE3Quat {
     public:
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 

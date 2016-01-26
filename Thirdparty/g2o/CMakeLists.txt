@@ -15,6 +15,38 @@ MESSAGE(STATUS "BUILD TYPE:" ${CMAKE_BUILD_TYPE})
 
 SET (G2O_LIB_TYPE SHARED)
 
+IF(APPLE)
+	##-------------------------------------------------
+	## Detect Boost:
+	##-------------------------------------------------
+	message("\n")
+	message("Searching for Boost:")
+	set(Boost_DEBUG OFF)
+	set(Boost_ROOT ${Boost_ROOT} CACHE PATH "Path to Boost root directory" FORCE)  # E:\Libraries\boost\boost
+	set(BOOST_USE_STATIC_LIBS        ON)
+	set(BOOST_USE_MULTITHREADED      ON)
+	set(BOOST_USE_STATIC_RUNTIME     OFF)
+	set(BOOST_ALL_DYN_LINK           OFF)
+	find_package(Boost COMPONENTS system REQUIRED)
+	if(Boost_FOUND)
+		add_definitions( "-DHAS_BOOST" )
+		set(BOOST_USE_STATIC_LIBS        ON)
+		set(BOOST_USE_MULTITHREADED      ON)
+		set(BOOST_USE_STATIC_RUNTIME     OFF)
+		set(BOOST_ALL_DYN_LINK           OFF)   # force dynamic linking for all libraries
+		set(Boost_FOUND ON CACHE BOOL "Boost found" FORCE)
+		message("Boost successfully added!")
+	else()
+		set(Boost_FOUND OFF CACHE BOOL "Boost found" FORCE)
+		message(FATAL_ERROR "Boost was not found!")
+	endif()
+
+	include_directories(${Boost_INCLUDE_DIR})
+ENDIF(APPLE)
+
+set(g2o_INCLUDE_DIR ${g2o_SOURCE_DIR}/g2o CACHE PATH "g2o include directory" FORCE)
+
+
 # There seems to be an issue with MSVC8
 # see http://eigen.tuxfamily.org/bz/show_bug.cgi?id=83
 if(MSVC90)
@@ -22,7 +54,14 @@ if(MSVC90)
   message(STATUS "Disabling memory alignment for MSVC8")
 endif(MSVC90)
 
+IF(WIN32)
+	add_definitions(-DNOMINMAX)
+	add_definitions(-DWINDOWS)
+	add_definitions(-DG2O_EXPORT)
+ENDIF(WIN32)
+
 # Set the output directory for the build executables and libraries
+SET(g2o_RUNTIME_OUTPUT_DIRECTORY ${g2o_SOURCE_DIR}/bin CACHE PATH "Target for the binaries")
 IF(WIN32)
   SET(g2o_LIBRARY_OUTPUT_DIRECTORY ${g2o_SOURCE_DIR}/bin CACHE PATH "Target for the libraries")
 ELSE(WIN32)
@@ -62,8 +101,8 @@ SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native")
 SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -march=native") 
 
 # activate warnings !!!
-SET(g2o_C_FLAGS "${g2o_C_FLAGS} -Wall -W")
-SET(g2o_CXX_FLAGS "${g2o_CXX_FLAGS} -Wall -W")
+#SET(g2o_C_FLAGS "${g2o_C_FLAGS} -Wall -W")
+#SET(g2o_CXX_FLAGS "${g2o_CXX_FLAGS} -Wall -W")
 
 # specifying compiler flags
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${g2o_CXX_FLAGS}")

@@ -32,13 +32,15 @@
 #include <string>
 #include <typeinfo>
 
+#include "g2o_core_api.h"
+
 namespace g2o
 {
 
   /**
    * \brief Abstract interface for allocating HyperGraphElement
    */
-  class  AbstractHyperGraphElementCreator
+	class G2O_CORE_API AbstractHyperGraphElementCreator
   {
     public:
       /**

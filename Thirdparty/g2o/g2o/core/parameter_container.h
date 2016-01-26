@@ -30,6 +30,7 @@
 #include <iosfwd>
 #include <map>
 #include <string>
+#include "g2o_core_api.h"
 
 namespace g2o {
     
@@ -38,7 +39,7 @@ namespace g2o {
     /**
      * \brief map id to parameters
      */
-    class ParameterContainer : protected std::map<int, Parameter*> 
+	class G2O_CORE_API ParameterContainer : protected std::map<int, Parameter*>
     {
     public:
       typedef std::map<int, Parameter*> BaseClass;

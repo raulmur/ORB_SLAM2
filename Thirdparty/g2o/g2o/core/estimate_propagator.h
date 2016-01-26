@@ -29,6 +29,7 @@
 
 #include "optimizable_graph.h"
 #include "sparse_optimizer.h"
+#include "g2o_core_api.h"
 
 #include <map>
 #include <set>
@@ -36,6 +37,8 @@
 
 #ifdef _MSC_VER
 #include <unordered_map>
+#elif __APPLE__
+#include <boost/tr1/unordered_map.hpp>
 #else
 #include <tr1/unordered_map>
 #endif
@@ -47,7 +50,7 @@ namespace g2o {
    *
    * You may derive an own one, if necessary. The default is to return initialEstimatePossible(from, to) for the edge.
    */
-  class  EstimatePropagatorCost {
+	class G2O_CORE_API EstimatePropagatorCost {
     public:
       EstimatePropagatorCost (SparseOptimizer* graph);
       virtual double operator()(OptimizableGraph::Edge* edge, const OptimizableGraph::VertexSet& from, OptimizableGraph::Vertex* to_) const;
@@ -62,7 +65,7 @@ namespace g2o {
    * Initialize your graph along odometry edges. An odometry edge is assumed to connect vertices
    * whose IDs only differs by one.
    */
-  class  EstimatePropagatorCostOdometry : public EstimatePropagatorCost {
+	class G2O_CORE_API EstimatePropagatorCostOdometry : public EstimatePropagatorCost {
     public:
       EstimatePropagatorCostOdometry(SparseOptimizer* graph);
       virtual double operator()(OptimizableGraph::Edge* edge, const OptimizableGraph::VertexSet& from_, OptimizableGraph::Vertex* to_) const;
@@ -72,7 +75,7 @@ namespace g2o {
   /**
    * \brief propagation of an initial guess
    */
-  class  EstimatePropagator {
+	class G2O_CORE_API EstimatePropagator {
     public:
 
       /**
