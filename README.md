@@ -1,5 +1,9 @@
 Windows Version of ORB_SLAM2, see website: https://github.com/raulmur/ORB_SLAM2
 
+#### Update 1:
+New method added to load the vocabulary file faster. The new vocabulary file is now located in the "data"-directory.
+
+
 This version should compile the library under Windows fine.
 **The only running example I edited is "mono_kitti.cc".**
 
