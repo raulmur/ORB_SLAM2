@@ -241,6 +241,7 @@ public:
    * @param filename
    */
   bool loadFromTextFile(const std::string &filename);
+  bool loadFromTextFile2(const std::string &filename);
 
   /**
    * Saves the vocabulary into a text file
@@ -1424,6 +1425,132 @@ bool TemplatedVocabulary<TDescriptor,F>::loadFromTextFile(const std::string &fil
     return true;
 
 }
+
+
+template<class TDescriptor, class F>
+bool TemplatedVocabulary<TDescriptor, F>::loadFromTextFile2(const std::string &filename) {
+	const char * c = filename.c_str();
+
+	std::FILE *fp = std::fopen(c, "rb");
+	if (!fp) {
+		return false;
+	}
+
+	std::string content;
+	std::fseek(fp, 0, SEEK_END);
+	content.resize(std::ftell(fp));
+	std::rewind(fp);
+	std::fread(&content[0], 1, content.size(), fp);
+	std::fclose(fp);
+
+	char *string = strdup(content.c_str());
+	char *end_str;
+	char *token = strtok_s(string, "\n", &end_str);
+	int n1, n2;
+
+	std::vector<int> bagInfo;
+	bagInfo.reserve(4);
+	if (token != NULL) {
+		char *end_token;
+		char *token2 = strtok_s(token, " ", &end_token);
+		while (token2 != NULL) {
+			bagInfo.push_back(atoi(token2));
+			token2 = strtok_s(NULL, " ", &end_token);
+		}
+		token = strtok_s(NULL, "\n", &end_str);
+	}
+	m_k = bagInfo[0];
+	m_L = bagInfo[1];
+	n1 = bagInfo[2];
+	n2 = bagInfo[3];
+
+	// Check bow tree values
+	if (m_k<0 || m_k>20 || m_L<1 || m_L>10 || n1<0 || n1>5 || n2<0 || n2>3) {
+		std::cerr << "Vocabulary loading failure: This is not a correct text file!" << endl;
+		return false;
+	}
+
+	// Create scoring object
+	m_scoring = (ScoringType)n1;
+	m_weighting = (WeightingType)n2;
+	createScoringObject();
+
+	// Expected nodes
+	int expected_nodes = (int)((pow((double)m_k, (double)m_L + 1) - 1) / (m_k - 1));
+
+	// Create tree structure, allocate space
+	m_nodes.reserve(expected_nodes);
+	m_words.reserve(pow((double)m_k, (double)m_L + 1));
+	m_nodes.resize(1);
+	m_nodes[0].id = 0;
+
+
+	int lineIndex = 0;
+	int proc = 0;
+
+	while (token != NULL) {
+		lineIndex = 0;
+		char *end_token;
+
+		// Create needed variables
+		int pid = 0;
+		int nIsLeaf = 0;
+		double weight = 0;
+		int nid = m_nodes.size();
+
+		// Update tree structure
+		m_nodes.resize(m_nodes.size() + 1);
+		m_nodes[nid].id = nid;
+
+		// Create descriptor
+		m_nodes[nid].descriptor.create(1, 32, CV_8U);
+		unsigned char *p = m_nodes[nid].descriptor.ptr<unsigned char>();
+
+		// Iterate over tokens in one line
+		char *token2 = strtok_s(token, " ", &end_token);
+		while (token2 != NULL) {
+			if (lineIndex == 0) {
+				pid = atoi(token2);
+			} else if (lineIndex == 1) {
+				nIsLeaf = atoi(token2);
+			} else if (lineIndex > 1 && lineIndex < 34) {
+				*p = (unsigned char)(atoi(token2));
+				p++;
+			} else if (lineIndex == 34) {
+				weight = atof(token2);
+			}
+
+			// Do not edit below 
+			token2 = strtok_s(NULL, " ", &end_token);
+			lineIndex++;
+		}
+
+		m_nodes[nid].weight = weight;
+		m_nodes[nid].parent = pid;
+		m_nodes[pid].children.push_back(nid);
+
+		if (nIsLeaf>0) {
+			int wid = m_words.size();
+			m_words.resize(wid + 1);
+
+			m_nodes[nid].word_id = wid;
+			m_words[wid] = &m_nodes[nid];
+		} else {
+			m_nodes[nid].children.reserve(m_k);
+		}
+
+
+		// Do not edit below
+		token = strtok_s(NULL, "\n", &end_str);
+
+		proc++;
+		if (proc % (int)(expected_nodes / 10) == 0)
+			std::cout << (int)(proc / (expected_nodes / 10)) * 10 << "%.. ";
+	}
+	std::cout << "100%!" << std::endl;
+	return true;
+}
+
 
 // --------------------------------------------------------------------------
 

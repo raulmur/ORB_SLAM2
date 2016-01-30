@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 	std::string dataPath = "../data/";
 
 	std::string videoFile = dataPath + "ORBSLAM_Example_Video.mp4";
-	std::string voc = "../Vocabulary/ORBvoc.txt";
+	std::string voc = dataPath + "ORBvoc_new.txt";
 	std::string settings = dataPath + "Settings_Complete.yaml";
 
     // Retrieve paths to images
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 	ORB_SLAM2::System SLAM(voc, settings, ORB_SLAM2::System::MONOCULAR, true);
 
     // Vector for tracking time statistics
-    //vector<float> vTimesTrack;
+    vector<double> vTimesTrack;
     //vTimesTrack.resize(nImages);
 
     cout << endl << "-------" << endl;
@@ -87,24 +87,18 @@ int main(int argc, char **argv)
             return 1;
         }
 
-#ifdef COMPILEDWITHC11
-        std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-#else
-        std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
-#endif
+		double ttrack = (double)cv::getTickCount();
 
         // Pass the image to the SLAM system
         SLAM.TrackMonocular(im,tframe);
 
-#ifdef COMPILEDWITHC11
-        std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-#else
-        std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
-#endif
 
-        double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+		ttrack = 1000 * (((double)cv::getTickCount() - ttrack) / cv::getTickFrequency());
+		//printf("Total: %f\n", ttrack);
 
-        //vTimesTrack[ni]=ttrack;
+        //double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+		printf("TRACKED: %f\n", ttrack);
+        vTimesTrack.push_back(ttrack);
 
         /*// Wait to load the next frame
         double T=0;
@@ -123,18 +117,18 @@ int main(int argc, char **argv)
     SLAM.Shutdown();
 
     // Tracking time statistics
-    /*sort(vTimesTrack.begin(),vTimesTrack.end());
-    float totaltime = 0;
-    for(int ni=0; ni<nImages; ni++)
+    //sort(vTimesTrack.begin(),vTimesTrack.end());
+    double totaltime = 0;
+	for (int ni = 0; ni<vTimesTrack.size(); ni++)
     {
         totaltime+=vTimesTrack[ni];
     }
     cout << "-------" << endl << endl;
-    cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
-    cout << "mean tracking time: " << totaltime/nImages << endl;
+    //cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
+	cout << "mean tracking time: " << totaltime / ((double)vTimesTrack.size()) << endl;
 
     // Save camera trajectory
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");*/
+    //SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
 
     return 0;
 }
