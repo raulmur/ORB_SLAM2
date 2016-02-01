@@ -109,13 +109,6 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
         return;
     }
 
-    cout << cv_ptrD->image.rows << " x " << cv_ptrD->image.cols << ", type: " << cv_ptrD->image.type() << endl;
-    /*cv::imshow("rgb",cv_ptrRGB->image);
-    cv::imshow("depth",cv_ptrD->image);
-
-    cv::waitKey(20);*/
-
-
     mpSLAM->TrackRGBD(cv_ptrRGB->image,cv_ptrD->image,cv_ptrRGB->header.stamp.toSec());
 }
 
