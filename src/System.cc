@@ -24,6 +24,7 @@
 #include "Converter.h"
 #include <thread>
 #include <pangolin/pangolin.h>
+#include <iomanip>
 
 namespace ORB_SLAM2
 {
