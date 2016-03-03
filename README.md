@@ -29,7 +29,7 @@ The monocular capabilities of ORB-SLAM2 compared to [ORB-SLAM Monocular](https:/
 
 ORB-SLAM2 is released under a [GPLv3 license](https://github.com/raulmur/ORB_SLAM2/blob/master/License-gpl.txt). For a list of all code/library dependencies (and associated licenses), please see [Dependencies.md](https://github.com/raulmur/ORB_SLAM2/blob/master/Dependencies.md).
 
-For a closed-source version of ORB-SLAM2 for commercial purposes, please contact the authors. 
+For a closed-source version of ORB-SLAM2 for commercial purposes, please contact the authors: orbslam (at) unizar (dot) es.
 
 If you use ORB-SLAM2 in an academic work, please cite:
 
@@ -177,6 +177,3 @@ This is the default mode. The system runs in parallal three threads: Tracking, L
 ### Localization Mode
 This mode can be used when you have a good map of your working area. In this mode the Local Mapping and Loop Closing are deactivated. The system localizes the camera in the map (which is no longer updated), using relocalization if needed. 
 
-#10. Question/Comments
-
-You can use our email orbslam (at) unizar (dot) es.
