@@ -182,7 +182,7 @@ For a stereo input from topic `/camera/left/image_raw` and `/camera/right/image_
   rosbag play --pause V1_01_easy.bag /cam0/image_raw:=/camera/left/image_raw /cam1/image_raw:=/camera/right/image_raw
   ```
   
-Once ORB-SLAM2 has loaded the vocabulary, press space in the rosbag tab. Enjoy! (a powerful computer is requires to run the most exigent sequences of this dataset).
+Once ORB-SLAM2 has loaded the vocabulary, press space in the rosbag tab. Enjoy!. Note: a powerful computer is required to run the most exigent sequences of this dataset.
 
 ### Running RGB_D Node
 For an RGB-D input from topics `/camera/rgb/image_raw` and `/camera/depth_registered/image_raw`, run node ORB_SLAM2/RGBD. You will need to provide the vocabulary file and a settings file. See the RGB-D example above.
