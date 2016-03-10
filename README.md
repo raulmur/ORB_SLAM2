@@ -15,6 +15,12 @@ alt="KITTI Dataset" width="240" height="180" border="10" /></a>
 <a href="http://www.youtube.com/watch?feature=player_embedded&v=LnbAI-o7YHk
 " target="_blank"><img src="http://img.youtube.com/vi/LnbAI-o7YHk/0.jpg" 
 alt="TUM RGBD Dataset" width="240" height="180" border="10" /></a>
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=MUyNOEICrf8
+" target="_blank"><img src="http://img.youtube.com/vi/MUyNOEICrf8/0.jpg" 
+alt="EuRoC Dataset (V1_02, V1_03)" width="240" height="180" border="10" /></a>
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=xXt90wZejwk
+" target="_blank"><img src="http://img.youtube.com/vi/xXt90wZejwk/0.jpg" 
+alt="EuRoC Dataset (V1_02, V1_03)" width="240" height="180" border="10" /></a>
 
 **Notice for ORB-SLAM Monocular users:**
 The monocular capabilities of ORB-SLAM2 compared to [ORB-SLAM Monocular](https://github.com/raulmur/ORB_SLAM) are similar. However in ORB-SLAM2 we apply a full bundle adjustment after a loop closure, the extraction of ORB is slightly different (trying to improve the dispersion on the image) and the tracking is also slightly faster. The GUI of ORB-SLAM2 also provides you new capabilities as the *modes* mentioned above and a reset button. We recommend you to try this new software :)
