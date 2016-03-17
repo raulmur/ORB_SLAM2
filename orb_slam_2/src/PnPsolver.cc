@@ -50,7 +50,7 @@
 
 #include <iostream>
 
-#include "PnPsolver.h"
+#include "ORB_SLAM2/PnPsolver.h"
 
 #include <vector>
 #include <cmath>

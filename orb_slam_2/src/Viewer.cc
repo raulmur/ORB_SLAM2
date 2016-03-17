@@ -18,7 +18,7 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Viewer.h"
+#include "ORB_SLAM2/Viewer.h"
 #include <pangolin/display/widgets/widgets.h>
 #include <pangolin/pangolin.h>
 

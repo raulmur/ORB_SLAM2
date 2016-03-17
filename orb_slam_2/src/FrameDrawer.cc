@@ -18,9 +18,9 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "FrameDrawer.h"
-#include "MapBase.h"
-#include "Tracking.h"
+#include "ORB_SLAM2/FrameDrawer.h"
+#include "ORB_SLAM2/MapBase.h"
+#include "ORB_SLAM2/Tracking.h"
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>

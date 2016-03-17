@@ -18,7 +18,7 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Optimizer.h"
+#include "ORB_SLAM2/Optimizer.h"
 
 #include "g2o/core/block_solver.h"
 #include "g2o/core/optimization_algorithm_levenberg.h"
@@ -30,8 +30,8 @@
 
 #include<Eigen/StdVector>
 
-#include "Converter.h"
-#include "MapBase.h"
+#include "ORB_SLAM2/Converter.h"
+#include "ORB_SLAM2/MapBase.h"
 
 #include<mutex>
 

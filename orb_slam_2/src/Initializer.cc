@@ -18,12 +18,12 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Initializer.h"
+#include "ORB_SLAM2/Initializer.h"
 
 #include "DUtils/Random.h"
 
-#include "Optimizer.h"
-#include "ORBmatcher.h"
+#include "ORB_SLAM2/Optimizer.h"
+#include "ORB_SLAM2/ORBmatcher.h"
 
 #include<thread>
 

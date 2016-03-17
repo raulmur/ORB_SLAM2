@@ -18,17 +18,17 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "LoopClosing.h"
+#include "ORB_SLAM2/LoopClosing.h"
 
-#include "Sim3Solver.h"
+#include "ORB_SLAM2/Sim3Solver.h"
 
-#include "Converter.h"
+#include "ORB_SLAM2/Converter.h"
 
-#include "Optimizer.h"
+#include "ORB_SLAM2/Optimizer.h"
 
-#include "MapBase.h"
+#include "ORB_SLAM2/MapBase.h"
 
-#include "ORBmatcher.h"
+#include "ORB_SLAM2/ORBmatcher.h"
 
 #include<mutex>
 #include<thread>

@@ -19,9 +19,9 @@
 */
 
 
-#include "System.h"
-#include "Converter.h"
-#include "Map.h"
+#include "ORB_SLAM2/System.h"
+#include "ORB_SLAM2/Converter.h"
+#include "ORB_SLAM2/Map.h"
 #include <thread>
 #include <pangolin/pangolin.h>
 #include <iomanip>
