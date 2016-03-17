@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>g2o</name>
+  <version>0.0.0</version>
+  <description>
+    g2o, as modified by ORB SLAM
+  </description>
+
+  <author>Titus Cieslewski</author>
+  <maintainer email="titus@ifi.uzh.ch">Titus Cieslewski</maintainer>
+  <license>See LICENSE.txt</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_simple</buildtool_depend>
+  
+  <depend>eigen_catkin</depend>
+</package>

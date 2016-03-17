@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>orb_slam_2</name>
+  <version>0.0.0</version>
+  <description>
+    ORB SLAM 2 fork
+  </description>
+
+  <author>Titus Cieslewski</author>
+  <maintainer email="titus@ifi.uzh.ch">Titus Cieslewski</maintainer>
+  <license>See LICENSE.txt</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_simple</buildtool_depend>
+
+  <depend>cv_bridge</depend>
+  <depend>dbow2</depend>
+  <depend>eigen_catkin</depend>
+  <depend>g2o</depend>
+  <depend>image_transport</depend>
+  <depend>pangolin_catkin</depend>
+  <depend>roscpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>tf</depend>
+</package>
