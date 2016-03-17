@@ -27,7 +27,6 @@
 
 #include"Viewer.h"
 #include"FrameDrawer.h"
-#include"Map.h"
 #include"LocalMapping.h"
 #include"LoopClosing.h"
 #include"Frame.h"
@@ -45,7 +44,7 @@ namespace ORB_SLAM2
 
 class Viewer;
 class FrameDrawer;
-class Map;
+class MapBase;
 class LocalMapping;
 class LoopClosing;
 class System;
@@ -54,7 +53,7 @@ class Tracking
 {  
 
 public:
-    Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
+    Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, MapBase* pMap,
              KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor);
 
     // Preprocess the input and call Track(). Extract features and performs stereo matching.
@@ -179,7 +178,7 @@ protected:
     MapDrawer* mpMapDrawer;
 
     //Map
-    Map* mpMap;
+    MapBase* mpMap;
 
     //Calibration matrix
     cv::Mat mK;

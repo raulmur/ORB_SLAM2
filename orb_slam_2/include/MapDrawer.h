@@ -21,7 +21,6 @@
 #ifndef MAPDRAWER_H
 #define MAPDRAWER_H
 
-#include"Map.h"
 #include"MapPoint.h"
 #include"KeyFrame.h"
 #include<pangolin/pangolin.h>
@@ -30,13 +29,14 @@
 
 namespace ORB_SLAM2
 {
+class MapBase;
 
 class MapDrawer
 {
 public:
-    MapDrawer(Map* pMap, const string &strSettingPath);
+    MapDrawer(MapBase* pMap, const string &strSettingPath);
 
-    Map* mpMap;
+    MapBase* mpMap;
 
     void DrawMapPoints();
     void DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph);

@@ -19,9 +19,9 @@
 */
 
 
-
 #include "System.h"
 #include "Converter.h"
+#include "Map.h"
 #include <thread>
 #include <pangolin/pangolin.h>
 #include <iomanip>
@@ -29,9 +29,14 @@
 namespace ORB_SLAM2
 {
 
-System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
-               const bool bUseViewer):mSensor(sensor),mbReset(false),mbActivateLocalizationMode(false),
-        mbDeactivateLocalizationMode(false)
+System::System(const string &strVocFile, const string &strSettingsFile,
+               const eSensor sensor, const bool bUseViewer)
+: System(strVocFile, strSettingsFile, sensor, bUseViewer, new Map) {}
+
+System::System(const string &strVocFile, const string &strSettingsFile,
+               const eSensor sensor, const bool bUseViewer, MapBase* map)
+: mSensor(sensor),mbReset(false),mbActivateLocalizationMode(false),
+  mbDeactivateLocalizationMode(false), mpMap(map)
 {
     // Output welcome message
     cout << endl <<

@@ -23,7 +23,6 @@
 
 #include"KeyFrame.h"
 #include"Frame.h"
-#include"Map.h"
 
 #include<opencv2/core/core.hpp>
 #include<mutex>
@@ -32,15 +31,15 @@ namespace ORB_SLAM2
 {
 
 class KeyFrame;
-class Map;
+class MapBase;
 class Frame;
 
 
 class MapPoint
 {
 public:
-    MapPoint(const cv::Mat &Pos, KeyFrame* pRefKF, Map* pMap);
-    MapPoint(const cv::Mat &Pos,  Map* pMap, Frame* pFrame, const int &idxF);
+    MapPoint(const cv::Mat &Pos, KeyFrame* pRefKF, MapBase* pMap);
+    MapPoint(const cv::Mat &Pos,  MapBase* pMap, Frame* pFrame, const int &idxF);
 
     void SetWorldPos(const cv::Mat &Pos);
     cv::Mat GetWorldPos();
@@ -140,7 +139,7 @@ protected:
      float mfMinDistance;
      float mfMaxDistance;
 
-     Map* mpMap;
+     MapBase* mpMap;
 
      std::mutex mMutexPos;
      std::mutex mMutexFeatures;

@@ -35,7 +35,7 @@
 namespace ORB_SLAM2
 {
 
-class Map;
+class MapBase;
 class MapPoint;
 class Frame;
 class KeyFrameDatabase;
@@ -43,7 +43,7 @@ class KeyFrameDatabase;
 class KeyFrame
 {
 public:
-    KeyFrame(Frame &F, Map* pMap, KeyFrameDatabase* pKFDB);
+    KeyFrame(Frame &F, MapBase* pMap, KeyFrameDatabase* pKFDB);
 
     // Pose functions
     void SetPose(const cv::Mat &Tcw);
@@ -226,7 +226,7 @@ protected:
 
     float mHalfBaseline; // Only for visualization
 
-    Map* mpMap;
+    MapBase* mpMap;
 
     std::mutex mMutexPose;
     std::mutex mMutexConnections;

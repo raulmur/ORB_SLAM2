@@ -22,7 +22,6 @@
 #define LOCALMAPPING_H
 
 #include "KeyFrame.h"
-#include "Map.h"
 #include "LoopClosing.h"
 #include "Tracking.h"
 #include "KeyFrameDatabase.h"
@@ -35,12 +34,12 @@ namespace ORB_SLAM2
 
 class Tracking;
 class LoopClosing;
-class Map;
+class MapBase;
 
 class LocalMapping
 {
 public:
-    LocalMapping(Map* pMap, const float bMonocular);
+    LocalMapping(MapBase* pMap, const float bMonocular);
 
     void SetLoopCloser(LoopClosing* pLoopCloser);
 
@@ -99,7 +98,7 @@ protected:
     bool mbFinished;
     std::mutex mMutexFinish;
 
-    Map* mpMap;
+    MapBase* mpMap;
 
     LoopClosing* mpLoopCloser;
     Tracking* mpTracker;

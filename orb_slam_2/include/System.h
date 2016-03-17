@@ -29,7 +29,6 @@
 #include "Tracking.h"
 #include "FrameDrawer.h"
 #include "MapDrawer.h"
-#include "Map.h"
 #include "LocalMapping.h"
 #include "LoopClosing.h"
 #include "KeyFrameDatabase.h"
@@ -41,7 +40,7 @@ namespace ORB_SLAM2
 
 class Viewer;
 class FrameDrawer;
-class Map;
+class MapBase;
 class Tracking;
 class LocalMapping;
 class LoopClosing;
@@ -60,6 +59,8 @@ public:
 
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
     System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true);
+    // Allows to pass custom map class.
+    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer, MapBase* map);
 
     // Proccess the given stereo frame. Images must be synchronized and rectified.
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
@@ -122,7 +123,7 @@ private:
     KeyFrameDatabase* mpKeyFrameDatabase;
 
     // Map structure that stores the pointers to all KeyFrames and MapPoints.
-    Map* mpMap;
+    MapBase* mpMap;
 
     // Tracker. It receives a frame and computes the associated camera pose.
     // It also decides when to insert a new keyframe, create some new MapPoints and

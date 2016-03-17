@@ -23,7 +23,6 @@
 
 #include "KeyFrame.h"
 #include "LocalMapping.h"
-#include "Map.h"
 #include "ORBVocabulary.h"
 #include "Tracking.h"
 
@@ -37,6 +36,7 @@ namespace ORB_SLAM2
 {
 
 class Tracking;
+class MapBase;
 class LocalMapping;
 class KeyFrameDatabase;
 
@@ -51,7 +51,7 @@ public:
 
 public:
 
-    LoopClosing(Map* pMap, KeyFrameDatabase* pDB, ORBVocabulary* pVoc,const bool bFixScale);
+    LoopClosing(MapBase* pMap, KeyFrameDatabase* pDB, ORBVocabulary* pVoc,const bool bFixScale);
 
     void SetTracker(Tracking* pTracker);
 
@@ -102,7 +102,7 @@ protected:
     bool mbFinished;
     std::mutex mMutexFinish;
 
-    Map* mpMap;
+    MapBase* mpMap;
     Tracking* mpTracker;
 
     KeyFrameDatabase* mpKeyFrameDB;

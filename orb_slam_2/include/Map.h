@@ -21,13 +21,12 @@
 #ifndef MAP_H
 #define MAP_H
 
+#include "MapBase.h"
 #include "MapPoint.h"
 #include "KeyFrame.h"
 #include <set>
 
 #include <mutex>
-
-
 
 namespace ORB_SLAM2
 {
@@ -35,34 +34,28 @@ namespace ORB_SLAM2
 class MapPoint;
 class KeyFrame;
 
-class Map
+class Map : public MapBase
 {
 public:
     Map();
 
-    void AddKeyFrame(KeyFrame* pKF);
-    void AddMapPoint(MapPoint* pMP);
-    void EraseMapPoint(MapPoint* pMP);
-    void EraseKeyFrame(KeyFrame* pKF);
-    void SetReferenceMapPoints(const std::vector<MapPoint*> &vpMPs);
+    virtual void AddKeyFrame(KeyFrame* pKF) override;
+    virtual void AddMapPoint(MapPoint* pMP) override;
+    virtual void EraseMapPoint(MapPoint* pMP) override;
+    virtual void EraseKeyFrame(KeyFrame* pKF) override;
+    virtual void SetReferenceMapPoints(
+        const std::vector<MapPoint*> &vpMPs) override;
 
-    std::vector<KeyFrame*> GetAllKeyFrames();
-    std::vector<MapPoint*> GetAllMapPoints();
-    std::vector<MapPoint*> GetReferenceMapPoints();
+    virtual std::vector<KeyFrame*> GetAllKeyFrames() override;
+    virtual std::vector<MapPoint*> GetAllMapPoints() override;
+    virtual std::vector<MapPoint*> GetReferenceMapPoints() override;
 
-    long unsigned int MapPointsInMap();
-    long unsigned  KeyFramesInMap();
+    virtual long unsigned int MapPointsInMap() override;
+    virtual long unsigned  KeyFramesInMap() override;
 
-    long unsigned int GetMaxKFid();
+    virtual long unsigned int GetMaxKFid() override;
 
-    void clear();
-
-    vector<KeyFrame*> mvpKeyFrameOrigins;
-
-    std::mutex mMutexMapUpdate;
-
-    // This avoid that two points are created simultaneously in separate threads (id conflict)
-    std::mutex mMutexPointCreation;
+    virtual void clear() override;
 
 protected:
     std::set<MapPoint*> mspMapPoints;
