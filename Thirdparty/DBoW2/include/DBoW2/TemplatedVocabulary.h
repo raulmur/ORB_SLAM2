@@ -18,7 +18,6 @@
 #define __D_T_TEMPLATED_VOCABULARY__
 
 #include <cassert>
-
 #include <vector>
 #include <numeric>
 #include <fstream>
@@ -27,11 +26,21 @@
 #include <opencv2/core/core.hpp>
 #include <limits>
 
+#include <boost/dynamic_bitset.hpp>
+#include <DUtils/DUtils.h>
+#include <glog/logging.h>
+#include <google/protobuf/io/coded_stream.h>
+#include <google/protobuf/io/zero_copy_stream_impl.h>
+
 #include "DBoW2/FeatureVector.h"
 #include "DBoW2/BowVector.h"
 #include "DBoW2/ScoringObject.h"
 
 #include "DUtils/Random.h"
+
+#include "node.pb.h"
+#include "vocabulary.pb.h"
+#include "word.pb.h"
 
 using namespace std;
 
@@ -265,6 +274,8 @@ public:
   virtual void save(cv::FileStorage &fs, 
     const std::string &name = "vocabulary") const;
   
+  void saveProto(const std::string& file_name) const;
+
   /**
    * Loads the vocabulary from a file storage node
    * @param fn first node
@@ -274,6 +285,8 @@ public:
   virtual void load(const cv::FileStorage &fs, 
     const std::string &name = "vocabulary");
   
+  void loadProto(const std::string& file_name);
+
   /** 
    * Stops those words whose weight is below minWeight.
    * Words are stopped by setting their weight to 0. There are not returned
@@ -1464,10 +1477,16 @@ void TemplatedVocabulary<TDescriptor,F>::save(const std::string &filename) const
 template<class TDescriptor, class F>
 void TemplatedVocabulary<TDescriptor,F>::load(const std::string &filename)
 {
-  cv::FileStorage fs(filename.c_str(), cv::FileStorage::READ);
-  if(!fs.isOpened()) throw string("Could not open file ") + filename;
-  
-  this->load(fs);
+  if (filename.substr(filename.size() - 6) == ".proto")
+  {
+    loadProto(filename);
+  }
+  else
+  {
+    cv::FileStorage fs(filename.c_str(), cv::FileStorage::READ);
+    CHECK(fs.isOpened());
+    this->load(fs);
+  }
 }
 
 // --------------------------------------------------------------------------

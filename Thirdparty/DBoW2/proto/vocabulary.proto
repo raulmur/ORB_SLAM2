@@ -1,0 +1,12 @@
+package DBoW2.proto;
+import "node.proto";
+import "word.proto";
+
+message Vocabulary {
+  optional int32 k = 1;
+  optional int32 l = 2;
+  optional int32 scoring_type = 3;
+  optional int32 weighting_type = 4;
+  repeated Node nodes = 5;
+  repeated Word words = 6;
+}
