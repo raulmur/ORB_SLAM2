@@ -47,7 +47,7 @@ public:
 
     // Pose functions
     void SetPose(const cv::Mat &Tcw);
-    cv::Mat GetPose();
+    cv::Mat GetPose() const;
     cv::Mat GetPoseInverse();
     cv::Mat GetCameraCenter();
     cv::Mat GetStereoCenter();
@@ -228,7 +228,7 @@ protected:
 
     MapBase* mpMap;
 
-    std::mutex mMutexPose;
+    mutable std::mutex mMutexPose;
     std::mutex mMutexConnections;
     std::mutex mMutexFeatures;
 };

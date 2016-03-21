@@ -84,7 +84,7 @@ void KeyFrame::SetPose(const cv::Mat &Tcw_)
     Cw = Twc*center;
 }
 
-cv::Mat KeyFrame::GetPose()
+cv::Mat KeyFrame::GetPose() const
 {
     unique_lock<mutex> lock(mMutexPose);
     return Tcw.clone();

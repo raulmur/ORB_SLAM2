@@ -78,7 +78,7 @@ void MapPoint::SetWorldPos(const cv::Mat &Pos)
     Pos.copyTo(mWorldPos);
 }
 
-cv::Mat MapPoint::GetWorldPos()
+cv::Mat MapPoint::GetWorldPos() const
 {
     unique_lock<mutex> lock(mMutexPos);
     return mWorldPos.clone();
@@ -137,7 +137,7 @@ void MapPoint::EraseObservation(KeyFrame* pKF)
         SetBadFlag();
 }
 
-map<KeyFrame*, size_t> MapPoint::GetObservations()
+map<KeyFrame*, size_t> MapPoint::GetObservations() const
 {
     unique_lock<mutex> lock(mMutexFeatures);
     return mObservations;

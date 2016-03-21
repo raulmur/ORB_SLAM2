@@ -42,12 +42,12 @@ public:
     MapPoint(const cv::Mat &Pos,  MapBase* pMap, Frame* pFrame, const int &idxF);
 
     void SetWorldPos(const cv::Mat &Pos);
-    cv::Mat GetWorldPos();
+    cv::Mat GetWorldPos() const;
 
     cv::Mat GetNormal();
     KeyFrame* GetReferenceKeyFrame();
 
-    std::map<KeyFrame*,size_t> GetObservations();
+    std::map<KeyFrame*,size_t> GetObservations() const;
     int Observations();
 
     void AddObservation(KeyFrame* pKF,size_t idx);
@@ -141,8 +141,8 @@ protected:
 
      MapBase* mpMap;
 
-     std::mutex mMutexPos;
-     std::mutex mMutexFeatures;
+     mutable std::mutex mMutexPos;
+     mutable std::mutex mMutexFeatures;
 };
 
 } //namespace ORB_SLAM
