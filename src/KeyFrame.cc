@@ -56,6 +56,728 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
     SetPose(F.mTcw);    
 }
 
+// Default serializing Constructor
+KeyFrame::KeyFrame():
+    mnFrameId(0),  mTimeStamp(0.0), mnGridCols(FRAME_GRID_COLS), mnGridRows(FRAME_GRID_ROWS),
+    mfGridElementWidthInv(0.0), mfGridElementHeightInv(0.0),
+    mnTrackReferenceForFrame(0), mnFuseTargetForKF(0), mnBALocalForKF(0), mnBAFixedForKF(0),
+    mnLoopQuery(0), mnLoopWords(0), mnRelocQuery(0), mnRelocWords(0), mnBAGlobalForKF(0),
+    fx(0.0), fy(0.0), cx(0.0), cy(0.0), invfx(0.0), invfy(0.0),
+    mbf(0.0), mb(0.0), mThDepth(0.0), N(0), mnScaleLevels(0), mfScaleFactor(0),
+    mfLogScaleFactor(0.0),
+    mnMinX(0), mnMinY(0), mnMaxX(0),
+    mnMaxY(0)
+{
+#if 0
+    mnId=nNextId++;
+
+    mGrid.resize(mnGridCols);
+    for(int i=0; i<mnGridCols;i++)
+    {
+        mGrid[i].resize(mnGridRows);
+        for(int j=0; j<mnGridRows; j++)
+            mGrid[i][j] = F.mGrid[i][j];
+    }
+
+    SetPose(F.mTcw);    
+#endif
+}
+
+template<class Archive>
+    void KeyFrame::save(Archive & ar, const unsigned int version) const
+    {
+        int nItems;bool is_id;bool has_parent = false;
+        long unsigned int t_nId;
+        //int ordered_weight;
+        ar & nNextId;
+        int ConKfWeight;
+        
+        //if (mbToBeErased)
+            //return;
+        //if (mbBad)
+            //return;
+        ar & const_cast<long unsigned int &> (mnId);
+        ar & const_cast<long unsigned int &> (mnFrameId);
+        ar & const_cast<double &> (mTimeStamp);
+        ar & const_cast<int &> (mnGridCols);
+        ar & const_cast<int &> (mnGridRows);
+        ar & const_cast<float &>  (mfGridElementWidthInv);
+        ar & const_cast<float &>  (mfGridElementHeightInv);
+        ar & const_cast<long unsigned int &> (mnTrackReferenceForFrame);
+        ar & const_cast<long unsigned int &> (mnFuseTargetForKF);
+        ar & const_cast<long unsigned int &> (mnBALocalForKF);
+        ar & const_cast<long unsigned int &> (mnBAFixedForKF);
+        ar & const_cast<long unsigned int &> (mnLoopQuery);
+        ar & const_cast<int &> (mnLoopWords);
+        ar & const_cast<float &> (mLoopScore);
+        ar & const_cast<long unsigned int &> (mnRelocQuery);
+        ar & const_cast<int &> (mnRelocWords);
+        ar & const_cast<float &> (mRelocScore);
+        ar & const_cast<cv::Mat &> (mTcwGBA);
+        ar & const_cast<cv::Mat &> (mTcwBefGBA);
+        ar & const_cast<long unsigned int &> (mnBAGlobalForKF);
+        ar & const_cast<float &> (fx);
+        ar & const_cast<float &> (fy);
+        ar & const_cast<float &> (cx);
+        ar & const_cast<float &> (cy);
+        ar & const_cast<float &> (invfx);
+        ar & const_cast<float &> (invfy);
+        ar & const_cast<float &> (mbf);
+        ar & const_cast<float &> (mb);
+        ar & const_cast<float &> (mThDepth);
+        ar & const_cast<int &> (N);
+        ar & const_cast<std::vector<cv::KeyPoint> &> (mvKeys);
+        ar & const_cast<std::vector<cv::KeyPoint> &> (mvKeysUn);
+        ar & const_cast<std::vector<float> &> (mvuRight);
+        ar & const_cast<std::vector<float> &> (mvDepth);
+        ar & const_cast<cv::Mat &> (mDescriptors);
+        ar & const_cast<cv::Mat &> (mTcp);
+        ar & const_cast<int &> (mnScaleLevels);
+        ar & const_cast<float &> (mfScaleFactor);
+        ar & const_cast<float &> (mfLogScaleFactor);
+        ar & const_cast<std::vector<float> &> (mvScaleFactors);
+        ar & const_cast<std::vector<float> &> (mvLevelSigma2);
+        ar & const_cast<std::vector<float> &> (mvInvLevelSigma2);
+
+        ar & const_cast<int &> (mnMinX);
+        ar & const_cast<int &> (mnMinY);
+        ar & const_cast<int &> (mnMaxX);
+        ar & const_cast<int &> (mnMaxY);
+        ar & const_cast<cv::Mat &> (mK);
+        ar & const_cast<cv::Mat &> (Tcw);
+        ar & const_cast<cv::Mat &> (Twc);
+        ar & const_cast<cv::Mat &> (Ow);
+        ar & const_cast<cv::Mat &> (Cw);
+        // Save each map point id
+        nItems = mvpMapPoints.size();
+        ar & nItems;
+        
+        //cout << "{INFO}mvpMapPoints nItems -" << nItems << endl;
+        for (std::vector<MapPoint*>::const_iterator it = mvpMapPoints.begin(); it != mvpMapPoints.end(); ++it) {        
+            if (*it == NULL)
+            {
+                is_id = false;
+                ar & is_id;
+                continue;
+            }
+            else
+            {
+                is_id = true;
+                ar & is_id;
+                t_nId =  (**it).mnId;
+                //cout << "[" << t_nId <<"]";
+
+                ar & t_nId;
+
+            }
+ 
+            
+        }
+
+        // Grid
+        ar & const_cast<std::vector< std::vector <std::vector<size_t> > > &> (mGrid);
+         nItems = mConnectedKeyFrameWeights.size();
+         ar & nItems;
+
+         for (std::map<KeyFrame*,int>::const_iterator it = mConnectedKeyFrameWeights.begin(); 
+                it != mConnectedKeyFrameWeights.end();
+                ++it) 
+         {        
+            if (it->first == NULL)
+            {
+                is_id = false;
+                ar & is_id;
+                continue;
+            }
+            else
+            {
+                is_id = true;
+                ar & is_id;
+                t_nId =  it->first->mnId;
+                ar & t_nId;
+                ConKfWeight = it->second;
+                ar & ConKfWeight;
+            }
+         }
+         // Save each mvpOrderedConnectedKeyFrames
+        nItems = mvpOrderedConnectedKeyFrames.size();
+        ar & nItems;
+        
+        for (std::vector<KeyFrame*>::const_iterator it = mvpOrderedConnectedKeyFrames.begin(); 
+                it != mvpOrderedConnectedKeyFrames.end(); 
+                ++it) {        
+            if (*it == NULL)
+            {
+                is_id = false;
+                ar & is_id;
+                continue;
+            }
+            else
+            {
+                is_id = true;
+                ar & is_id;
+                t_nId =  (**it).mnId;
+                ar & t_nId;
+            }            
+        }
+        // Save Each mvOrderedWeights
+#if 0
+        
+        nItems = mvOrderedWeights.size();
+        
+        ar & nItems;
+        
+        for (std::vector<int>::const_iterator it = mvOrderedWeights.begin(); 
+                it != mvOrderedWeights.end(); 
+                ++it) 
+        {        
+            ordered_weight =  (*it);
+            ar & ordered_weight;
+                    
+        }
+#endif
+        ar &  const_cast<std::vector<int> &>(mvOrderedWeights);
+
+        // Spanning Tree
+        ar & const_cast<bool &> (mbFirstConnection);
+        
+        if (mpParent)
+        {
+            has_parent = true;
+            ar & has_parent;
+            ar & mpParent->mnId;
+        }
+        else
+        {
+            has_parent = false;
+            ar & has_parent;
+            //ar & mpParent->mnId;
+        }
+        // Save each child Frame id
+        nItems = mspChildrens.size();
+        ar & nItems;
+            for (std::set<KeyFrame*>::const_iterator it = mspChildrens.begin(); it != mspChildrens.end(); ++it) {        
+            if (*it == NULL)
+            {
+                is_id = false;
+                ar & is_id;
+                continue;
+            }
+            else
+            {
+                is_id = true;
+                ar & is_id;
+                t_nId =  (**it).mnId;
+                //cout << "[" << t_nId <<"]";
+                ar & t_nId;
+            } 
+            
+        }
+        // Save each Loop Edge id
+        nItems = mspLoopEdges.size();
+        ar & nItems;
+            for (std::set<KeyFrame*>::const_iterator it = mspLoopEdges.begin(); it != mspLoopEdges.end(); ++it) {        
+            if (*it == NULL)
+            {
+                is_id = false;
+                ar & is_id;
+                continue;
+            }
+            else
+            {
+                is_id = true;
+                ar & is_id;
+                t_nId =  (**it).mnId;
+                //cout << "[" << t_nId <<"]";
+                ar & t_nId;
+            } 
+            
+        }
+
+        ar & const_cast<bool &> (mbNotErase);
+        ar & const_cast<bool &> (mbToBeErased);
+        ar & const_cast<bool &> (mbBad);
+        ar & const_cast<float &> (mHalfBaseline);
+        // cout << "{INFO}mvpMapPoints nItems fin"<< endl;
+        //cout << "Save Map :  KF stat is : " << endl;
+        //t_nId = has_parent?mpParent->mnId:0;
+        //cout << "KF mnId = " << mnId << " Parent ID " <<t_nId <<" mspLoopEdges.size() = " << nItems <<endl;
+
+       
+    }
+
+    template<class Archive>
+    void KeyFrame::load(Archive & ar, const unsigned int version)
+    {
+        id_map storer;
+        int nItems;bool is_id = false;
+        bool has_parent = false;
+        long unsigned int t_nId;
+        ar & nNextId;
+        ar & const_cast<long unsigned int &> (mnId);
+        int ConKfWeight = 0;
+        //cout << "{INFO}Keyframe Load - " << mnId << endl;
+
+        ar & const_cast<long unsigned int &> (mnFrameId);
+        ar & const_cast<double &> (mTimeStamp);
+        ar & const_cast<int &> (mnGridCols);
+        ar & const_cast<int &> (mnGridRows);
+        ar & const_cast<float &>  (mfGridElementWidthInv);
+        ar & const_cast<float &>  (mfGridElementHeightInv);
+        ar & const_cast<long unsigned int &> (mnTrackReferenceForFrame);
+        ar & const_cast<long unsigned int &> (mnFuseTargetForKF);
+        ar & const_cast<long unsigned int &> (mnBALocalForKF);
+        ar & const_cast<long unsigned int &> (mnBAFixedForKF);
+        ar & const_cast<long unsigned int &> (mnLoopQuery);
+        ar & const_cast<int &> (mnLoopWords);
+        ar & const_cast<float &> (mLoopScore);
+        ar & const_cast<long unsigned int &> (mnRelocQuery);
+        ar & const_cast<int &> (mnRelocWords);
+        ar & const_cast<float &> (mRelocScore);
+        ar & const_cast<cv::Mat &> (mTcwGBA);
+        ar & const_cast<cv::Mat &> (mTcwBefGBA);
+        ar & const_cast<long unsigned int &> (mnBAGlobalForKF);
+        ar & const_cast<float &> (fx);
+        ar & const_cast<float &> (fy);
+        ar & const_cast<float &> (cx);
+        ar & const_cast<float &> (cy);
+        ar & const_cast<float &> (invfx);
+        ar & const_cast<float &> (invfy);
+        ar & const_cast<float &> (mbf);
+        ar & const_cast<float &> (mb);
+        ar & const_cast<float &> (mThDepth);
+        ar & const_cast<int &> (N);
+        ar & const_cast<std::vector<cv::KeyPoint> &> (mvKeys);
+        ar & const_cast<std::vector<cv::KeyPoint> &> (mvKeysUn);
+        ar & const_cast<std::vector<float> &> (mvuRight);
+        ar & const_cast<std::vector<float> &> (mvDepth);
+        ar & const_cast<cv::Mat &> (mDescriptors);
+        ar & const_cast<cv::Mat &> (mTcp);
+        ar & const_cast<int &> (mnScaleLevels);
+        ar & const_cast<float &> (mfScaleFactor);
+        ar & const_cast<float &> (mfLogScaleFactor);
+        ar & const_cast<std::vector<float> &> (mvScaleFactors);
+        ar & const_cast<std::vector<float> &> (mvLevelSigma2);
+        ar & const_cast<std::vector<float> &> (mvInvLevelSigma2);
+
+        ar & const_cast<int &> (mnMinX);
+        ar & const_cast<int &> (mnMinY);
+        ar & const_cast<int &> (mnMaxX);
+        ar & const_cast<int &> (mnMaxY);
+        ar & const_cast<cv::Mat &> (mK);
+        ar & const_cast<cv::Mat &> (Tcw);
+        ar & const_cast<cv::Mat &> (Twc);
+        ar & const_cast<cv::Mat &> (Ow);
+        ar & const_cast<cv::Mat &> (Cw);
+        // Load each map point id
+        ar & nItems;
+        mvpMapPoints.resize(nItems);
+        //mmMapPoints_nId.resize(nItems);
+        int j=0;
+        for (int i = 0; i < nItems; ++i) { 
+
+            ar & is_id;
+            if (is_id)
+            {
+                j++;
+                ar & t_nId;
+                storer.is_valid = true;
+                storer.id= t_nId;
+                mmMapPoints_nId[i] = storer;
+            }
+            else
+            {
+                storer.is_valid = false;
+                storer.id= 0;
+                mmMapPoints_nId[i] = storer;
+            }
+        }
+        
+        //cout << "KF " << mnId <<" valid points = " << j << "invalid points = " << (nItems - j) << endl;
+        // Grid
+        ar & const_cast<std::vector< std::vector <std::vector<size_t> > > &> (mGrid);
+
+        ar & nItems;
+        //mConnectedKeyFrameWeights_nId.resize(nItems);
+       //mConnectedKeyFrameWeights.resize(nItems);
+        for (int i = 0; i < nItems; ++i) { 
+
+            ar & is_id;
+            if (is_id)
+            {
+                ar & t_nId;
+                ar & ConKfWeight;
+                mConnectedKeyFrameWeights_nId[t_nId] = ConKfWeight;
+            }
+            else
+            {
+
+            }
+        }
+
+         // Load each mvpOrderedConnectedKeyFrames id
+        ar & nItems;
+        j = 0;
+        //mvpOrderedConnectedKeyFrames.resize(nItems);
+        //mvpOrderedConnectedKeyFrames_nId.resize(nItems);
+        for (int i = 0; i < nItems; ++i) {
+            ar & is_id;
+            if (is_id)
+            {
+                j++;
+                ar & t_nId;
+                storer.is_valid = true;
+                storer.id= t_nId;
+                mvpOrderedConnectedKeyFrames_nId[i] = storer;
+            }
+            else
+            {
+                storer.is_valid = false;
+                storer.id= 0;
+                mvpOrderedConnectedKeyFrames_nId[i] = storer;
+            }
+        }
+        // Load each mvOrderedWeights
+        ar & const_cast<std::vector<int> &>(mvOrderedWeights);
+
+        ar & const_cast<bool &> (mbFirstConnection);
+        
+        // Spanning Tree    
+        ar & has_parent;
+        if (has_parent)
+        {
+            mparent_KfId_map.is_valid = true;
+            ar & mparent_KfId_map.id;      
+        }
+        else
+        {
+            mparent_KfId_map.is_valid = false; 
+            mparent_KfId_map.id = 0;
+        }
+        // load each child Frame id
+        ar & nItems;
+        //mspChildrens.resize(nItems);
+        //mmChildrens_nId.resize(nItems);
+
+       for (int i = 0; i < nItems; ++i) { 
+
+            ar & is_id;
+            if (is_id)
+            {
+                ar & t_nId;
+                storer.is_valid = true;
+                storer.id= t_nId;
+                mmChildrens_nId[i] = storer;
+            }
+            else
+            {
+                storer.is_valid = false;
+                storer.id= 0;
+                mmChildrens_nId[i] = storer;
+            }
+        }
+
+        // Load each Loop Edge Frame id
+        ar & nItems;
+        //mspLoopEdges.resize(nItems);
+        //mmLoopEdges_nId.resize(nItems);
+
+       for (int i = 0; i < nItems; ++i) { 
+
+            ar & is_id;
+            if (is_id)
+            {
+                ar & t_nId;
+                storer.is_valid = true;
+                storer.id= t_nId;
+                mmLoopEdges_nId[i] = storer;
+            }
+            else
+            {
+                storer.is_valid = false;
+                storer.id= 0;
+                mmLoopEdges_nId[i] = storer;
+            }
+        }
+
+        ar & const_cast<bool &> (mbNotErase);
+        ar & const_cast<bool &> (mbToBeErased);
+        ar & const_cast<bool &> (mbBad);
+        ar & const_cast<float &> (mHalfBaseline);
+        //cout << "Load Map :  KF stat is : " << endl;
+        //cout << "KF mnId = " << mnId << " Parent ID " <<mparent_KfId_map.id <<" mspLoopEdges.size() = " << nItems <<endl;
+
+    }
+
+
+// Explicit template instantiation
+template void KeyFrame::save<boost::archive::binary_oarchive>(
+    boost::archive::binary_oarchive &, 
+    const unsigned int) const;
+template void KeyFrame::save<boost::archive::binary_iarchive>(
+    boost::archive::binary_iarchive &, 
+    const unsigned int) const;
+template void KeyFrame::load<boost::archive::binary_oarchive>(
+    boost::archive::binary_oarchive &, 
+    const unsigned int);
+template void KeyFrame::load<boost::archive::binary_iarchive>(
+    boost::archive::binary_iarchive &, 
+    const unsigned int);
+
+void KeyFrame::SetMapPoints(std::vector<MapPoint*> spMapPoints)
+{
+    // We assume the mvpMapPoints_nId list has been initialized and contains the Map point IDS
+    // With nid, Search the KetFrame List and populate mvpMapPoints
+    long unsigned int id;
+    bool is_valid = false;
+    bool mapp_found = false;
+
+    int j = 0, ctr = 0;
+    for (std::map<long unsigned int,id_map>::iterator it = mmMapPoints_nId.begin(); 
+            it != mmMapPoints_nId.end(); 
+            j++,++it) 
+    {
+        is_valid = it->second.is_valid; 
+        if (!is_valid)  
+        {
+            //j--; 
+            //continue;
+            mvpMapPoints[j] = static_cast<MapPoint*>(NULL);
+        }
+        else
+        {
+            id = it->second.id;  
+            //cout << "pushing a map point to mvp mappoint" << endl;
+            mapp_found = false;
+            for(std::vector<MapPoint*>::iterator mit=spMapPoints.begin(); mit !=spMapPoints.end(); mit++)
+            {
+                MapPoint* pMp = *mit;
+               
+                if(id == pMp->mnId)
+                {    
+                    ctr ++;
+                    mvpMapPoints[j] = pMp;
+                    mapp_found = true;
+                    break;
+                }
+            }
+            if (mapp_found == false)
+            {
+                cout << " map point [" << id <<"] not found in KF " << mnId << endl;
+                mvpMapPoints[j] = static_cast<MapPoint*>(NULL);
+            }
+
+        }
+
+    }
+}
+
+void KeyFrame::SetSpanningTree(std::vector<KeyFrame*> vpKeyFrames)
+{
+    // We assume the mvpMapPoints_nId list has been initialized and contains the Map point IDS
+    // With nid, Search the KetFrame List and populate mvpMapPoints
+    long unsigned int id;
+    bool is_valid = false;
+    bool kf_found = false;
+
+    int j = 0, ctr = 0;
+    // Search Parent
+    if (mparent_KfId_map.is_valid)
+    {        
+        for(std::vector<KeyFrame*>::iterator mit=vpKeyFrames.begin(); mit !=vpKeyFrames.end(); mit++)
+        {
+            KeyFrame* pKf = *mit;
+            id = pKf->mnId;
+            //if (mnId == 10 && 964 == id)
+                 //cout << "[" << pMp->mnId <<"]";
+            if(id == mparent_KfId_map.id)
+            {    
+                ctr ++;
+                mpParent = pKf;
+                kf_found = true;
+                break;
+            }
+        }
+        if (kf_found == false)
+        {
+            cout << endl << "Parent KF [" << mparent_KfId_map.id <<"] not found for KF " << mnId << endl;
+            //mpParent = new KeyFrame();
+            //mpParent->mbBad = true;     
+            mpParent = static_cast<KeyFrame*>(NULL);             
+        }
+    }
+    // Search Child
+    kf_found = false;
+    j = 0; ctr = 0;
+    is_valid = false;
+    for (std::map<long unsigned int,id_map>::iterator it = mmChildrens_nId.begin(); 
+            it != mmChildrens_nId.end(); 
+            j++,++it) 
+    {
+        is_valid = it->second.is_valid;  
+        if (!is_valid) 
+        {
+            //j--;
+            continue;
+            //mspChildrens.insert(NULL);            
+        }  
+
+        else
+        {
+            id = it->second.id;  
+            
+            kf_found = false;
+            for(std::vector<KeyFrame*>::iterator mit=vpKeyFrames.begin(); mit !=vpKeyFrames.end(); mit++)
+            {
+                KeyFrame* pKf = *mit;
+                //if (mnId == 10 && 964 == id)
+                     //cout << "[" << pMp->mnId <<"]";
+                if(id == pKf->mnId)
+                {    
+                    ctr ++;
+                    mspChildrens.insert(pKf);
+                    kf_found = true;
+                    break;
+                }
+            }
+            if (kf_found == false)
+                cout << endl << "Child [" << id <<"] not found for KF " << mnId << endl;
+
+        }
+
+    }
+
+    // Search Loop Edges
+    kf_found = false;
+    j = 0; ctr = 0;
+    is_valid = false;
+    for (std::map<long unsigned int,id_map>::iterator it = mmLoopEdges_nId.begin(); 
+            it != mmLoopEdges_nId.end(); 
+            j++,++it) 
+    {
+        is_valid = it->second.is_valid;  
+
+
+        if (!is_valid) 
+        {
+            //j--;
+            continue;
+            //mspLoopEdges.insert(NULL);
+        }  
+            
+        else
+        {
+            id = it->second.id;  
+            
+            kf_found = false;
+            for(std::vector<KeyFrame*>::iterator mit=vpKeyFrames.begin(); mit !=vpKeyFrames.end(); mit++)
+            {
+                KeyFrame* pKf = *mit;
+              
+                if(id == pKf->mnId)
+                {    
+                    ctr ++;                    
+                    mspLoopEdges.insert(pKf);
+                    kf_found = true;
+                    break;
+                }
+            }
+            if (kf_found == false)
+                cout << endl << "Loop Edge [" << id <<"] not found for KF " << mnId << endl;
+
+        }
+
+    }
+
+}
+void KeyFrame::SetGridParams(std::vector<KeyFrame*> vpKeyFrames)
+{
+    long unsigned int id; int weight;  
+    bool Kf_found = false;  
+    //cout << "KF" << mnId <<" valid indexes-" << endl;
+    int j = 0; 
+    int ctr = 0;
+    bool is_valid = false;
+
+    
+    // Set up mConnectedKeyFrameWeights
+    for (map<long unsigned int, int>::iterator it = mConnectedKeyFrameWeights_nId.begin(); 
+            it != mConnectedKeyFrameWeights_nId.end(); 
+            j++,++it) 
+    {
+        id = it->first;
+        weight = it->second;        
+        {
+            
+            for(std::vector<KeyFrame*>::iterator mit=vpKeyFrames.begin(); mit !=vpKeyFrames.end(); mit++)
+            {
+                KeyFrame* pKf = *mit;
+               
+                if(id == pKf->mnId)
+                {   
+                    mConnectedKeyFrameWeights[pKf] = weight;
+                    break;
+                }
+            }
+            
+        }
+    }
+
+    // Set up mvpOrderedConnectedKeyFrames
+    j = 0;
+    for (std::map<long unsigned int,id_map>::iterator it = mvpOrderedConnectedKeyFrames_nId.begin(); 
+            it != mvpOrderedConnectedKeyFrames_nId.end(); 
+            ++it) 
+    {
+        is_valid = it->second.is_valid; 
+        if (!is_valid)  
+        {   
+            continue; 
+            ;//mvpOrderedConnectedKeyFrames[j] = NULL;
+        }
+        else
+        {
+            id = it->second.id;  
+            
+            Kf_found = false;
+            for(std::vector<KeyFrame*>::iterator mit=vpKeyFrames.begin(); mit !=vpKeyFrames.end(); mit++)
+            {
+                KeyFrame* pKf = *mit;
+
+                if(id == pKf->mnId)
+                {    
+                    ctr ++;
+                    mvpOrderedConnectedKeyFrames.push_back(pKf);
+                    Kf_found = true;
+                    break;
+                }
+            }
+            if (Kf_found == false)
+            {
+                //cout << "[" << id <<"] not found in KF " << mnId << endl;
+                
+            }
+
+        }
+
+    }
+}
+
+void KeyFrame::SetMap(Map* map)
+{
+    mpMap = map;   
+}
+
+void KeyFrame::SetKeyFrameDatabase(KeyFrameDatabase* pKeyFrameDB)
+{
+    mpKeyFrameDB = pKeyFrameDB;
+}
+
+void KeyFrame::SetORBvocabulary(ORBVocabulary* pORBvocabulary)
+{
+    mpORBvocabulary = pORBvocabulary;
+}
+
 void KeyFrame::ComputeBoW()
 {
     if(mBowVec.empty() || mFeatVec.empty())
@@ -106,7 +828,6 @@ cv::Mat KeyFrame::GetStereoCenter()
     unique_lock<mutex> lock(mMutexPose);
     return Cw.clone();
 }
-
 
 cv::Mat KeyFrame::GetRotation()
 {
@@ -452,6 +1173,7 @@ void KeyFrame::SetErase()
 
 void KeyFrame::SetBadFlag()
 {   
+  
     {
         unique_lock<mutex> lock(mMutexConnections);
         if(mnId==0)
@@ -478,7 +1200,8 @@ void KeyFrame::SetBadFlag()
 
         // Update Spanning Tree
         set<KeyFrame*> sParentCandidates;
-        sParentCandidates.insert(mpParent);
+        if(mpParent)
+            sParentCandidates.insert(mpParent);
 
         // Assign at each iteration one children with a parent (the pair with highest covisibility weight)
         // Include that children as new parent candidate for the rest
@@ -492,18 +1215,30 @@ void KeyFrame::SetBadFlag()
 
             for(set<KeyFrame*>::iterator sit=mspChildrens.begin(), send=mspChildrens.end(); sit!=send; sit++)
             {
+
                 KeyFrame* pKF = *sit;
+                if (!pKF)
+                    continue;
                 if(pKF->isBad())
                     continue;
+                
 
                 // Check if a parent candidate is connected to the keyframe
                 vector<KeyFrame*> vpConnected = pKF->GetVectorCovisibleKeyFrames();
+               
+
                 for(size_t i=0, iend=vpConnected.size(); i<iend; i++)
                 {
+                    
+
                     for(set<KeyFrame*>::iterator spcit=sParentCandidates.begin(), spcend=sParentCandidates.end(); spcit!=spcend; spcit++)
                     {
+                        
+
                         if(vpConnected[i]->mnId == (*spcit)->mnId)
                         {
+                            
+
                             int w = pKF->GetWeight(vpConnected[i]);
                             if(w>max)
                             {
@@ -519,6 +1254,8 @@ void KeyFrame::SetBadFlag()
 
             if(bContinue)
             {
+                
+
                 pC->ChangeParent(pP);
                 sParentCandidates.insert(pC);
                 mspChildrens.erase(pC);
@@ -531,11 +1268,16 @@ void KeyFrame::SetBadFlag()
         if(!mspChildrens.empty())
             for(set<KeyFrame*>::iterator sit=mspChildrens.begin(); sit!=mspChildrens.end(); sit++)
             {
-                (*sit)->ChangeParent(mpParent);
+                
+                if (mpParent)
+                    (*sit)->ChangeParent(mpParent);
             }
-
-        mpParent->EraseChild(this);
-        mTcp = Tcw*mpParent->GetPoseInverse();
+        if (mpParent)
+        {
+            mpParent->EraseChild(this);
+        
+            mTcp = Tcw*mpParent->GetPoseInverse();
+        }
         mbBad = true;
     }
 

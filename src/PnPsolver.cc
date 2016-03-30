@@ -206,6 +206,8 @@ cv::Mat PnPsolver::iterate(int nIterations, bool &bNoMore, vector<bool> &vbInlie
         // Check inliers
         CheckInliers();
 
+        //cout << "iterate: CP mnInliersi = " << mnInliersi << " mRansacMinInliers = "<< mRansacMinInliers << endl;
+
         if(mnInliersi>=mRansacMinInliers)
         {
             // If it is the best solution so far, save it
@@ -328,6 +330,7 @@ void PnPsolver::CheckInliers()
 
         if(error2<mvMaxError[i])
         {
+
             mvbInliersi[i]=true;
             mnInliersi++;
         }

@@ -809,6 +809,8 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
     for(size_t i=0, iend=vpKFs.size(); i<iend;i++)
     {
         KeyFrame* pKF = vpKFs[i];
+        if (!pKF)
+            continue;
         if(pKF->isBad())
             continue;
         g2o::VertexSim3Expmap* VSim3 = new g2o::VertexSim3Expmap();
@@ -919,6 +921,8 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
             e->setMeasurement(Sji);
 
             e->information() = matLambda;
+            //cout << "OptimizeEssentialGraph. nIDj = "<< nIDj << "nIDi =" << nIDi << endl;
+           
             optimizer.addEdge(e);
         }
 
@@ -944,6 +948,8 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
                 el->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(nIDi)));
                 el->setMeasurement(Sli);
                 el->information() = matLambda;
+                //cout << "OptimizeEssentialGraph. CP Loop" << endl;
+
                 optimizer.addEdge(el);
             }
         }
@@ -953,10 +959,14 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
         for(vector<KeyFrame*>::const_iterator vit=vpConnectedKFs.begin(); vit!=vpConnectedKFs.end(); vit++)
         {
             KeyFrame* pKFn = *vit;
-            if(pKFn && pKFn!=pParentKF && !pKF->hasChild(pKFn) && !sLoopEdges.count(pKFn))
+            //cout << "OptimizeEssentialGraph. Covisibility" << endl;
+
+            if(pParentKF && pKFn && pKFn!=pParentKF && !pKF->hasChild(pKFn) && !sLoopEdges.count(pKFn))
             {
+
                 if(!pKFn->isBad() && pKFn->mnId<pKF->mnId)
-                {
+                {                 
+
                     if(sInsertedEdges.count(make_pair(min(pKF->mnId,pKFn->mnId),max(pKF->mnId,pKFn->mnId))))
                         continue;
 
@@ -968,14 +978,19 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
                         Snw = itn->second;
                     else
                         Snw = vScw[pKFn->mnId];
+                  
 
                     g2o::Sim3 Sni = Snw * Swi;
 
                     g2o::EdgeSim3* en = new g2o::EdgeSim3();
+                    
+
                     en->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKFn->mnId)));
                     en->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(nIDi)));
                     en->setMeasurement(Sni);
                     en->information() = matLambda;
+                  
+
                     optimizer.addEdge(en);
                 }
             }
@@ -1025,7 +1040,10 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
         else
         {
             KeyFrame* pRefKF = pMP->GetReferenceKeyFrame();
-            nIDr = pRefKF->mnId;
+            if(pRefKF)
+                nIDr = pRefKF->mnId;
+            else
+                continue;
         }
 
 

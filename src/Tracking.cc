@@ -43,8 +43,8 @@ using namespace std;
 namespace ORB_SLAM2
 {
 
-Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor):
-    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(false), mbVO(false), mpORBVocabulary(pVoc),
+Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, const bool bReuse):
+    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bReuse), mbVO(false), mpORBVocabulary(pVoc),
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0)
 {
@@ -82,6 +82,11 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     if(fps==0)
         fps=30;
 
+    is_preloaded = bReuse;
+	if (is_preloaded)
+    {
+		mState = LOST;
+    }
     // Max/Min Frames to insert keyframes and to check relocalisation
     mMinFrames = 0;
     mMaxFrames = fps;
@@ -130,7 +135,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     cout << "- Scale Factor: " << fScaleFactor << endl;
     cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
     cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
-
+    cout << "- Reuse Map ?: " << is_preloaded << endl;
     if(sensor==System::STEREO || sensor==System::RGBD)
     {
         mThDepth = mbf*(float)fSettings["ThDepth"]/fx;
@@ -261,7 +266,34 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 
     Track();
 
-    return mCurrentFrame.mTcw.clone();
+    /* Do Pose calculation */
+    if(mState==OK && !mCurrentFrame.mTcw.empty() && mCurrentFrame.mpReferenceKF)    
+    {
+
+        vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+        sort(vpKFs.begin(),vpKFs.end(),KeyFrame::lId);
+
+        // Transform all keyframes so that the first keyframe is at the origin.
+        // After a loop closure the first keyframe might not be at the origin.
+
+        cv::Mat Two = vpKFs[0]->GetPoseInverse();
+
+        ORB_SLAM2::KeyFrame* pKF = mpReferenceKF;
+
+        cv::Mat Trw = cv::Mat::eye(4,4,CV_32F);
+        while(pKF->isBad())
+        {
+          //  cout << "bad parent" << endl;
+            Trw = Trw*pKF->mTcp;
+            pKF = pKF->GetParent();
+        }
+        Trw = Trw*pKF->GetPose()*Two; 
+        cv::Mat Tcr = mlRelativeFramePoses.back();
+        cv::Mat Tcw = Tcr*Trw;
+        return Tcw.clone();
+    }
+    else 
+        return mCurrentFrame.mTcw.clone();
 }
 
 void Tracking::Track()
@@ -278,6 +310,11 @@ void Tracking::Track()
 
     if(mState==NOT_INITIALIZED)
     {
+        if (is_preloaded)
+        {
+            mState = LOST;
+            return;
+        }
         if(mSensor==System::STEREO || mSensor==System::RGBD)
             StereoInitialization();
         else
@@ -486,7 +523,7 @@ void Tracking::Track()
     }
 
     // Store frame pose information to retrieve the complete camera trajectory afterwards.
-    if(!mCurrentFrame.mTcw.empty())
+    if(!mCurrentFrame.mTcw.empty() && mCurrentFrame.mpReferenceKF)
     {
         cv::Mat Tcr = mCurrentFrame.mTcw*mCurrentFrame.mpReferenceKF->GetPoseInverse();
         mlRelativeFramePoses.push_back(Tcr);
@@ -502,8 +539,13 @@ void Tracking::Track()
         mlFrameTimes.push_back(mlFrameTimes.back());
         mlbLost.push_back(mState==LOST);
     }
-
 }
+#if 0
+cv::Mat Tracking::getTransformData()
+{   
+        return mCurrentFrame.mTcw*mCurrentFrame.mpReferenceKF->GetPoseInverse();
+}
+#endif
 
 
 void Tracking::StereoInitialization()
@@ -583,12 +625,16 @@ void Tracking::MonocularInitialization()
 
             return;
         }
+		else
+    		cout << __FUNCTION__ << "The Key Frame-s points are less: " << mCurrentFrame.mvKeys.size() << endl;
     }
     else
     {
         // Try to initialize
         if((int)mCurrentFrame.mvKeys.size()<=100)
         {
+			
+    		//cout << __FUNCTION__ << "old.The Key Frame-s points are less: " << mCurrentFrame.mvKeys.size() << endl;
             delete mpInitializer;
             mpInitializer = static_cast<Initializer*>(NULL);
             fill(mvIniMatches.begin(),mvIniMatches.end(),-1);
@@ -602,6 +648,7 @@ void Tracking::MonocularInitialization()
         // Check if there are enough correspondences
         if(nmatches<100)
         {
+    		cout << __FUNCTION__ << "ORB extraction : No enough correspondesnces(<100) " << nmatches << endl;
             delete mpInitializer;
             mpInitializer = static_cast<Initializer*>(NULL);
             return;
@@ -636,6 +683,8 @@ void Tracking::MonocularInitialization()
 
 void Tracking::CreateInitialMapMonocular()
 {
+
+    cout << __FUNCTION__ << ": Starting Initial Map Creation..." << endl;
     // Create KeyFrames
     KeyFrame* pKFini = new KeyFrame(mInitialFrame,mpMap,mpKeyFrameDB);
     KeyFrame* pKFcur = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
@@ -691,7 +740,9 @@ void Tracking::CreateInitialMapMonocular()
 
     if(medianDepth<0 || pKFcur->TrackedMapPoints(1)<100)
     {
-        cout << "Wrong initialization, reseting..." << endl;
+        cout << "Wrong initialization, reseting... map points(100):" 
+		<< pKFcur->TrackedMapPoints(1) 
+		<< " medianDepth = " << medianDepth << endl;
         Reset();
         return;
     }
@@ -1355,6 +1406,7 @@ bool Tracking::Relocalization()
 {
     // Compute Bag of Words Vector
     mCurrentFrame.ComputeBoW();
+    //cout << "Relocalization Initiated" << endl;
 
     // Relocalization is performed when tracking is lost
     // Track Lost: Query KeyFrame Database for keyframe candidates for relocalisation
@@ -1363,7 +1415,10 @@ bool Tracking::Relocalization()
     if(vpCandidateKFs.empty())
         return false;
 
+
     const int nKFs = vpCandidateKFs.size();
+
+    //cout << "Relocalization: candidates =  " << nKFs  << endl;
 
     // We perform first an ORB matching with each candidate
     // If enough matches are found we setup a PnP solver
@@ -1380,6 +1435,8 @@ bool Tracking::Relocalization()
 
     int nCandidates=0;
 
+    
+
     for(int i=0; i<nKFs; i++)
     {
         KeyFrame* pKF = vpCandidateKFs[i];
@@ -1395,6 +1452,7 @@ bool Tracking::Relocalization()
             }
             else
             {
+
                 PnPsolver* pSolver = new PnPsolver(mCurrentFrame,vvpMapPointMatches[i]);
                 pSolver->SetRansacParameters(0.99,10,300,4,0.5,5.991);
                 vpPnPsolvers[i] = pSolver;
@@ -1403,6 +1461,7 @@ bool Tracking::Relocalization()
         }
     }
 
+
     // Alternatively perform some iterations of P4P RANSAC
     // Until we found a camera pose supported by enough inliers
     bool bMatch = false;
@@ -1410,6 +1469,7 @@ bool Tracking::Relocalization()
 
     while(nCandidates>0 && !bMatch)
     {
+
         for(int i=0; i<nKFs; i++)
         {
             if(vbDiscarded[i])
@@ -1462,6 +1522,8 @@ bool Tracking::Relocalization()
                 // If few inliers, search by projection in a coarse window and optimize again
                 if(nGood<50)
                 {
+                    //cout << "Relocalization:  inliers < 50 : nGood = " << nGood << endl;
+
                     int nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,10,100);
 
                     if(nadditional+nGood>=50)
@@ -1508,6 +1570,8 @@ bool Tracking::Relocalization()
     }
     else
     {
+        cout << "Relocated" << endl;
+
         mnLastRelocFrameId = mCurrentFrame.mnId;
         return true;
     }

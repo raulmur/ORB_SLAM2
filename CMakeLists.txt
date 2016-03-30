@@ -7,8 +7,8 @@ ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3 -march=native")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall -O0 -g  -march=native ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O0 -g -march=native")
 
 # Check C++11 or C++0x support
 include(CheckCXXCompilerFlag)
@@ -31,6 +31,10 @@ LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 find_package(OpenCV 2.4.3 REQUIRED)
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
+find_package(Boost  1.54.0  	     # Minimum or EXACT version e.g. 1.36.0
+  REQUIRED             					# Fail with error if Boost is not found
+  COMPONENTS serialization 				# Boost libraries by their canonical name
+  )          
 
 include_directories(
 ${PROJECT_SOURCE_DIR}
@@ -66,9 +70,10 @@ src/Viewer.cc
 target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
 ${EIGEN3_LIBS}
-${Pangolin_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
+${Pangolin_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+${Boost_LIBRARIES}
 )
 
 # Build examples
@@ -95,3 +100,8 @@ add_executable(mono_kitti
 Examples/Monocular/mono_kitti.cc)
 target_link_libraries(mono_kitti ${PROJECT_NAME})
 
+# Build tools
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/tools)
+add_executable(bin_vocabulary
+tools/bin_vocabulary.cc)
+target_link_libraries(bin_vocabulary ${PROJECT_NAME})

@@ -30,11 +30,86 @@ using namespace std;
 namespace ORB_SLAM2
 {
 
-KeyFrameDatabase::KeyFrameDatabase (const ORBVocabulary &voc):
+KeyFrameDatabase::KeyFrameDatabase (ORBVocabulary &voc):
     mpVoc(&voc)
 {
     mvInvertedFile.resize(voc.size());
 }
+
+void KeyFrameDatabase::set_vocab(ORBVocabulary *voc)
+{
+    mpVoc = voc;
+}
+template<class Archive>
+    void KeyFrameDatabase::save(Archive & ar, const unsigned int version) const
+    {
+        int nItems_a, nItems_b;
+        nItems_a = mvInvertedFile.size();
+        ar & nItems_a;
+        cout << "{INFO}Database elmnts = %d " << nItems_a << endl;
+
+        for (vector<list<KeyFrame*>>::const_iterator it = mvInvertedFile.begin(); it != mvInvertedFile.end(); ++it) {
+            nItems_b = (*it).size();
+            cout << "{INFO}kfs no elmnts = %d " << nItems_b << endl;
+
+            ar & nItems_b;
+            for (list<KeyFrame*>::const_iterator lit = (*it).begin(); lit != (*it).end(); ++lit) {
+                ar & ((**lit));
+            }
+        }
+        #if 0
+        std::for_each(mvInvertedFile.begin(), mvInvertedFile.end(), [&ar](list<KeyFrame*>* plKeyFrame) {
+
+            nItems_b = (*plKeyFrame).size();
+            ar & nItems_b;
+            std::for_each((*plKeyFrame).begin(), (*plKeyFrame).end(), [&ar](KeyFrame* pKeyFrame) {
+                ar & *pKeyFrame;
+            });
+
+
+            
+        });  
+        #endif      
+       
+    }
+
+    template<class Archive>
+    void KeyFrameDatabase::load(Archive & ar, const unsigned int version)
+    {
+        int nItems_a, nItems_b;
+        int j , i;
+        list<KeyFrame*> temp_list;
+        ar & nItems_a;
+         cout << "{INFO}Database elmnts = %d " << nItems_a << endl;
+
+        for (i = 0; i < nItems_a; ++i) {
+
+            ar & nItems_b;
+            cout << "{INFO}kfs no elmnts = %d " << nItems_b << endl;
+
+            for (j = 0; j < nItems_b; ++j) {
+                KeyFrame* pKeyFrame = new KeyFrame;
+                ar & *pKeyFrame;
+                temp_list.push_back(pKeyFrame);
+            }
+            mvInvertedFile.push_back(temp_list);
+        }       
+    }
+
+
+// Explicit template instantiation
+template void KeyFrameDatabase::save<boost::archive::binary_oarchive>(
+    boost::archive::binary_oarchive &, 
+    const unsigned int) const;
+template void KeyFrameDatabase::save<boost::archive::binary_iarchive>(
+    boost::archive::binary_iarchive &, 
+    const unsigned int) const;
+template void KeyFrameDatabase::load<boost::archive::binary_oarchive>(
+    boost::archive::binary_oarchive &, 
+    const unsigned int);
+template void KeyFrameDatabase::load<boost::archive::binary_iarchive>(
+    boost::archive::binary_iarchive &, 
+    const unsigned int);
 
 
 void KeyFrameDatabase::add(KeyFrame *pKF)
@@ -203,16 +278,21 @@ vector<KeyFrame*> KeyFrameDatabase::DetectRelocalizationCandidates(Frame *F)
     // Search all keyframes that share a word with current frame
     {
         unique_lock<mutex> lock(mMutex);
-
+        
         for(DBoW2::BowVector::const_iterator vit=F->mBowVec.begin(), vend=F->mBowVec.end(); vit != vend; vit++)
         {
+            
             list<KeyFrame*> &lKFs =   mvInvertedFile[vit->first];
 
             for(list<KeyFrame*>::iterator lit=lKFs.begin(), lend= lKFs.end(); lit!=lend; lit++)
             {
+               
+
                 KeyFrame* pKFi=*lit;
                 if(pKFi->mnRelocQuery!=F->mnId)
                 {
+                    
+
                     pKFi->mnRelocWords=0;
                     pKFi->mnRelocQuery=F->mnId;
                     lKFsSharingWords.push_back(pKFi);

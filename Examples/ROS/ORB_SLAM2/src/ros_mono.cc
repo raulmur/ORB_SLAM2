@@ -26,8 +26,12 @@
 
 #include<ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
+#include "geometry_msgs/PoseStamped.h"
+#include <tf/transform_broadcaster.h>
 
 #include<opencv2/core/core.hpp>
+#include "Converter.h"
+
 
 #include"../../../include/System.h"
 
@@ -40,15 +44,62 @@ public:
 
     void GrabImage(const sensor_msgs::ImageConstPtr& msg);
 
+    void PublishPose(cv::Mat Tcw);
+
     ORB_SLAM2::System* mpSLAM;
+    ros::Publisher* pPosPub;
+
 };
+
+//ros::Publisher pPosPub;
+
+void ImageGrabber::PublishPose(cv::Mat Tcw)
+{
+    geometry_msgs::PoseStamped poseMSG;
+    if(!Tcw.empty())
+    {
+
+        cv::Mat Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
+        cv::Mat twc = -Rwc*Tcw.rowRange(0,3).col(3);
+
+        vector<float> q = ORB_SLAM2::Converter::toQuaternion(Rwc);
+        
+    
+        /*
+            cv::Mat Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
+            cv::Mat twc = -Rwc*Tcw.rowRange(0,3).col(3);
+            tf::Matrix3x3 M(Rwc.at<float>(0,0),Rwc.at<float>(0,1),Rwc.at<float>(0,2),
+                            Rwc.at<float>(1,0),Rwc.at<float>(1,1),Rwc.at<float>(1,2),
+                            Rwc.at<float>(2,0),Rwc.at<float>(2,1),Rwc.at<float>(2,2));
+            tf::Vector3 V(twc.at<float>(0), twc.at<float>(1), twc.at<float>(2));
+
+            tf::Transform tfTcw(M,V);
+
+            //mTfBr.sendTransform(tf::StampedTransform(tfTcw,ros::Time::now(), "ORB_SLAM/World", "ORB_SLAM/Camera"));
+        */
+        poseMSG.pose.position.x = twc.at<float>(0);
+        poseMSG.pose.position.y = twc.at<float>(2);
+        poseMSG.pose.position.z = twc.at<float>(1);
+        poseMSG.pose.orientation.x = q[0];
+        poseMSG.pose.orientation.y = q[1];
+        poseMSG.pose.orientation.z = q[2];
+        poseMSG.pose.orientation.w = q[3];
+        poseMSG.header.frame_id = "VSLAM";
+        poseMSG.header.stamp = ros::Time::now();
+        //cout << "PublishPose position.x = " << poseMSG.pose.position.x << endl;
+
+        (pPosPub)->publish(poseMSG);
+
+        //mlbLost.push_back(mState==LOST);
+    }
+}
 
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "Mono");
     ros::start();
-
-    if(argc != 3)
+	bool bReuseMap = false;
+    if(argc < 4)
     {
         cerr << endl << "Usage: rosrun ORB_SLAM2 Mono path_to_vocabulary path_to_settings" << endl;        
         ros::shutdown();
@@ -56,21 +107,38 @@ int main(int argc, char **argv)
     }    
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
+	if (!strcmp(argv[3], "true"))
+    {
+		bReuseMap = true;
+	}
+   	ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true, bReuseMap);
+    
+    //if (bReuseMap)
+		//SLAM.LoadMap("Slam_Map.bin");
+    
+	ImageGrabber igb(&SLAM);
 
-    ImageGrabber igb(&SLAM);
 
     ros::NodeHandle nodeHandler;
     ros::Subscriber sub = nodeHandler.subscribe("/camera/image_raw", 1, &ImageGrabber::GrabImage,&igb);
+    // Pose broadcaster
+    //pPosPub = new ros::Publisher;
+    ros::Publisher PosPub = nodeHandler.advertise<geometry_msgs::PoseStamped>("ORB_SLAM/pose", 5);
+    
+        igb.pPosPub = &(PosPub);
 
     ros::spin();
 
     // Stop all threads
     SLAM.Shutdown();
 
+
+    // Save map
+    SLAM.SaveMap("Slam_latest_Map.bin");
+    
+
     // Save camera trajectory
     SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
-
     ros::shutdown();
 
     return 0;
@@ -90,7 +158,9 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         return;
     }
 
-    mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec());
+    cv::Mat Tcw= mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec());
+    PublishPose(Tcw);
+    //usleep(10000);
 }
 
 

@@ -113,10 +113,15 @@ bool Initializer::Initialize(const Frame &CurrentFrame, const vector<int> &vMatc
 
     // Try to reconstruct from homography or fundamental depending on the ratio (0.40-0.45)
     if(RH>0.40)
+	{
+    	//cout << __FUNCTION__ << " : Homography Mode Computing.." << endl;
         return ReconstructH(vbMatchesInliersH,H,mK,R21,t21,vP3D,vbTriangulated,1.0,50);
+	}
     else //if(pF_HF>0.6)
+	{	
+    	//cout << __FUNCTION__ << "Fundamental Mode Computing.." << endl;
         return ReconstructF(vbMatchesInliersF,F,mK,R21,t21,vP3D,vbTriangulated,1.0,50);
-
+	}
     return false;
 }
 
@@ -725,9 +730,15 @@ bool Initializer::ReconstructH(vector<bool> &vbMatchesInliers, cv::Mat &H21, cv:
         vP3D = bestP3D;
         vbTriangulated = bestTriangulated;
 
+   		//cout << __FUNCTION__ << " Homography Mode Parameters satisfies as " << endl
+		//<< secondBestGood << " < " << 0.75*bestGood << "\n" << bestParallax << " >= " << minParallax << "\n" 
+		//<< bestGood << " > " << minTriangulated << "\n" << bestGood << " > " << 0.9*N;
         return true;
     }
-
+	
+   	//cout << __FUNCTION__ << " Homography Mode Parameters should be " << endl
+	//	<< secondBestGood << " < " << 0.75*bestGood << "\n" << bestParallax << " >= " << minParallax << "\n" 
+	//	<< bestGood << " > " << minTriangulated << "\n" << bestGood << " > " << 0.9*N;
     return false;
 }
 

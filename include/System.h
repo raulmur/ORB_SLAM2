@@ -26,6 +26,12 @@
 #include<thread>
 #include<opencv2/core/core.hpp>
 
+#include <boost/serialization/serialization.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/serialization/list.hpp>
+#include <boost/serialization/vector.hpp>
+
 #include "Tracking.h"
 #include "FrameDrawer.h"
 #include "MapDrawer.h"
@@ -57,9 +63,11 @@ public:
     };
 
 public:
+	// Enable serialization
+	friend class boost::serialization::access;
 
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true);
+    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true, const bool reuse= false);
 
     // Proccess the given stereo frame. Images must be synchronized and rectified.
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
@@ -89,6 +97,14 @@ public:
     // It waits until all threads have finished.
     // This function must be called before saving the trajectory.
     void Shutdown();
+
+	// Save / Load the current map for Mono Execution
+	void SaveMap(const string &filename);
+	void LoadMap(const string &filename);
+
+	// Get map with tracked frames and points.
+	// Call first Shutdown()
+	//Map *GetMap();
 
     // Save camera trajectory in the TUM RGB-D dataset format.
     // Call first Shutdown()

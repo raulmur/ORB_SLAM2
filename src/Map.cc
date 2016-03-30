@@ -19,15 +19,114 @@
 */
 
 #include "Map.h"
-
+#define TEST_DATA 0xdeadbeef
 #include<mutex>
-
 namespace ORB_SLAM2
 {
 
 Map::Map():mnMaxKFid(0)
 {
 }
+
+template<class Archive>
+    void Map::save(Archive & ar, const unsigned int version) const
+    {
+        unsigned int test_data = TEST_DATA;
+        int nItems = mspMapPoints.size();
+        ar & nItems;
+        cout << "{INFO}mspMapPoints size = " << nItems << endl;
+
+        std::for_each(mspMapPoints.begin(), mspMapPoints.end(), [&ar](MapPoint* pMapPoint) {
+            ar & *pMapPoint;
+        });
+        
+        nItems = mspKeyFrames.size();
+        cout << "{INFO}mspKeyFrames size = " << nItems << endl;
+        ar & nItems;
+        std::for_each(mspKeyFrames.begin(), mspKeyFrames.end(), [&ar](KeyFrame* pKeyFrame) {
+            ar & *pKeyFrame;
+        });
+
+        nItems = mvpKeyFrameOrigins.size();
+        cout << "{INFO}mvpKeyFrameOrigins size = " << nItems << endl;
+        ar & nItems;
+        std::for_each(mvpKeyFrameOrigins.begin(), mvpKeyFrameOrigins.end(), [&ar](KeyFrame* pKeyFrameOrigin) {
+            ar & *pKeyFrameOrigin;
+        });
+        // Pertaining to map drawing
+        //nItems = mvpReferenceMapPoints.size();
+        //cout << "$${INFO}mvpReferenceMapPoints size = %d " << nItems << endl;
+        //ar & nItems;
+        //std::for_each(mvpReferenceMapPoints.begin(), mvpReferenceMapPoints.end(), [&ar](MapPoint* pMapPointReference) {
+        //    ar & *pMapPointReference;
+        //});
+        ar & const_cast<long unsigned int &> (mnMaxKFid);
+
+        ar & test_data;
+    }
+
+    template<class Archive>
+    void Map::load(Archive & ar, const unsigned int version)
+    {
+        unsigned int test_data;
+
+        int nItems;
+        ar & nItems;
+        cout << "{INFO}mspMapPoints size = " << nItems << endl;
+        
+        for (int i = 0; i < nItems; ++i) {
+            
+            MapPoint* pMapPoint = new MapPoint();
+            ar & *pMapPoint;
+            mspMapPoints.insert(pMapPoint);
+        }
+        
+        ar & nItems;
+        cout << "{INFO}mspKeyFrames size = " << nItems << endl;
+
+        for (int i = 0; i < nItems; ++i) {
+
+            KeyFrame* pKeyFrame = new KeyFrame;
+            ar & *pKeyFrame;
+            mspKeyFrames.insert(pKeyFrame);
+        }     
+          
+
+        ar & nItems;
+        cout << "{INFO}mvpKeyFrameOrigins size = " << nItems << endl;
+
+        for (int i = 0; i < nItems; ++i) {             
+
+            KeyFrame* pKeyFrame = new KeyFrame;
+            ar & *pKeyFrame;
+			/* TODO : VerifyHere*/
+            mvpKeyFrameOrigins.push_back(*mspKeyFrames.begin());
+        }     
+
+        ar & const_cast<long unsigned int &> (mnMaxKFid);
+
+        ar & test_data;
+        if (test_data == TEST_DATA)
+            cout <<">>Map Loading Validated as True" << endl;
+        else
+            cout <<"ERROR Map Loading Validated as False: Got -" << test_data << " :( Check Load Save sequence" << endl;
+
+    }
+
+
+// Explicit template instantiation
+template void Map::save<boost::archive::binary_oarchive>(
+	boost::archive::binary_oarchive &, 
+	const unsigned int) const;
+template void Map::save<boost::archive::binary_iarchive>(
+	boost::archive::binary_iarchive &, 
+	const unsigned int) const;
+template void Map::load<boost::archive::binary_oarchive>(
+	boost::archive::binary_oarchive &, 
+	const unsigned int);
+template void Map::load<boost::archive::binary_iarchive>(
+	boost::archive::binary_iarchive &, 
+	const unsigned int);
 
 void Map::AddKeyFrame(KeyFrame *pKF)
 {

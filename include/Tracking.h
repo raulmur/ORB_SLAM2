@@ -25,6 +25,7 @@
 #include<opencv2/core/core.hpp>
 #include<opencv2/features2d/features2d.hpp>
 
+
 #include"Viewer.h"
 #include"FrameDrawer.h"
 #include"Map.h"
@@ -55,7 +56,7 @@ class Tracking
 
 public:
     Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
-             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor);
+             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, const bool bReuse);
 
     // Preprocess the input and call Track(). Extract features and performs stereo matching.
     cv::Mat GrabImageStereo(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp);
@@ -212,8 +213,8 @@ protected:
 
     //Color order (true RGB, false BGR, ignored if grayscale)
     bool mbRGB;
-
     list<MapPoint*> mlpTemporalPoints;
+	bool is_preloaded;
 };
 
 } //namespace ORB_SLAM
