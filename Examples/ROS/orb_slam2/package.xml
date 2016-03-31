@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package>
+  <name>orb_slam2</name>
+  <version>1.0.0</version>
+  <description>The ORB_SLAM2 package</description>
+
+  <author>Raul Mur-Artal</author>
+  <license>GPLv3</license>
+  <maintainer email="raulmur@unizar.es">Raul Mur-Artal</maintainer>
+  <!--maintainer email="v.arribas.urjc@gmail.com">Victor Arribas</maintainer-->
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>cv_bridge</build_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>tf</build_depend>
+
+  <run_depend>cv_bridge</run_depend>
+  <run_depend>image_transport</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>tf</run_depend>
+
+</package>
