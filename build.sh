@@ -1,4 +1,4 @@
-[ -z "$MAKEFLAGS" ] && export MAKEFLAGS="-j"
+[ -n "$MAKEFLAGS" ] || export MAKEFLAGS="-j"
 
 echo "Configuring and building Thirdparty/DBoW2 ..."
 
