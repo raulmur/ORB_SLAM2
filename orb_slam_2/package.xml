@@ -17,6 +17,7 @@
   <depend>dbow2</depend>
   <depend>eigen_catkin</depend>
   <depend>g2o</depend>
+  <depend>glog_catkin</depend>
   <depend>image_transport</depend>
   <depend>pangolin_catkin</depend>
   <depend>roscpp</depend>

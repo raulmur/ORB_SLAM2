@@ -35,7 +35,7 @@
 #include"ORBextractor.h"
 #include "Initializer.h"
 #include "MapDrawer.h"
-#include "System.h"
+#include "Sensor.h"
 
 #include <mutex>
 
@@ -47,14 +47,14 @@ class FrameDrawer;
 class MapBase;
 class LocalMapping;
 class LoopClosing;
-class System;
+class SystemBase;
 
 class Tracking
 {  
 
 public:
-    Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, MapBase* pMap,
-             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor);
+    Tracking(SystemBase* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, MapBase* pMap,
+             KeyFrameDatabase* pKFDB, const string &strSettingPath, const Sensor sensor);
 
     // Preprocess the input and call Track(). Extract features and performs stereo matching.
     cv::Mat GrabImageStereo(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp);
@@ -89,7 +89,7 @@ public:
     eTrackingState mLastProcessedState;
 
     // Input sensor
-    int mSensor;
+    Sensor mSensor;
 
     // Current Frame
     Frame mCurrentFrame;
@@ -170,7 +170,7 @@ protected:
     std::vector<MapPoint*> mvpLocalMapPoints;
     
     // System
-    System* mpSystem;
+    SystemBase* mpSystem;
     
     //Drawers
     Viewer* mpViewer;
