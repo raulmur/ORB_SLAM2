@@ -22,8 +22,10 @@
 #ifndef TRACKING_H
 #define TRACKING_H
 
-#include<opencv2/core/core.hpp>
-#include<opencv2/features2d/features2d.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/features2d/features2d.hpp>
+
+#include <rpg_common/callback_host.h>
 
 #include"Viewer.h"
 #include"FrameDrawer.h"
@@ -49,7 +51,7 @@ class LocalMapping;
 class LoopClosing;
 class SystemBase;
 
-class Tracking
+class Tracking : public rpg_common::CallbackHost<const KeyFrame&>
 {  
 
 public:

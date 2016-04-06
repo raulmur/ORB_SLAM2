@@ -21,6 +21,7 @@
   <depend>image_transport</depend>
   <depend>pangolin_catkin</depend>
   <depend>roscpp</depend>
+  <depend>rpg_common</depend>
   <depend>sensor_msgs</depend>
   <depend>tf</depend>
 </package>

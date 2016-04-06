@@ -86,7 +86,7 @@ public:
     void EraseMapPointMatch(MapPoint* pMP);
     void ReplaceMapPointMatch(const size_t &idx, MapPoint* pMP);
     std::set<MapPoint*> GetMapPoints();
-    std::vector<MapPoint*> GetMapPointMatches();
+    std::vector<MapPoint*> GetMapPointMatches() const;
     int TrackedMapPoints(const int &minObs);
     MapPoint* GetMapPoint(const size_t &idx);
 
@@ -197,7 +197,7 @@ protected:
     cv::Mat Twc;
     cv::Mat Ow;
 
-    cv::Mat Cw; // Stereo middel point. Only for visualization
+    cv::Mat Cw; // Stereo middle point. Only for visualization
 
     // MapPoints associated to keypoints
     std::vector<MapPoint*> mvpMapPoints;
@@ -230,7 +230,7 @@ protected:
 
     mutable std::mutex mMutexPose;
     std::mutex mMutexConnections;
-    std::mutex mMutexFeatures;
+    mutable std::mutex mMutexFeatures;
 };
 
 } //namespace ORB_SLAM

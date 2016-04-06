@@ -1109,8 +1109,8 @@ void Tracking::CreateNewKeyFrame()
     if(!mpLocalMapper->SetNotStop(true))
         return;
 
-    // Assuming that the previous keyframe will not be modified much.
-
+    // Assuming that the previous keyframe will not be modified much afterwards.
+    triggerCallbacks(*mpReferenceKF);
 
     KeyFrame* pKF = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
 
