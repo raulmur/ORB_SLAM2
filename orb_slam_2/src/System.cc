@@ -17,24 +17,26 @@
 * You should have received a copy of the GNU General Public License
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
-
-
 #include "ORB_SLAM2/System.h"
+
+#include <thread>
+
+#include <glog/logging.h>
+#include <iomanip>
+#include <pangolin/pangolin.h>
+
 #include "ORB_SLAM2/Converter.h"
 #include "ORB_SLAM2/Map.h"
-#include <thread>
-#include <pangolin/pangolin.h>
-#include <iomanip>
 
 namespace ORB_SLAM2
 {
 
 System::System(const string &strVocFile, const string &strSettingsFile,
-               const eSensor sensor, const bool bUseViewer)
+               const Sensor sensor, const bool bUseViewer)
 : System(strVocFile, strSettingsFile, sensor, bUseViewer, new Map) {}
 
 System::System(const string &strVocFile, const string &strSettingsFile,
-               const eSensor sensor, const bool bUseViewer, MapBase* map)
+               const Sensor sensor, const bool bUseViewer, MapBase* map)
 : mSensor(sensor),mbReset(false),mbActivateLocalizationMode(false),
   mbDeactivateLocalizationMode(false), mpMap(map)
 {
@@ -47,12 +49,24 @@ System::System(const string &strVocFile, const string &strSettingsFile,
 
     cout << "Input sensor was set to: ";
 
-    if(mSensor==MONOCULAR)
+    switch (mSensor)
+    {
+      case Sensor::MONOCULAR:
+      {
         cout << "Monocular" << endl;
-    else if(mSensor==STEREO)
+        break;
+      }
+      case Sensor::STEREO:
+      {
         cout << "Stereo" << endl;
-    else if(mSensor==RGBD)
+        break;
+      }
+      case Sensor::RGBD:
+      {
         cout << "RGB-D" << endl;
+        break;
+      }
+    }
 
     //Check settings file
     cv::FileStorage fsSettings(strSettingsFile.c_str(), cv::FileStorage::READ);
@@ -82,11 +96,12 @@ System::System(const string &strVocFile, const string &strSettingsFile,
                              mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor);
 
     //Initialize the Local Mapping thread and launch
-    mpLocalMapper = new LocalMapping(mpMap, mSensor==MONOCULAR);
+    mpLocalMapper = new LocalMapping(mpMap, mSensor==Sensor::MONOCULAR);
     mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run,mpLocalMapper);
 
     //Initialize the Loop Closing thread and launch
-    mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDatabase, mpVocabulary, mSensor!=MONOCULAR);
+    mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDatabase, mpVocabulary,
+                                   mSensor!=Sensor::MONOCULAR);
     mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, mpLoopCloser);
 
     //Initialize the Viewer thread and launch
@@ -109,7 +124,7 @@ System::System(const string &strVocFile, const string &strSettingsFile,
 
 cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp)
 {
-    if(mSensor!=STEREO)
+    if(mSensor!=Sensor::STEREO)
     {
         cerr << "ERROR: you called TrackStereo but input sensor was not set to STEREO." << endl;
         exit(-1);
@@ -154,7 +169,7 @@ cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const
 
 cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const double &timestamp)
 {
-    if(mSensor!=RGBD)
+    if(mSensor!=Sensor::RGBD)
     {
         cerr << "ERROR: you called TrackRGBD but input sensor was not set to RGBD." << endl;
         exit(-1);
@@ -199,7 +214,7 @@ cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const doub
 
 cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
 {
-    if(mSensor!=MONOCULAR)
+    if(mSensor!=Sensor::MONOCULAR)
     {
         cerr << "ERROR: you called TrackMonocular but input sensor was not set to Monocular." << endl;
         exit(-1);
@@ -252,6 +267,15 @@ void System::DeactivateLocalizationMode()
 {
     unique_lock<mutex> lock(mMutexMode);
     mbDeactivateLocalizationMode = true;
+}
+
+void System::ShutDownLoopClosure()
+{
+  mpLoopCloser->RequestFinish();
+  while(!mpLoopCloser->isFinished())
+  {
+    usleep(5000);
+  }
 }
 
 void System::Reset()
@@ -416,6 +440,13 @@ void System::SaveTrajectoryKITTI(const string &filename)
     }
     f.close();
     cout << endl << "trajectory saved!" << endl;
+}
+
+void System::AttachCallbackToNewKeyframe(
+        const std::function<void(const KeyFrame&)>& callback)
+{
+  CHECK_NOTNULL(mpTracker);
+  mpTracker->addCallback(callback);
 }
 
 } //namespace ORB_SLAM

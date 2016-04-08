@@ -22,9 +22,10 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
-#include<string>
-#include<thread>
-#include<opencv2/core/core.hpp>
+#include <functional>
+#include <string>
+#include <thread>
+#include <opencv2/core/core.hpp>
 
 #include "Tracking.h"
 #include "FrameDrawer.h"
@@ -33,6 +34,8 @@
 #include "LoopClosing.h"
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
+#include "Sensor.h"
+#include "SystemBase.h"
 #include "Viewer.h"
 
 namespace ORB_SLAM2
@@ -45,22 +48,14 @@ class Tracking;
 class LocalMapping;
 class LoopClosing;
 
-class System
+class System : public SystemBase
 {
-public:
-    // Input sensor
-    enum eSensor{
-        MONOCULAR=0,
-        STEREO=1,
-        RGBD=2
-    };
-
 public:
 
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true);
+    System(const string &strVocFile, const string &strSettingsFile, const Sensor sensor, const bool bUseViewer = true);
     // Allows to pass custom map class.
-    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer, MapBase* map);
+    System(const string &strVocFile, const string &strSettingsFile, const Sensor sensor, const bool bUseViewer, MapBase* map);
 
     // Proccess the given stereo frame. Images must be synchronized and rectified.
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
@@ -83,8 +78,10 @@ public:
     // This resumes local mapping thread and performs SLAM again.
     void DeactivateLocalizationMode();
 
+    void ShutDownLoopClosure();
+
     // Reset the system (clear map)
-    void Reset();
+    virtual void Reset();
 
     // All threads will be requested to finish.
     // It waits until all threads have finished.
@@ -107,14 +104,13 @@ public:
     // See format details at: http://www.cvlibs.net/datasets/kitti/eval_odometry.php
     void SaveTrajectoryKITTI(const string &filename);
 
-    // TODO: Save/Load functions
-    // SaveMap(const string &filename);
-    // LoadMap(const string &filename);
+    void AttachCallbackToNewKeyframe(
+        const std::function<void(const KeyFrame&)>& callback);
 
 private:
 
     // Input sensor
-    eSensor mSensor;
+    const Sensor mSensor;
 
     // ORB vocabulary used for place recognition and feature matching.
     ORBVocabulary* mpVocabulary;

@@ -26,6 +26,7 @@ src/KeyFrameDatabase.cc
 src/Sim3Solver.cc
 src/Initializer.cc
 src/Viewer.cc
+src/RosMonoImageGrabber.cc
 )
 
 # Build examples
