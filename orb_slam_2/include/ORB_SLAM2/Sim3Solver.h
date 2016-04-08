@@ -25,12 +25,10 @@
 #include <opencv2/opencv.hpp>
 #include <vector>
 
-#include "KeyFrame.h"
-
-
-
 namespace ORB_SLAM2
 {
+class KeyFrame;
+class MapPoint;
 
 class Sim3Solver
 {

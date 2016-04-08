@@ -23,39 +23,36 @@
 #define SYSTEM_H
 
 #include <functional>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <opencv2/core/core.hpp>
 
-#include "Tracking.h"
-#include "FrameDrawer.h"
-#include "MapDrawer.h"
-#include "LocalMapping.h"
-#include "LoopClosing.h"
-#include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
 #include "Sensor.h"
 #include "SystemBase.h"
-#include "Viewer.h"
 
 namespace ORB_SLAM2
 {
 
-class Viewer;
 class FrameDrawer;
-class MapBase;
-class Tracking;
+class KeyFrame;
+class KeyFrameDatabase;
 class LocalMapping;
 class LoopClosing;
+class MapBase;
+class MapDrawer;
+class Tracking;
+class Viewer;
 
 class System : public SystemBase
 {
 public:
 
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-    System(const string &strVocFile, const string &strSettingsFile, const Sensor sensor, const bool bUseViewer = true);
+    System(const std::string &strVocFile, const std::string &strSettingsFile, const Sensor sensor, const bool bUseViewer = true);
     // Allows to pass custom map class.
-    System(const string &strVocFile, const string &strSettingsFile, const Sensor sensor, const bool bUseViewer, MapBase* map);
+    System(const std::string &strVocFile, const std::string &strSettingsFile, const Sensor sensor, const bool bUseViewer, MapBase* map);
 
     // Proccess the given stereo frame. Images must be synchronized and rectified.
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
@@ -91,18 +88,18 @@ public:
     // Save camera trajectory in the TUM RGB-D dataset format.
     // Call first Shutdown()
     // See format details at: http://vision.in.tum.de/data/datasets/rgbd-dataset
-    void SaveTrajectoryTUM(const string &filename);
+    void SaveTrajectoryTUM(const std::string &filename);
 
     // Save keyframe poses in the TUM RGB-D dataset format.
     // Use this function in the monocular case.
     // Call first Shutdown()
     // See format details at: http://vision.in.tum.de/data/datasets/rgbd-dataset
-    void SaveKeyFrameTrajectoryTUM(const string &filename);
+    void SaveKeyFrameTrajectoryTUM(const std::string &filename);
 
     // Save camera trajectory in the KITTI dataset format.
     // Call first Shutdown()
     // See format details at: http://www.cvlibs.net/datasets/kitti/eval_odometry.php
-    void SaveTrajectoryKITTI(const string &filename);
+    void SaveTrajectoryKITTI(const std::string &filename);
 
     void AttachCallbackToNewKeyframe(
         const std::function<void(const KeyFrame&)>& callback);
@@ -117,9 +114,6 @@ private:
 
     // KeyFrame database for place recognition (relocalization and loop detection).
     KeyFrameDatabase* mpKeyFrameDatabase;
-
-    // Map structure that stores the pointers to all KeyFrames and MapPoints.
-    MapBase* mpMap;
 
     // Tracker. It receives a frame and computes the associated camera pose.
     // It also decides when to insert a new keyframe, create some new MapPoints and
@@ -153,6 +147,9 @@ private:
     std::mutex mMutexMode;
     bool mbActivateLocalizationMode;
     bool mbDeactivateLocalizationMode;
+
+    // Map structure that stores the pointers to all KeyFrames and MapPoints.
+    MapBase* mpMap;
 };
 
 }// namespace ORB_SLAM

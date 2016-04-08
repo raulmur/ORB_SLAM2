@@ -18,6 +18,8 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "ORB_SLAM2/Frame.h"
+#include "ORB_SLAM2/KeyFrame.h"
 #include "ORB_SLAM2/MapBase.h"
 #include "ORB_SLAM2/MapPoint.h"
 #include "ORB_SLAM2/ORBmatcher.h"
@@ -28,7 +30,7 @@ namespace ORB_SLAM2
 {
 
 long unsigned int MapPoint::nNextId=0;
-mutex MapPoint::mGlobalMutex;
+std::mutex MapPoint::mGlobalMutex;
 
 MapPoint::MapPoint(const cv::Mat &Pos, KeyFrame *pRefKF, MapBase* pMap):
     mnFirstKFid(pRefKF->mnId), mnFirstFrame(pRefKF->mnFrameId), nObs(0), mnTrackReferenceForFrame(0),

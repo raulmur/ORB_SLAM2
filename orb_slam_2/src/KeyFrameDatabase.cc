@@ -20,6 +20,7 @@
 
 #include "ORB_SLAM2/KeyFrameDatabase.h"
 
+#include "ORB_SLAM2/Frame.h"
 #include "ORB_SLAM2/KeyFrame.h"
 #include "DBoW2/BowVector.h"
 

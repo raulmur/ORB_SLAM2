@@ -18,13 +18,15 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "ORB_SLAM2/KeyFrame.h"
 #include "ORB_SLAM2/LocalMapping.h"
 #include "ORB_SLAM2/LoopClosing.h"
 #include "ORB_SLAM2/MapBase.h"
+#include "ORB_SLAM2/MapPoint.h"
 #include "ORB_SLAM2/ORBmatcher.h"
 #include "ORB_SLAM2/Optimizer.h"
 
-#include<mutex>
+#include <mutex>
 
 namespace ORB_SLAM2
 {
@@ -114,7 +116,7 @@ void LocalMapping::Run()
 
 void LocalMapping::InsertKeyFrame(KeyFrame *pKF)
 {
-    unique_lock<mutex> lock(mMutexNewKFs);
+    std::unique_lock<std::mutex> lock(mMutexNewKFs);
     mlNewKeyFrames.push_back(pKF);
     mbAbortBA=true;
 }
@@ -122,14 +124,14 @@ void LocalMapping::InsertKeyFrame(KeyFrame *pKF)
 
 bool LocalMapping::CheckNewKeyFrames()
 {
-    unique_lock<mutex> lock(mMutexNewKFs);
+    std::unique_lock<std::mutex> lock(mMutexNewKFs);
     return(!mlNewKeyFrames.empty());
 }
 
 void LocalMapping::ProcessNewKeyFrame()
 {
     {
-        unique_lock<mutex> lock(mMutexNewKFs);
+        std::unique_lock<std::mutex> lock(mMutexNewKFs);
         mpCurrentKeyFrame = mlNewKeyFrames.front();
         mlNewKeyFrames.pop_front();
     }
@@ -138,7 +140,7 @@ void LocalMapping::ProcessNewKeyFrame()
     mpCurrentKeyFrame->ComputeBoW();
 
     // Associate MapPoints to the new keyframe and update normal and descriptor
-    const vector<MapPoint*> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
+    const std::vector<MapPoint*> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
 
     for(size_t i=0; i<vpMapPointMatches.size(); i++)
     {
@@ -171,7 +173,7 @@ void LocalMapping::ProcessNewKeyFrame()
 void LocalMapping::MapPointCulling()
 {
     // Check Recent Added MapPoints
-    list<MapPoint*>::iterator lit = mlpRecentAddedMapPoints.begin();
+    std::list<MapPoint*>::iterator lit = mlpRecentAddedMapPoints.begin();
     const unsigned long int nCurrentKFid = mpCurrentKeyFrame->mnId;
 
     int nThObs;
@@ -211,7 +213,7 @@ void LocalMapping::CreateNewMapPoints()
     int nn = 10;
     if(mbMonocular)
         nn=20;
-    const vector<KeyFrame*> vpNeighKFs = mpCurrentKeyFrame->GetBestCovisibilityKeyFrames(nn);
+    const std::vector<KeyFrame*> vpNeighKFs = mpCurrentKeyFrame->GetBestCovisibilityKeyFrames(nn);
 
     ORBmatcher matcher(0.6,false);
 
@@ -265,7 +267,7 @@ void LocalMapping::CreateNewMapPoints()
         cv::Mat F12 = ComputeF12(mpCurrentKeyFrame,pKF2);
 
         // Search matches that fullfil epipolar constraint
-        vector<pair<size_t,size_t> > vMatchedIndices;
+        std::vector<std::pair<size_t,size_t> > vMatchedIndices;
         matcher.SearchForTriangulation(mpCurrentKeyFrame,pKF2,F12,vMatchedIndices,false);
 
         cv::Mat Rcw2 = pKF2->GetRotation();
@@ -314,7 +316,7 @@ void LocalMapping::CreateNewMapPoints()
             else if(bStereo2)
                 cosParallaxStereo2 = cos(2*atan2(pKF2->mb/2,pKF2->mvDepth[idx2]));
 
-            cosParallaxStereo = min(cosParallaxStereo1,cosParallaxStereo2);
+            cosParallaxStereo = std::min(cosParallaxStereo1,cosParallaxStereo2);
 
             cv::Mat x3D;
             if(cosParallaxRays<cosParallaxStereo && cosParallaxRays>0 && (bStereo1 || bStereo2 || cosParallaxRays<0.9998))
@@ -458,9 +460,9 @@ void LocalMapping::SearchInNeighbors()
     int nn = 10;
     if(mbMonocular)
         nn=20;
-    const vector<KeyFrame*> vpNeighKFs = mpCurrentKeyFrame->GetBestCovisibilityKeyFrames(nn);
-    vector<KeyFrame*> vpTargetKFs;
-    for(vector<KeyFrame*>::const_iterator vit=vpNeighKFs.begin(), vend=vpNeighKFs.end(); vit!=vend; vit++)
+    const std::vector<KeyFrame*> vpNeighKFs = mpCurrentKeyFrame->GetBestCovisibilityKeyFrames(nn);
+    std::vector<KeyFrame*> vpTargetKFs;
+    for(std::vector<KeyFrame*>::const_iterator vit=vpNeighKFs.begin(), vend=vpNeighKFs.end(); vit!=vend; vit++)
     {
         KeyFrame* pKFi = *vit;
         if(pKFi->isBad() || pKFi->mnFuseTargetForKF == mpCurrentKeyFrame->mnId)
@@ -469,8 +471,8 @@ void LocalMapping::SearchInNeighbors()
         pKFi->mnFuseTargetForKF = mpCurrentKeyFrame->mnId;
 
         // Extend to some second neighbors
-        const vector<KeyFrame*> vpSecondNeighKFs = pKFi->GetBestCovisibilityKeyFrames(5);
-        for(vector<KeyFrame*>::const_iterator vit2=vpSecondNeighKFs.begin(), vend2=vpSecondNeighKFs.end(); vit2!=vend2; vit2++)
+        const std::vector<KeyFrame*> vpSecondNeighKFs = pKFi->GetBestCovisibilityKeyFrames(5);
+        for(std::vector<KeyFrame*>::const_iterator vit2=vpSecondNeighKFs.begin(), vend2=vpSecondNeighKFs.end(); vit2!=vend2; vit2++)
         {
             KeyFrame* pKFi2 = *vit2;
             if(pKFi2->isBad() || pKFi2->mnFuseTargetForKF==mpCurrentKeyFrame->mnId || pKFi2->mnId==mpCurrentKeyFrame->mnId)
@@ -482,8 +484,8 @@ void LocalMapping::SearchInNeighbors()
 
     // Search matches by projection from current KF in target KFs
     ORBmatcher matcher;
-    vector<MapPoint*> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
-    for(vector<KeyFrame*>::iterator vit=vpTargetKFs.begin(), vend=vpTargetKFs.end(); vit!=vend; vit++)
+    std::vector<MapPoint*> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
+    for(std::vector<KeyFrame*>::iterator vit=vpTargetKFs.begin(), vend=vpTargetKFs.end(); vit!=vend; vit++)
     {
         KeyFrame* pKFi = *vit;
 
@@ -491,16 +493,16 @@ void LocalMapping::SearchInNeighbors()
     }
 
     // Search matches by projection from target KFs in current KF
-    vector<MapPoint*> vpFuseCandidates;
+    std::vector<MapPoint*> vpFuseCandidates;
     vpFuseCandidates.reserve(vpTargetKFs.size()*vpMapPointMatches.size());
 
-    for(vector<KeyFrame*>::iterator vitKF=vpTargetKFs.begin(), vendKF=vpTargetKFs.end(); vitKF!=vendKF; vitKF++)
+    for(std::vector<KeyFrame*>::iterator vitKF=vpTargetKFs.begin(), vendKF=vpTargetKFs.end(); vitKF!=vendKF; vitKF++)
     {
         KeyFrame* pKFi = *vitKF;
 
-        vector<MapPoint*> vpMapPointsKFi = pKFi->GetMapPointMatches();
+        std::vector<MapPoint*> vpMapPointsKFi = pKFi->GetMapPointMatches();
 
-        for(vector<MapPoint*>::iterator vitMP=vpMapPointsKFi.begin(), vendMP=vpMapPointsKFi.end(); vitMP!=vendMP; vitMP++)
+        for(std::vector<MapPoint*>::iterator vitMP=vpMapPointsKFi.begin(), vendMP=vpMapPointsKFi.end(); vitMP!=vendMP; vitMP++)
         {
             MapPoint* pMP = *vitMP;
             if(!pMP)
@@ -555,19 +557,19 @@ cv::Mat LocalMapping::ComputeF12(KeyFrame *&pKF1, KeyFrame *&pKF2)
 
 void LocalMapping::RequestStop()
 {
-    unique_lock<mutex> lock(mMutexStop);
+    std::unique_lock<std::mutex> lock(mMutexStop);
     mbStopRequested = true;
-    unique_lock<mutex> lock2(mMutexNewKFs);
+    std::unique_lock<std::mutex> lock2(mMutexNewKFs);
     mbAbortBA = true;
 }
 
 bool LocalMapping::Stop()
 {
-    unique_lock<mutex> lock(mMutexStop);
+    std::unique_lock<std::mutex> lock(mMutexStop);
     if(mbStopRequested && !mbNotStop)
     {
         mbStopped = true;
-        cout << "Local Mapping STOP" << endl;
+        std::cout << "Local Mapping STOP" << std::endl;
         return true;
     }
 
@@ -576,46 +578,46 @@ bool LocalMapping::Stop()
 
 bool LocalMapping::isStopped()
 {
-    unique_lock<mutex> lock(mMutexStop);
+    std::unique_lock<std::mutex> lock(mMutexStop);
     return mbStopped;
 }
 
 bool LocalMapping::stopRequested()
 {
-    unique_lock<mutex> lock(mMutexStop);
+    std::unique_lock<std::mutex> lock(mMutexStop);
     return mbStopRequested;
 }
 
 void LocalMapping::Release()
 {
-    unique_lock<mutex> lock(mMutexStop);
-    unique_lock<mutex> lock2(mMutexFinish);
+    std::unique_lock<std::mutex> lock(mMutexStop);
+    std::unique_lock<std::mutex> lock2(mMutexFinish);
     if(mbFinished)
         return;
     mbStopped = false;
     mbStopRequested = false;
-    for(list<KeyFrame*>::iterator lit = mlNewKeyFrames.begin(), lend=mlNewKeyFrames.end(); lit!=lend; lit++)
+    for(std::list<KeyFrame*>::iterator lit = mlNewKeyFrames.begin(), lend=mlNewKeyFrames.end(); lit!=lend; lit++)
         delete *lit;
     mlNewKeyFrames.clear();
 
-    cout << "Local Mapping RELEASE" << endl;
+    std::cout << "Local Mapping RELEASE" << std::endl;
 }
 
 bool LocalMapping::AcceptKeyFrames()
 {
-    unique_lock<mutex> lock(mMutexAccept);
+    std::unique_lock<std::mutex> lock(mMutexAccept);
     return mbAcceptKeyFrames;
 }
 
 void LocalMapping::SetAcceptKeyFrames(bool flag)
 {
-    unique_lock<mutex> lock(mMutexAccept);
+    std::unique_lock<std::mutex> lock(mMutexAccept);
     mbAcceptKeyFrames=flag;
 }
 
 bool LocalMapping::SetNotStop(bool flag)
 {
-    unique_lock<mutex> lock(mMutexStop);
+    std::unique_lock<std::mutex> lock(mMutexStop);
 
     if(flag && mbStopped)
         return false;
@@ -636,14 +638,14 @@ void LocalMapping::KeyFrameCulling()
     // A keyframe is considered redundant if the 90% of the MapPoints it sees, are seen
     // in at least other 3 keyframes (in the same or finer scale)
     // We only consider close stereo points
-    vector<KeyFrame*> vpLocalKeyFrames = mpCurrentKeyFrame->GetVectorCovisibleKeyFrames();
+    std::vector<KeyFrame*> vpLocalKeyFrames = mpCurrentKeyFrame->GetVectorCovisibleKeyFrames();
 
-    for(vector<KeyFrame*>::iterator vit=vpLocalKeyFrames.begin(), vend=vpLocalKeyFrames.end(); vit!=vend; vit++)
+    for(std::vector<KeyFrame*>::iterator vit=vpLocalKeyFrames.begin(), vend=vpLocalKeyFrames.end(); vit!=vend; vit++)
     {
         KeyFrame* pKF = *vit;
         if(pKF->mnId==0)
             continue;
-        const vector<MapPoint*> vpMapPoints = pKF->GetMapPointMatches();
+        const std::vector<MapPoint*> vpMapPoints = pKF->GetMapPointMatches();
 
         int /*nObs = 2;
         if(mbMonocular)*/
@@ -708,14 +710,14 @@ cv::Mat LocalMapping::SkewSymmetricMatrix(const cv::Mat &v)
 void LocalMapping::RequestReset()
 {
     {
-        unique_lock<mutex> lock(mMutexReset);
+        std::unique_lock<std::mutex> lock(mMutexReset);
         mbResetRequested = true;
     }
 
     while(1)
     {
         {
-            unique_lock<mutex> lock2(mMutexReset);
+            std::unique_lock<std::mutex> lock2(mMutexReset);
             if(!mbResetRequested)
                 break;
         }
@@ -725,7 +727,7 @@ void LocalMapping::RequestReset()
 
 void LocalMapping::ResetIfRequested()
 {
-    unique_lock<mutex> lock(mMutexReset);
+    std::unique_lock<std::mutex> lock(mMutexReset);
     if(mbResetRequested)
     {
         mlNewKeyFrames.clear();
@@ -736,27 +738,27 @@ void LocalMapping::ResetIfRequested()
 
 void LocalMapping::RequestFinish()
 {
-    unique_lock<mutex> lock(mMutexFinish);
+    std::unique_lock<std::mutex> lock(mMutexFinish);
     mbFinishRequested = true;
 }
 
 bool LocalMapping::CheckFinish()
 {
-    unique_lock<mutex> lock(mMutexFinish);
+    std::unique_lock<std::mutex> lock(mMutexFinish);
     return mbFinishRequested;
 }
 
 void LocalMapping::SetFinish()
 {
-    unique_lock<mutex> lock(mMutexFinish);
+    std::unique_lock<std::mutex> lock(mMutexFinish);
     mbFinished = true;    
-    unique_lock<mutex> lock2(mMutexStop);
+    std::unique_lock<std::mutex> lock2(mMutexStop);
     mbStopped = true;
 }
 
 bool LocalMapping::isFinished()
 {
-    unique_lock<mutex> lock(mMutexFinish);
+    std::unique_lock<std::mutex> lock(mMutexFinish);
     return mbFinished;
 }
 

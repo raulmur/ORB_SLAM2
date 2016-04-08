@@ -21,20 +21,24 @@
 #ifndef MAPDRAWER_H
 #define MAPDRAWER_H
 
-#include"MapPoint.h"
-#include"KeyFrame.h"
-#include<pangolin/pangolin.h>
+#include <mutex>
+#include <opencv2/core/core.hpp>
+#include <string>
 
-#include<mutex>
+namespace pangolin
+{
+class OpenGlMatrix;
+}  // namespace pangolin
 
 namespace ORB_SLAM2
 {
+class KeyFrame;
 class MapBase;
 
 class MapDrawer
 {
 public:
-    MapDrawer(MapBase* pMap, const string &strSettingPath);
+    MapDrawer(MapBase* pMap, const std::string &strSettingPath);
 
     MapBase* mpMap;
 

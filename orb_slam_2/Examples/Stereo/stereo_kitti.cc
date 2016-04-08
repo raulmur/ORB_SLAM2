@@ -18,13 +18,14 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-
+#include <iomanip>
 #include<iostream>
 #include<algorithm>
 #include<fstream>
 #include<chrono>
 
 #include<opencv2/core/core.hpp>
+#include<opencv2/highgui/highgui.hpp>
 
 #include<ORB_SLAM2/System.h>
 
@@ -155,8 +156,8 @@ void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
 
     for(int i=0; i<nTimes; i++)
     {
-        stringstream ss;
-        ss << setfill('0') << setw(6) << i;
+        std::stringstream ss;
+        ss << std::setfill('0') << std::setw(6) << i;
         vstrImageLeft[i] = strPrefixLeft + ss.str() + ".png";
         vstrImageRight[i] = strPrefixRight + ss.str() + ".png";
     }

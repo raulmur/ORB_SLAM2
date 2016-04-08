@@ -29,6 +29,11 @@
 
 #include<stdint-gcc.h>
 
+#include "ORB_SLAM2/Frame.h"
+#include "ORB_SLAM2/KeyFrame.h"
+#include "ORB_SLAM2/MapPoint.h"
+#include "ORB_SLAM2/ORBmatcher.h"
+
 using namespace std;
 
 namespace ORB_SLAM2

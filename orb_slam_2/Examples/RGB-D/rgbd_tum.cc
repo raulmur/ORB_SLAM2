@@ -25,6 +25,7 @@
 #include<chrono>
 
 #include<opencv2/core/core.hpp>
+#include<opencv2/highgui/highgui.hpp>
 
 #include<ORB_SLAM2/System.h>
 

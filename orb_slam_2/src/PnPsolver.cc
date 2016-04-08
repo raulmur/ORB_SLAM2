@@ -55,8 +55,12 @@
 #include <vector>
 #include <cmath>
 #include <opencv2/core/core.hpp>
+#include <opencv2/core/core_c.h>
 #include "DUtils/Random.h"
 #include <algorithm>
+
+#include "ORB_SLAM2/Frame.h"
+#include "ORB_SLAM2/MapPoint.h"
 
 using namespace std;
 

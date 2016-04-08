@@ -20,6 +20,7 @@
 
 #include "ORB_SLAM2/FrameDrawer.h"
 #include "ORB_SLAM2/MapBase.h"
+#include "ORB_SLAM2/MapPoint.h"
 #include "ORB_SLAM2/Tracking.h"
 
 #include <opencv2/core/core.hpp>

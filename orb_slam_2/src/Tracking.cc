@@ -28,11 +28,17 @@
 #include"ORB_SLAM2/FrameDrawer.h"
 #include"ORB_SLAM2/Converter.h"
 #include"ORB_SLAM2/MapBase.h"
+#include"ORB_SLAM2/MapDrawer.h"
+#include"ORB_SLAM2/MapPoint.h"
+#include"ORB_SLAM2/ORBextractor.h"
 #include"ORB_SLAM2/Initializer.h"
-
+#include "ORB_SLAM2/KeyFrame.h"
+#include "ORB_SLAM2/KeyFrameDatabase.h"
+#include "ORB_SLAM2/LocalMapping.h"
 #include"ORB_SLAM2/Optimizer.h"
 #include"ORB_SLAM2/PnPsolver.h"
 #include"ORB_SLAM2/SystemBase.h"
+#include"ORB_SLAM2/Viewer.h"
 
 #include<iostream>
 

@@ -21,18 +21,22 @@
 #ifndef OPTIMIZER_H
 #define OPTIMIZER_H
 
-#include "MapPoint.h"
-#include "KeyFrame.h"
-#include "LoopClosing.h"
-#include "Frame.h"
+#include <map>
+#include <set>
 
-#include "g2o/types/types_seven_dof_expmap.h"
+#include "LoopClosing.h"
+
+namespace g2o {
+struct Sim3;
+}  // namespace g2o
 
 namespace ORB_SLAM2
 {
 
-class LoopClosing;
+class Frame;
+class KeyFrame;
 class MapBase;
+class MapPoint;
 
 class Optimizer
 {
@@ -49,7 +53,7 @@ public:
     void static OptimizeEssentialGraph(MapBase* pMap, KeyFrame* pLoopKF, KeyFrame* pCurKF,
                                        const LoopClosing::KeyFrameAndPose &NonCorrectedSim3,
                                        const LoopClosing::KeyFrameAndPose &CorrectedSim3,
-                                       const map<KeyFrame *, set<KeyFrame *> > &LoopConnections,
+                                       const std::map<KeyFrame *, std::set<KeyFrame *> > &LoopConnections,
                                        const bool &bFixScale);
 
     // if bFixScale is true, optimize SE3 (stereo,rgbd), Sim3 otherwise (mono)
