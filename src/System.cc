@@ -286,6 +286,15 @@ void System::SaveTrajectoryTUM(const string &filename)
     cout << endl << "Saving camera trajectory to " << filename << " ..." << endl;
 
     vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+    if (vpKFs.empty()){
+        cout << "aborted due empty KeyFrame list" << endl;
+        // touch file just to simplify use case;
+        ofstream f(filename.c_str());
+        f << "# unsuccessful tracking (empty KeyFrame list)";
+        f.close();
+        return;
+    }
+
     sort(vpKFs.begin(),vpKFs.end(),KeyFrame::lId);
 
     // Transform all keyframes so that the first keyframe is at the origin.
