@@ -1,6 +1,0 @@
-package DBoW2.proto;
-
-message Word {
-  optional int32 word_id = 1;
-  optional int32 node_id = 2;
-}
