@@ -1,6 +1,6 @@
 package DBoW2.proto;
 
-message Node {
+message ORBNode {
   optional int32 node_id = 1;
   optional int32 parent_id = 2;
   optional double weight = 3;

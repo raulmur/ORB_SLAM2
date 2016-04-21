@@ -1,6 +1,6 @@
 package DBoW2.proto;
 
-message Word {
+message ORBWord {
   optional int32 word_id = 1;
   optional int32 node_id = 2;
 }

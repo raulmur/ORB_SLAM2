@@ -20,6 +20,7 @@
   <depend>glog_catkin</depend>
   <depend>image_transport</depend>
   <depend>pangolin_catkin</depend>
+  <depend>protobuf_catkin</depend>
   <depend>roscpp</depend>
   <depend>rpg_common</depend>
   <depend>sensor_msgs</depend>

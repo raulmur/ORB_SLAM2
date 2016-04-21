@@ -1,6 +1,8 @@
-#include "DBoW2/TemplatedVocabulary.h"
+#include <DBoW2/TemplatedVocabulary.h>
+#include <glog/logging.h>
 
 #include "DBoW2/FORB.h"
+#include "orb_vocabulary.pb.h"
 
 namespace DBoW2 {
 
@@ -15,7 +17,7 @@ void TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB>::loadProto(
   google::protobuf::io::CodedInputStream coded_in(&raw_in);
   coded_in.SetTotalBytesLimit(std::numeric_limits<int>::max(), -1);
 
-  proto::Vocabulary vocabulary_proto;
+  proto::ORBVocabulary vocabulary_proto;
   CHECK(vocabulary_proto.ParseFromCodedStream(&coded_in));
 
   m_k = vocabulary_proto.k();
@@ -29,7 +31,7 @@ void TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB>::loadProto(
   m_nodes.resize(vocabulary_proto.nodes_size() + 1); // +1 to include root
   m_nodes[0].id = 0;
 
-  for(const proto::Node& node : vocabulary_proto.nodes())
+  for(const proto::ORBNode& node : vocabulary_proto.nodes())
   {
     const NodeId node_id = node.node_id();
     const NodeId parent_id = node.parent_id();
@@ -49,7 +51,7 @@ void TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB>::loadProto(
 
   m_words.resize(vocabulary_proto.words_size());
 
-  for(const proto::Word& word : vocabulary_proto.words())
+  for(const proto::ORBWord& word : vocabulary_proto.words())
   {
     const WordId word_id = word.word_id();
     const NodeId node_id = word.node_id();
@@ -65,7 +67,7 @@ void TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB>::saveProto(
 {
   std::ofstream file(file_name);
   CHECK(file.is_open()) << "Couldn't open " << file_name;
-  proto::Vocabulary vocabulary_proto;
+  proto::ORBVocabulary vocabulary_proto;
 
   vocabulary_proto.set_k(m_k);
   vocabulary_proto.set_l(m_L);
@@ -89,7 +91,7 @@ void TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB>::saveProto(
     {
       const Node& child = m_nodes[*pit];
 
-       proto::Node* node_proto = vocabulary_proto.add_nodes();
+       proto::ORBNode* node_proto = vocabulary_proto.add_nodes();
       CHECK_NOTNULL(node_proto);
       node_proto->set_node_id(child.id);
       node_proto->set_parent_id(pid);
@@ -115,7 +117,7 @@ void TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB>::saveProto(
   {
     WordId id = wit - m_words.begin();
 
-    proto::Word* word_proto = vocabulary_proto.add_words();
+    proto::ORBWord* word_proto = vocabulary_proto.add_words();
     CHECK_NOTNULL(word_proto);
     word_proto->set_word_id(id);
     word_proto->set_node_id((*wit)->id);

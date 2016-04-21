@@ -23,6 +23,7 @@
 #include <mutex>
 
 #include "ORB_SLAM2/KeyFrame.h"
+#include "ORB_SLAM2/MapPoint.h"
 
 namespace ORB_SLAM2
 {

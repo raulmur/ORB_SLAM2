@@ -4,9 +4,16 @@ project(orb_slam_2)
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 
+PROTOBUF_CATKIN_GENERATE_CPP(PROTO_SRCS PROTO_HDRS proto/orb_node.proto
+                                                   proto/orb_vocabulary.proto
+                                                   proto/orb_word.proto)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
 add_definitions(-Wall  -O3 -march=native -std=c++11 -DCOMPILEDWITHC11)
 
-cs_add_library(${PROJECT_NAME}
+cs_add_library(${PROJECT_NAME} ${PROTO_SRCS}
+src/ORBVocabulary.cc
+
 src/System.cc
 src/Tracking.cc
 src/LocalMapping.cc
