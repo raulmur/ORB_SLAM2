@@ -12,7 +12,6 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_definitions(-Wall  -O3 -march=native -std=c++11 -DCOMPILEDWITHC11)
 
 cs_add_library(${PROJECT_NAME} ${PROTO_SRCS}
-src/FORB.cc
 src/ORBVocabulary.cc
 
 src/System.cc

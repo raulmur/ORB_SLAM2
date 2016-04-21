@@ -1,7 +1,7 @@
 #include <DBoW2/TemplatedVocabulary.h>
 #include <glog/logging.h>
 
-#include "ORB_SLAM2/FORB.h"
+#include "DBoW2/FORB.h"
 #include "orb_vocabulary.pb.h"
 
 namespace DBoW2 {
