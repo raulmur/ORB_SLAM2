@@ -26,13 +26,13 @@
 #include <vector>
 
 #include "KeyFrame.h"
-
+#include "orb_slam2_export.h"
 
 
 namespace ORB_SLAM2
 {
 
-class Sim3Solver
+class ORB_SLAM2_EXPORT Sim3Solver
 {
 public:
 

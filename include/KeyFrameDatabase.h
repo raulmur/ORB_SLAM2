@@ -28,6 +28,7 @@
 #include "KeyFrame.h"
 #include "Frame.h"
 #include "ORBVocabulary.h"
+#include "orb_slam2_export.h"
 
 #include<mutex>
 
@@ -39,7 +40,7 @@ class KeyFrame;
 class Frame;
 
 
-class KeyFrameDatabase
+class ORB_SLAM2_EXPORT KeyFrameDatabase
 {
 public:
 

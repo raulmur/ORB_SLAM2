@@ -35,6 +35,7 @@
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
 #include "Viewer.h"
+#include "orb_slam2_export.h"
 
 namespace ORB_SLAM2
 {
@@ -46,7 +47,7 @@ class Tracking;
 class LocalMapping;
 class LoopClosing;
 
-class System
+class ORB_SLAM2_EXPORT System
 {
 public:
     // Input sensor

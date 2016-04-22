@@ -24,6 +24,7 @@
 #include "Tracking.h"
 #include "MapPoint.h"
 #include "Map.h"
+#include "orb_slam2_export.h"
 
 #include<opencv2/core/core.hpp>
 #include<opencv2/features2d/features2d.hpp>
@@ -37,7 +38,7 @@ namespace ORB_SLAM2
 class Tracking;
 class Viewer;
 
-class FrameDrawer
+class ORB_SLAM2_EXPORT FrameDrawer
 {
 public:
     FrameDrawer(Map* pMap);

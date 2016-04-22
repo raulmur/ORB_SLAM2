@@ -26,6 +26,7 @@
 #include "KeyFrame.h"
 #include "LoopClosing.h"
 #include "Frame.h"
+#include "orb_slam2_export.h"
 
 #include "Thirdparty/g2o/g2o/types/types_seven_dof_expmap.h"
 
@@ -34,7 +35,7 @@ namespace ORB_SLAM2
 
 class LoopClosing;
 
-class Optimizer
+class ORB_SLAM2_EXPORT Optimizer
 {
 public:
     void static BundleAdjustment(const std::vector<KeyFrame*> &vpKF, const std::vector<MapPoint*> &vpMP,

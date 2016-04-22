@@ -20,10 +20,12 @@
 
 
 #include<iostream>
+#include<iomanip>
 #include<algorithm>
 #include<fstream>
 #include<iomanip>
 #include<chrono>
+#include<thread>
 
 #include<opencv2/core/core.hpp>
 
@@ -104,7 +106,7 @@ int main(int argc, char **argv)
             T = tframe-vTimestamps[ni-1];
 
         if(ttrack<T)
-            usleep((T-ttrack)*1e6);
+            std::this_thread::sleep_for(std::chrono::milliseconds((size_t)((T-ttrack)*1e6)));
     }
 
     // Stop all threads

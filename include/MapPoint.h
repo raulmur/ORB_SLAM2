@@ -24,6 +24,7 @@
 #include"KeyFrame.h"
 #include"Frame.h"
 #include"Map.h"
+#include"orb_slam2_export.h"
 
 #include<opencv2/core/core.hpp>
 #include<mutex>
@@ -36,7 +37,7 @@ class Map;
 class Frame;
 
 
-class MapPoint
+class ORB_SLAM2_EXPORT MapPoint
 {
 public:
     MapPoint(const cv::Mat &Pos, KeyFrame* pRefKF, Map* pMap);

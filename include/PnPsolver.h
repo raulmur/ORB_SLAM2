@@ -54,11 +54,12 @@
 #include <opencv2/core/core.hpp>
 #include "MapPoint.h"
 #include "Frame.h"
+#include "orb_slam2_export.h"
 
 namespace ORB_SLAM2
 {
 
-class PnPsolver {
+class ORB_SLAM2_EXPORT PnPsolver {
  public:
   PnPsolver(const Frame &F, const vector<MapPoint*> &vpMapPointMatches);
 

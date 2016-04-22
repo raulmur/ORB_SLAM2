@@ -25,11 +25,12 @@
 #include <list>
 #include <opencv/cv.h>
 
+#include "orb_slam2_export.h"
 
 namespace ORB_SLAM2
 {
 
-class ExtractorNode
+class ORB_SLAM2_EXPORT ExtractorNode
 {
 public:
     ExtractorNode():bNoMore(false){}

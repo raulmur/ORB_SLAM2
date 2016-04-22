@@ -24,6 +24,7 @@
 #include"Map.h"
 #include"MapPoint.h"
 #include"KeyFrame.h"
+#include"orb_slam2_export.h"
 #include<pangolin/pangolin.h>
 
 #include<mutex>
@@ -31,7 +32,7 @@
 namespace ORB_SLAM2
 {
 
-class MapDrawer
+class ORB_SLAM2_EXPORT MapDrawer
 {
 public:
     MapDrawer(Map* pMap, const string &strSettingPath);

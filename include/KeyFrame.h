@@ -28,6 +28,7 @@
 #include "ORBextractor.h"
 #include "Frame.h"
 #include "KeyFrameDatabase.h"
+#include "orb_slam2_export.h"
 
 #include <mutex>
 
@@ -40,7 +41,7 @@ class MapPoint;
 class Frame;
 class KeyFrameDatabase;
 
-class KeyFrame
+class ORB_SLAM2_EXPORT KeyFrame
 {
 public:
     KeyFrame(Frame &F, Map* pMap, KeyFrameDatabase* pKFDB);

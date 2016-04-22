@@ -29,6 +29,7 @@
 #include "ORBVocabulary.h"
 #include "KeyFrame.h"
 #include "ORBextractor.h"
+#include "orb_slam2_export.h"
 
 #include <opencv2/opencv.hpp>
 
@@ -40,7 +41,7 @@ namespace ORB_SLAM2
 class MapPoint;
 class KeyFrame;
 
-class Frame
+class ORB_SLAM2_EXPORT Frame
 {
 public:
     Frame();

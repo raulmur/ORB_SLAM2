@@ -27,10 +27,12 @@
 #include"Thirdparty/g2o/g2o/types/types_six_dof_expmap.h"
 #include"Thirdparty/g2o/g2o/types/types_seven_dof_expmap.h"
 
+#include "orb_slam2_export.h"
+
 namespace ORB_SLAM2
 {
 
-class Converter
+class ORB_SLAM2_EXPORT Converter
 {
 public:
     static std::vector<cv::Mat> toDescriptorVector(const cv::Mat &Descriptors);

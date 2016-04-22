@@ -37,6 +37,7 @@
 #include "Initializer.h"
 #include "MapDrawer.h"
 #include "System.h"
+#include "orb_slam2_export.h"
 
 #include <mutex>
 
@@ -50,7 +51,7 @@ class LocalMapping;
 class LoopClosing;
 class System;
 
-class Tracking
+class ORB_SLAM2_EXPORT Tracking
 {  
 
 public:

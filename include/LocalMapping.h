@@ -26,6 +26,7 @@
 #include "LoopClosing.h"
 #include "Tracking.h"
 #include "KeyFrameDatabase.h"
+#include "orb_slam2_export.h"
 
 #include <mutex>
 
@@ -37,7 +38,7 @@ class Tracking;
 class LoopClosing;
 class Map;
 
-class LocalMapping
+class ORB_SLAM2_EXPORT LocalMapping
 {
 public:
     LocalMapping(Map* pMap, const float bMonocular);
