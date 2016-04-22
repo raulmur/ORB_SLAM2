@@ -11,12 +11,15 @@
 #define __D_TIMESTAMP__
 
 #include <iostream>
+
+#include "dbow2_export.h"
+
 using namespace std;
 
 namespace DUtils {
 
 /// Timestamp
-class Timestamp
+class DBOW2_EXPORT Timestamp
 {
 public:
 

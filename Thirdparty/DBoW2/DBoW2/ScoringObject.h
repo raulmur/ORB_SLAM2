@@ -11,11 +11,12 @@
 #define __D_T_SCORING_OBJECT__
 
 #include "BowVector.h"
+#include "dbow2_export.h"
 
 namespace DBoW2 {
 
 /// Base class of scoring functions
-class GeneralScoring
+class DBOW2_EXPORT GeneralScoring
 {
 public:
   /**
@@ -71,22 +72,22 @@ public:
   }
   
 /// L1 Scoring object
-class __SCORING_CLASS(L1Scoring, true, L1);
+class DBOW2_EXPORT  __SCORING_CLASS(L1Scoring, true, L1);
 
 /// L2 Scoring object
-class __SCORING_CLASS(L2Scoring, true, L2);
+class DBOW2_EXPORT __SCORING_CLASS(L2Scoring, true, L2);
 
 /// Chi square Scoring object
-class __SCORING_CLASS(ChiSquareScoring, true, L1);
+class DBOW2_EXPORT __SCORING_CLASS(ChiSquareScoring, true, L1);
 
 /// KL divergence Scoring object
-class __SCORING_CLASS(KLScoring, true, L1);
+class DBOW2_EXPORT __SCORING_CLASS(KLScoring, true, L1);
 
 /// Bhattacharyya Scoring object
-class __SCORING_CLASS(BhattacharyyaScoring, true, L1);
+class DBOW2_EXPORT __SCORING_CLASS(BhattacharyyaScoring, true, L1);
 
 /// Dot product Scoring object
-class __SCORING_CLASS(DotProductScoring, false, L1);
+class DBOW2_EXPORT __SCORING_CLASS(DotProductScoring, false, L1);
 
 #undef __SCORING_CLASS
   

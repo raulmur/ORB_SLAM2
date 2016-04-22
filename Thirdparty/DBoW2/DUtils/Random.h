@@ -15,10 +15,12 @@
 #include <cstdlib>
 #include <vector>
 
+#include "dbow2_export.h"
+
 namespace DUtils {
 
 /// Functions to generate pseudo-random numbers
-class Random
+class DBOW2_EXPORT Random
 {
 public:
   class UnrepeatedRandomizer;
@@ -109,7 +111,7 @@ private:
 // ---------------------------------------------------------------------------
 
 /// Provides pseudo-random numbers with no repetitions
-class Random::UnrepeatedRandomizer
+class DBOW2_EXPORT Random::UnrepeatedRandomizer
 {
 public:
 
