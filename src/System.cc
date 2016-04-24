@@ -29,6 +29,138 @@
 namespace ORB_SLAM2
 {
 
+
+    struct NodeData
+    {
+        unsigned int id;
+        double weight;
+        int childSize;
+        unsigned int children[16];
+        unsigned int parent;
+        unsigned char descriptor[32];
+        unsigned int word_id;
+    };
+
+    class BinaryORBVocabulary : public ORB_SLAM2::ORBVocabulary
+    {
+    public:
+        BinaryORBVocabulary()
+        {
+        }
+
+        void saveToBinFile(const std::string &filename)
+        {
+            int nodeSize = m_nodes.size();
+            cout << "m_nodes size: " << nodeSize << endl;
+
+            FILE *pFile = fopen(filename.c_str(),"wb+");
+
+            if(pFile == NULL)
+            {
+                cout << "fopen failed!" << endl;
+                return;
+            }
+            int wordSize = this->m_words.size();
+
+            fwrite(&m_k,sizeof(m_k),1,pFile);
+            fwrite(&m_L,sizeof(m_L),1,pFile);
+            fwrite(&m_weighting,sizeof(m_weighting),1,pFile);
+            fwrite(&m_scoring,sizeof(m_scoring),1,pFile);
+
+            fwrite(&wordSize,sizeof(wordSize),1,pFile);
+            fwrite(&nodeSize,sizeof(nodeSize),1,pFile);
+
+            NodeData nodeData;
+            for(int i = 0;i<nodeSize;i++)
+            {
+                nodeData.id = m_nodes[i].id;
+                nodeData.weight = m_nodes[i].weight;
+                nodeData.childSize = m_nodes[i].children.size();
+                memset(nodeData.children,0,sizeof(nodeData.children));
+                if(nodeData.childSize!=0)
+                {
+                    memcpy(nodeData.children,m_nodes[i].children.data(),nodeData.childSize*sizeof(int));
+                }
+                nodeData.parent = m_nodes[i].parent;
+                nodeData.word_id = m_nodes[i].word_id;
+                //TODO: should use a value from data
+                if(m_nodes[i].descriptor.data!=NULL)
+                {
+                    memcpy(nodeData.descriptor, m_nodes[i].descriptor.data, 32);
+                }
+                else
+                {
+                    memset(nodeData.descriptor,0,32);
+                }
+
+                fwrite(&nodeData,sizeof(nodeData), 1, pFile);
+            }
+
+            fclose(pFile);
+        }
+
+        bool loadFromBinFile(const std::string &filename)
+        {
+            FILE *pFile = fopen(filename.c_str(),"rb");
+            if(pFile == NULL)
+            {
+                return false;
+            }
+            int nodeSize = m_nodes.size();
+
+            fread(&m_k,sizeof(m_k),1,pFile);
+            fread(&m_L,sizeof(m_L),1,pFile);
+            fread(&m_weighting,sizeof(m_weighting),1,pFile);
+            fread(&m_scoring,sizeof(m_scoring),1,pFile);
+            int wordSize = 0;
+            fread(&wordSize,sizeof(wordSize),1,pFile);
+            fread(&nodeSize,sizeof(nodeSize),1,pFile);
+            createScoringObject();
+
+            // nodes
+            int expected_nodes =
+                (int)((pow((double)m_k, (double)m_L + 1) - 1)/(m_k - 1));
+            m_nodes.reserve(expected_nodes);
+
+            m_words.reserve(pow((double)m_k, (double)m_L + 1));
+
+            m_nodes.resize(1);
+            m_nodes[0].id = 0;
+
+            NodeData *pNodeData = (NodeData*)malloc(sizeof(NodeData)*nodeSize);
+            fread(pNodeData,sizeof(NodeData),nodeSize,pFile);
+            m_nodes.resize(nodeSize);
+            m_words.resize(wordSize);
+            for(int i = 0;i<nodeSize;i++)
+            {
+                m_nodes[i].id = pNodeData[i].id;
+                m_nodes[i].parent = pNodeData[i].parent;
+                m_nodes[i].word_id = pNodeData[i].word_id;
+                m_nodes[i].weight = pNodeData[i].weight;
+                m_nodes[i].descriptor.create(1, DBoW2::FORB::L, CV_8U);
+                memcpy(m_nodes[i].descriptor.data, pNodeData[i].descriptor, 32);
+                if(pNodeData[i].childSize!=0) 
+                {
+                    for(int j = 0;j<pNodeData[i].childSize;j++)
+                    {
+                        m_nodes[i].children.push_back(pNodeData[i].children[j]);
+                    }
+                }
+                else
+                {
+                    m_nodes[i].children.reserve(m_k);
+                }
+                if(m_nodes[i].word_id>=0)
+                {
+                    m_words[m_nodes[i].word_id]= & m_nodes[i];
+                }
+            }
+            free(pNodeData);
+            fclose(pFile);
+            return true;
+        }
+    };
+
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
                const bool bUseViewer):mSensor(sensor),mbReset(false),mbActivateLocalizationMode(false),
         mbDeactivateLocalizationMode(false)
@@ -61,8 +193,11 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //Load ORB Vocabulary
     cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
 
-    mpVocabulary = new ORBVocabulary();
-    bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
+    //mpVocabulary = new ORBVocabulary();
+    mpVocabulary = new BinaryORBVocabulary();
+    BinaryORBVocabulary *pBinVocabulary = (BinaryORBVocabulary*)mpVocabulary;
+    bool bVocLoad = pBinVocabulary->loadFromBinFile(strVocFile);
+    //bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
     if(!bVocLoad)
     {
         cerr << "Wrong path to vocabulary. " << endl;
