@@ -195,7 +195,11 @@ cv::Mat PnPsolver::iterate(int nIterations, bool &bNoMore, vector<bool> &vbInlie
             int idx = vAvailableIndices[randi];
 
             add_correspondence(mvP3Dw[idx].x,mvP3Dw[idx].y,mvP3Dw[idx].z,mvP2D[idx].x,mvP2D[idx].y);
-
+            // change by izp
+            if(idx>=vAvailableIndices.size())
+            {
+                continue;
+            }
             vAvailableIndices[idx] = vAvailableIndices.back();
             vAvailableIndices.pop_back();
         }

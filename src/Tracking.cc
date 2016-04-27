@@ -34,8 +34,9 @@
 #include"PnPsolver.h"
 
 #include<iostream>
-
+#include<cmath>
 #include<mutex>
+#include<thread>
 
 
 using namespace std;
@@ -131,6 +132,8 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
     cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
 
+    MapPoint::mnLevels = nLevels;
+
     if(sensor==System::STEREO || sensor==System::RGBD)
     {
         mThDepth = mbf*(float)fSettings["ThDepth"]/fx;
@@ -224,9 +227,11 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
             cvtColor(mImGray,mImGray,CV_BGRA2GRAY);
     }
 
-    if(mDepthMapFactor!=1 || imDepth.type()!=CV_32F);
-    imDepth.convertTo(imDepth,CV_32F,mDepthMapFactor);
-
+    // change by izp
+    if(mDepthMapFactor!=1 || imDepth.type()!=CV_32F)
+    {
+        imDepth.convertTo(imDepth,CV_32F,mDepthMapFactor);
+    }
     mCurrentFrame = Frame(mImGray,imDepth,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
 
     Track();
@@ -306,13 +311,17 @@ void Tracking::Track()
 
                 if(mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
                 {
+                    // changed by izp, if wait here can success.
+                    //Sleep(5000);
                     bOK = TrackReferenceKeyFrame();
                 }
                 else
                 {
                     bOK = TrackWithMotionModel();
                     if(!bOK)
+                    {
                         bOK = TrackReferenceKeyFrame();
+                    }
                 }
             }
             else
@@ -398,7 +407,9 @@ void Tracking::Track()
         if(!mbOnlyTracking)
         {
             if(bOK)
+            {
                 bOK = TrackLocalMap();
+            }
         }
         else
         {
@@ -406,13 +417,19 @@ void Tracking::Track()
             // a local map and therefore we do not perform TrackLocalMap(). Once the system relocalizes
             // the camera we will use the local map again.
             if(bOK && !mbVO)
+            {
                 bOK = TrackLocalMap();
+            }
         }
 
         if(bOK)
+        {
             mState = OK;
+        }
         else
+        {
             mState=LOST;
+        }
 
         // Update drawer
         mpFrameDrawer->Update(this);
@@ -429,8 +446,9 @@ void Tracking::Track()
                 mVelocity = mCurrentFrame.mTcw*LastTwc;
             }
             else
+            {
                 mVelocity = cv::Mat();
-
+            }
             mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
 
             // Clean temporal point matches
@@ -1024,7 +1042,7 @@ bool Tracking::NeedNewKeyFrame()
         nTotal=1;
     }
 
-    const float ratioMap = (float)nMap/fmax(1.0f,nTotal);
+    const float ratioMap = (float)nMap/std::max(1.0f,(float)nTotal);
 
     // Thresholds
     float thRefRatio = 0.75f;
@@ -1292,7 +1310,11 @@ void Tracking::UpdateLocalKeyFrames()
 
 
     // Include also some not-already-included keyframes that are neighbors to already-included keyframes
-    for(vector<KeyFrame*>::const_iterator itKF=mvpLocalKeyFrames.begin(), itEndKF=mvpLocalKeyFrames.end(); itKF!=itEndKF; itKF++)
+    // changed by izp;
+    int localKeyFrameSize = mvpLocalKeyFrames.size();
+    int index = 0;
+
+    for(vector<KeyFrame*>::const_iterator itKF=mvpLocalKeyFrames.begin(), itEndKF=mvpLocalKeyFrames.end(); itKF!=itEndKF; itKF++, index++)
     {
         // Limit the number of keyframes
         if(mvpLocalKeyFrames.size()>80)
@@ -1302,6 +1324,8 @@ void Tracking::UpdateLocalKeyFrames()
 
         const vector<KeyFrame*> vNeighs = pKF->GetBestCovisibilityKeyFrames(10);
 
+        // changed by izp
+        bool bUpdateIter = false;
         for(vector<KeyFrame*>::const_iterator itNeighKF=vNeighs.begin(), itEndNeighKF=vNeighs.end(); itNeighKF!=itEndNeighKF; itNeighKF++)
         {
             KeyFrame* pNeighKF = *itNeighKF;
@@ -1310,6 +1334,7 @@ void Tracking::UpdateLocalKeyFrames()
                 if(pNeighKF->mnTrackReferenceForFrame!=mCurrentFrame.mnId)
                 {
                     mvpLocalKeyFrames.push_back(pNeighKF);
+                    bUpdateIter = true;
                     pNeighKF->mnTrackReferenceForFrame=mCurrentFrame.mnId;
                     break;
                 }
@@ -1325,6 +1350,7 @@ void Tracking::UpdateLocalKeyFrames()
                 if(pChildKF->mnTrackReferenceForFrame!=mCurrentFrame.mnId)
                 {
                     mvpLocalKeyFrames.push_back(pChildKF);
+                    bUpdateIter = true;
                     pChildKF->mnTrackReferenceForFrame=mCurrentFrame.mnId;
                     break;
                 }
@@ -1337,7 +1363,25 @@ void Tracking::UpdateLocalKeyFrames()
             if(pParent->mnTrackReferenceForFrame!=mCurrentFrame.mnId)
             {
                 mvpLocalKeyFrames.push_back(pParent);
+                bUpdateIter = true;
                 pParent->mnTrackReferenceForFrame=mCurrentFrame.mnId;
+                break;
+            }
+        }
+        if(bUpdateIter)
+        {
+            itEndKF=mvpLocalKeyFrames.end();
+            itKF = mvpLocalKeyFrames.begin();
+            itKF += index;
+            bUpdateIter = false;
+            if(localKeyFrameSize!=mvpLocalKeyFrames.size())
+            {
+                cout << "mvpLocalKeyFrames size changed! " <<  localKeyFrameSize << ":" << mvpLocalKeyFrames.size() << endl;
+                break;
+            }
+            if(index+1>=mvpLocalKeyFrames.size())
+            {
+                cout << "out of index in UpdateLocalKeyFrames!" << endl;
                 break;
             }
         }
@@ -1520,7 +1564,9 @@ void Tracking::Reset()
 
     cout << "System Reseting" << endl;
     while(!mpViewer->isStopped())
-        usleep(3000);
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds::duration(3000));
+    }
 
     // Reset Local Mapping
     cout << "Reseting Local Mapper...";

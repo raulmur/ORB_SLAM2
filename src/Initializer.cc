@@ -30,6 +30,14 @@
 namespace ORB_SLAM2
 {
 
+
+    template<typename T> bool isfinite(T arg)
+    {
+        return arg == arg && 
+            arg != std::numeric_limits<T>::infinity() &&
+            arg != -std::numeric_limits<T>::infinity();
+    }
+
 Initializer::Initializer(const Frame &ReferenceFrame, float sigma, int iterations)
 {
     mK = ReferenceFrame.mK.clone();

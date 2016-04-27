@@ -110,6 +110,7 @@ public:
 
 
     static std::mutex mGlobalMutex;
+    static int mnLevels;
 
 protected:    
 

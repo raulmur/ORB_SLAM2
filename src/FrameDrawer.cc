@@ -93,6 +93,11 @@ cv::Mat FrameDrawer::DrawFrame()
         const float r = 5;
         for(int i=0;i<N;i++)
         {
+            if(mvbVO.size()<=i 
+                ||vbMap.size() <=i)
+            {
+                break;
+            }
             if(vbVO[i] || vbMap[i])
             {
                 cv::Point2f pt1,pt2;

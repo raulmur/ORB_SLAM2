@@ -97,7 +97,11 @@ std::string formatString(const char* fmt, ...)
   char* auxPtr = NULL;
   va_list arg_list;
   va_start(arg_list, fmt);
-  int numChar = vasprintf(&auxPtr, fmt, arg_list);
+  // TODO: windows use vsprintf
+  // linux use vasprintf
+  auxPtr = (char*)malloc(1000);
+
+  int numChar = vsprintf(auxPtr, fmt, arg_list);
   va_end(arg_list);
   string retString;
   if (numChar != -1)
@@ -114,7 +118,8 @@ int strPrintf(std::string& str, const char* fmt, ...)
   char* auxPtr = NULL;
   va_list arg_list;
   va_start(arg_list, fmt);
-  int numChars = vasprintf(&auxPtr, fmt, arg_list);
+  auxPtr = (char*)malloc(1000);
+  int numChars = vsprintf(auxPtr, fmt, arg_list);
   va_end(arg_list);
   str = auxPtr;
   free(auxPtr);

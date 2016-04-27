@@ -28,6 +28,8 @@ namespace ORB_SLAM2
 
 long unsigned int MapPoint::nNextId=0;
 mutex MapPoint::mGlobalMutex;
+int MapPoint::mnLevels = 8;
+
 
 MapPoint::MapPoint(const cv::Mat &Pos, KeyFrame *pRefKF, Map* pMap):
     mnFirstKFid(pRefKF->mnId), mnFirstFrame(pRefKF->mnFrameId), nObs(0), mnTrackReferenceForFrame(0),
@@ -272,7 +274,16 @@ void MapPoint::ComputeDistinctiveDescriptors()
     // Compute distances between them
     const size_t N = vDescriptors.size();
 
-    float Distances[N][N];
+    //float **Distances[N][N];VS2012 not support
+    float **Distances;
+    Distances = new float*[N];
+
+    for(size_t i = 0;i<N;i++)
+    {
+        Distances[i] = new float[N];
+    }
+
+
     for(size_t i=0;i<N;i++)
     {
         Distances[i][i]=0;
@@ -299,6 +310,12 @@ void MapPoint::ComputeDistinctiveDescriptors()
             BestIdx = i;
         }
     }
+
+    for(size_t i = 0;i<N;i++)
+    {
+        delete[] Distances[i];
+    }
+    delete []Distances;
 
     {
         unique_lock<mutex> lock(mMutexFeatures);
@@ -389,8 +406,15 @@ int MapPoint::PredictScale(const float &currentDist, const float &logScaleFactor
         unique_lock<mutex> lock3(mMutexPos);
         ratio = mfMaxDistance/currentDist;
     }
+    ratio = log(ratio)/logScaleFactor;
 
-    return ceil(log(ratio)/logScaleFactor);
+    // changed by izp, use the setting value
+    int result = ceil(ratio);
+    if(result>=mnLevels)
+    {
+        result = mnLevels-1;
+    }
+    return result;
 }
 
 } //namespace ORB_SLAM
