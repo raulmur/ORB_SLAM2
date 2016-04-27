@@ -171,9 +171,18 @@ cv::Mat Sim3Solver::iterate(int nIterations, bool &bNoMore, vector<bool> &vbInli
 
             mvX3Dc1[idx].copyTo(P3Dc1i.col(i));
             mvX3Dc2[idx].copyTo(P3Dc2i.col(i));
+            // changed by izp
+            if(vAvailableIndices.size()<=idx)
+            {
+                cout << "Sim3Solver::iterate: out of index: "<< idx << ":" << vAvailableIndices.size() << endl;
+                vAvailableIndices.push_back(vAvailableIndices.back());
+            }
+            else
+            {
+                vAvailableIndices[idx] = vAvailableIndices.back();
+                vAvailableIndices.pop_back();
+            }
 
-            vAvailableIndices[idx] = vAvailableIndices.back();
-            vAvailableIndices.pop_back();
         }
 
         ComputeSim3(P3Dc1i,P3Dc2i);
