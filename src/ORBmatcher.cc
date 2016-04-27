@@ -27,7 +27,8 @@
 
 #include "Thirdparty/DBoW2/DBoW2/FeatureVector.h"
 
-#include<stdint-gcc.h>
+//#include<stdint-gcc.h>
+#include <inttypes.h>   // support VS2012, need copy new file to VS2012 include
 
 using namespace std;
 
@@ -37,6 +38,12 @@ namespace ORB_SLAM2
 const int ORBmatcher::TH_HIGH = 100;
 const int ORBmatcher::TH_LOW = 50;
 const int ORBmatcher::HISTO_LENGTH = 30;
+
+static double round(double r)
+{
+    return (r > 0.0) ? floor(r + 0.5) : ceil(r - 0.5);
+}
+
 
 ORBmatcher::ORBmatcher(float nnratio, bool checkOri): mfNNratio(nnratio), mbCheckOrientation(checkOri)
 {
@@ -64,6 +71,14 @@ int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoint
 
         if(bFactor)
             r*=th;
+
+        // change by izp, vector subscript out of range
+
+        if(F.mvScaleFactors.size()<=nPredictedLevel)
+        {
+            cout << F.mvScaleFactors.size() << " out of range " << nPredictedLevel<< endl;
+            continue;
+        }
 
         const vector<size_t> vIndices =
                 F.GetFeaturesInArea(pMP->mTrackProjX,pMP->mTrackProjY,r*F.mvScaleFactors[nPredictedLevel],nPredictedLevel-1,nPredictedLevel);
@@ -181,8 +196,8 @@ int ORBmatcher::SearchByBoW(KeyFrame* pKF,Frame &F, vector<MapPoint*> &vpMapPoin
     {
         if(KFit->first == Fit->first)
         {
-            const vector<unsigned int> vIndicesKF = KFit->second;
-            const vector<unsigned int> vIndicesF = Fit->second;
+            const vector<unsigned int> &vIndicesKF = KFit->second;
+            const vector<unsigned int> &vIndicesF = Fit->second;
 
             for(size_t iKF=0; iKF<vIndicesKF.size(); iKF++)
             {
@@ -887,6 +902,13 @@ int ORBmatcher::Fuse(KeyFrame *pKF, const vector<MapPoint *> &vpMapPoints, const
         int nPredictedLevel = pMP->PredictScale(dist3D,pKF->mfLogScaleFactor);
 
         // Search in a radius
+        // change by izp
+        if(pKF->mvScaleFactors.size()<=nPredictedLevel)
+        {
+            cout << "ORBmatcher::Fuse out of range" << nPredictedLevel << ":"<< pKF->mvScaleFactors.size()<< endl;
+            continue;
+        }
+
         const float radius = th*pKF->mvScaleFactors[nPredictedLevel];
 
         const vector<size_t> vIndices = pKF->GetFeaturesInArea(u,v,radius);

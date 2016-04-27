@@ -24,6 +24,7 @@
 #include "Optimizer.h"
 
 #include<mutex>
+#include <thread>
 
 namespace ORB_SLAM2
 {
@@ -91,7 +92,8 @@ void LocalMapping::Run()
             // Safe area to stop
             while(isStopped() && !CheckFinish())
             {
-                usleep(3000);
+                //Sleep(3000);
+                std::this_thread::sleep_for(std::chrono::milliseconds::duration(3000));
             }
             if(CheckFinish())
                 break;
@@ -105,7 +107,8 @@ void LocalMapping::Run()
         if(CheckFinish())
             break;
 
-        usleep(3000);
+        // TODO: changed by izp, don't need sleep, we can use the
+        //Sleep(3000);
     }
 
     SetFinish();
@@ -116,13 +119,35 @@ void LocalMapping::InsertKeyFrame(KeyFrame *pKF)
     unique_lock<mutex> lock(mMutexNewKFs);
     mlNewKeyFrames.push_back(pKF);
     mbAbortBA=true;
+    mCv.notify_all();
 }
 
 
 bool LocalMapping::CheckNewKeyFrames()
 {
-    unique_lock<mutex> lock(mMutexNewKFs);
-    return(!mlNewKeyFrames.empty());
+    //unique_lock<mutex> lock(mMutexNewKFs);
+    mMutexNewKFs.lock();
+    bool empty = mlNewKeyFrames.empty();
+    mMutexNewKFs.unlock();
+
+    std::unique_lock <std::mutex> waitLock(mMutexWait);
+    if(empty && !mbFinishRequested)
+    {
+        mCv.wait(waitLock);
+    }
+
+    if(mbFinishRequested)
+    {
+        return false;
+    }
+    
+    mMutexNewKFs.lock();
+    empty = mlNewKeyFrames.empty();
+    mMutexNewKFs.unlock();
+    return !empty;
+
+
+
 }
 
 void LocalMapping::ProcessNewKeyFrame()
@@ -718,7 +743,7 @@ void LocalMapping::RequestReset()
             if(!mbResetRequested)
                 break;
         }
-        usleep(3000);
+        std::this_thread::sleep_for(std::chrono::milliseconds::duration(3000));
     }
 }
 
@@ -737,6 +762,8 @@ void LocalMapping::RequestFinish()
 {
     unique_lock<mutex> lock(mMutexFinish);
     mbFinishRequested = true;
+    mCv.notify_all();
+    cout << "LocalMapping::RequestFinish" << endl;
 }
 
 bool LocalMapping::CheckFinish()

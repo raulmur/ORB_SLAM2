@@ -28,6 +28,7 @@
 #include "KeyFrameDatabase.h"
 
 #include <mutex>
+#include <condition_variable>    // std::condition_variable
 
 
 namespace ORB_SLAM2
@@ -121,6 +122,9 @@ protected:
 
     bool mbAcceptKeyFrames;
     std::mutex mMutexAccept;
+
+    std::condition_variable mCv;
+    std::mutex mMutexWait;
 };
 
 } //namespace ORB_SLAM

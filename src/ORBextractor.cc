@@ -73,6 +73,12 @@ const int PATCH_SIZE = 31;
 const int HALF_PATCH_SIZE = 15;
 const int EDGE_THRESHOLD = 19;
 
+static double round(double r)
+{
+    return (r > 0.0) ? floor(r + 0.5) : ceil(r - 0.5);
+}
+
+
 
 static float IC_Angle(const Mat& image, Point2f pt,  const vector<int> & u_max)
 {
