@@ -19,7 +19,7 @@
 */
 
 
-#ifndef SYSTEM_H
+#ifndef SYSTEM_H //预编译指令开头必须是"#"，不带";"
 #define SYSTEM_H
 
 #include<string>
@@ -36,21 +36,21 @@
 #include "ORBVocabulary.h"
 #include "Viewer.h"
 
-namespace ORB_SLAM2
+namespace ORB_SLAM2//命名空间
 {
 
-class Viewer;
+class Viewer;//声明，已经在其他文件定义
 class FrameDrawer;
 class Map;
 class Tracking;
 class LocalMapping;
 class LoopClosing;
 
-class System
+class System//定义类
 {
 public:
     // Input sensor
-    enum eSensor{
+    enum eSensor{//枚举
         MONOCULAR=0,
         STEREO=1,
         RGBD=2
@@ -144,7 +144,7 @@ private:
 
     // System threads: Local Mapping, Loop Closing, Viewer.
     // The Tracking thread "lives" in the main execution thread that creates the System object.
-    std::thread* mptLocalMapping;
+    std::thread* mptLocalMapping;//指针对象
     std::thread* mptLoopClosing;
     std::thread* mptViewer;
 
