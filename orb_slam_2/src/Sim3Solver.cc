@@ -24,6 +24,7 @@
 #include <vector>
 #include <cmath>
 #include <opencv2/core/core.hpp>
+#include <glog/logging.h>
 
 #include "ORB_SLAM2/KeyFrame.h"
 #include "ORB_SLAM2/MapPoint.h"
@@ -213,7 +214,8 @@ cv::Mat Sim3Solver::find(std::vector<bool> &vbInliers12, int &nInliers)
     return iterate(mRansacMaxIts,bFlag,vbInliers12,nInliers);
 }
 
-void Sim3Solver::ComputeCentroid(cv::Mat &P, cv::Mat &Pr, cv::Mat &C)
+void Sim3Solver::ComputeCentroid(
+    const cv::Mat &P, const cv::Mat &Pr, cv::Mat &C)
 {
     cv::reduce(P,C,1,CV_REDUCE_SUM);
     C = C/P.cols;
@@ -224,8 +226,13 @@ void Sim3Solver::ComputeCentroid(cv::Mat &P, cv::Mat &Pr, cv::Mat &C)
     }
 }
 
-void Sim3Solver::ComputeSim3(cv::Mat &P1, cv::Mat &P2)
+void Sim3Solver::ComputeSim3(
+    const cv::Mat &P1, const cv::Mat &P2, const bool fix_scale, cv::Mat* R_1_2,
+    float* scale_1_2, cv::Mat* p_1_2)
 {
+    CHECK_NOTNULL(R_1_2);
+    CHECK_NOTNULL(scale_1_2);
+    CHECK_NOTNULL(p_1_2);
     // Custom implementation of:
     // Horn 1987, Closed-form solution of absolute orientataion using unit quaternions
 
@@ -280,17 +287,17 @@ void Sim3Solver::ComputeSim3(cv::Mat &P1, cv::Mat &P2)
 
     vec = 2*ang*vec/norm(vec); //Angle-axis representation. quaternion angle is the half
 
-    mR12i.create(3,3,P1.type());
+    R_1_2->create(3,3,P1.type());
 
-    cv::Rodrigues(vec,mR12i); // computes the rotation matrix from angle-axis
+    cv::Rodrigues(vec,*R_1_2); // computes the rotation matrix from angle-axis
 
     // Step 5: Rotate set 2
 
-    cv::Mat P3 = mR12i*Pr2;
+    cv::Mat P3 = *R_1_2*Pr2;
 
     // Step 6: Scale
 
-    if(!mbFixScale)
+    if(!fix_scale)
     {
         double nom = Pr1.dot(P3);
         cv::Mat aux_P3(P3.size(),P3.type());
@@ -306,35 +313,40 @@ void Sim3Solver::ComputeSim3(cv::Mat &P1, cv::Mat &P2)
             }
         }
 
-        ms12i = nom/den;
+        *scale_1_2 = nom/den;
     }
     else
-        ms12i = 1.0f;
+        *scale_1_2 = 1.0f;
 
     // Step 7: Translation
 
-    mt12i.create(1,3,P1.type());
-    mt12i = O1 - ms12i*mR12i*O2;
+    p_1_2->create(1,3,P1.type());
+    *p_1_2 = O1 - *scale_1_2 * *R_1_2 * O2;
+}
 
-    // Step 8: Transformation
+void Sim3Solver::ComputeSim3(cv::Mat &P1, cv::Mat &P2)
+{
+  ComputeSim3(P1, P2, mbFixScale, &mR12i, &ms12i, &mt12i);
 
-    // Step 8.1 T12
-    mT12i = cv::Mat::eye(4,4,P1.type());
+  // Step 8: Transformation
 
-    cv::Mat sR = ms12i*mR12i;
+  // Step 8.1 T12
+  mT12i = cv::Mat::eye(4,4,P1.type());
 
-    sR.copyTo(mT12i.rowRange(0,3).colRange(0,3));
-    mt12i.copyTo(mT12i.rowRange(0,3).col(3));
+  cv::Mat sR = ms12i*mR12i;
 
-    // Step 8.2 T21
+  sR.copyTo(mT12i.rowRange(0,3).colRange(0,3));
+  mt12i.copyTo(mT12i.rowRange(0,3).col(3));
 
-    mT21i = cv::Mat::eye(4,4,P1.type());
+  // Step 8.2 T21
 
-    cv::Mat sRinv = (1.0/ms12i)*mR12i.t();
+  mT21i = cv::Mat::eye(4,4,P1.type());
 
-    sRinv.copyTo(mT21i.rowRange(0,3).colRange(0,3));
-    cv::Mat tinv = -sRinv*mt12i;
-    tinv.copyTo(mT21i.rowRange(0,3).col(3));
+  cv::Mat sRinv = (1.0/ms12i)*mR12i.t();
+
+  sRinv.copyTo(mT21i.rowRange(0,3).colRange(0,3));
+  cv::Mat tinv = -sRinv*mt12i;
+  tinv.copyTo(mT21i.rowRange(0,3).col(3));
 }
 
 
