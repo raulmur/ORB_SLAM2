@@ -275,6 +275,7 @@ bool LoopClosing::ComputeSim3()
         }
         else
         {
+            LOG(INFO) << nmatches << " ORB matches.";
             Sim3Solver* pSolver = new Sim3Solver(mpCurrentKF,pKF,vvpMapPointMatches[i],mbFixScale);
             pSolver->SetRansacParameters(0.99,20,300);
             vpSim3Solvers[i] = pSolver;

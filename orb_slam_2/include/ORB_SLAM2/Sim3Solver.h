@@ -46,12 +46,15 @@ public:
     cv::Mat GetEstimatedTranslation();
     float GetEstimatedScale();
 
+    static void ComputeSim3(
+        const cv::Mat &P1, const cv::Mat &P2, const bool fix_scale,
+        cv::Mat* R_1_2, float* scale_1_2, cv::Mat* p_1_2);
 
 protected:
-
-    void ComputeCentroid(cv::Mat &P, cv::Mat &Pr, cv::Mat &C);
-
     void ComputeSim3(cv::Mat &P1, cv::Mat &P2);
+
+    static void ComputeCentroid(
+        const cv::Mat &P, const cv::Mat &Pr, cv::Mat &C);
 
     void CheckInliers();
 
