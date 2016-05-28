@@ -23,18 +23,21 @@
 #include<algorithm>
 #include<fstream>
 #include<chrono>
-
 #include<ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
-
+#include "geometry_msgs/TransformStamped.h"
 #include<opencv2/core/core.hpp>
-
 #include"../../../include/System.h"
+#include "tf/transform_datatypes.h"
+#include <tf/transform_broadcaster.h>
+
 
 using namespace std;
+using namespace tf;
+//using namespace cv;
 
 class ImageGrabber
 {
@@ -66,11 +69,11 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nh, "/camera/rgb/image_raw", 1);
-    message_filters::Subscriber<sensor_msgs::Image> depth_sub(nh, "camera/depth_registered/image_raw", 1);
+    //message_filters::Subscriber<sensor_msgs::Image> depth_sub(nh, "camera/depth_registered/image_raw", 1);
+    message_filters::Subscriber<sensor_msgs::Image> depth_sub(nh, "/camera/depth_registered/sw_registered/image_rect", 1);
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub,depth_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabRGBD,&igb,_1,_2));
-
     ros::spin();
 
     // Stop all threads
@@ -109,7 +112,29 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
         return;
     }
 
-    mpSLAM->TrackRGBD(cv_ptrRGB->image,cv_ptrD->image,cv_ptrRGB->header.stamp.toSec());
-}
+    cv::Mat pose = mpSLAM->TrackRGBD(cv_ptrRGB->image,cv_ptrD->image,cv_ptrRGB->header.stamp.toSec());
 
+    if (pose.empty())
+        return;
+
+    // transform into right handed camera frame
+    tf::Matrix3x3 rh_cameraPose(  - pose.at<float>(0,0),   pose.at<float>(0,1),   pose.at<float>(0,2),
+                                  - pose.at<float>(1,0),   pose.at<float>(1,1),   pose.at<float>(1,2),
+                                    pose.at<float>(2,0), - pose.at<float>(2,1), - pose.at<float>(2,2));
+
+    tf::Vector3 rh_cameraTranslation( pose.at<float>(0,3),pose.at<float>(1,3), - pose.at<float>(2,3) );
+
+    //rotate 270deg about z and 270deg about x
+    tf::Matrix3x3 rotation270degZX( 0, 0, 1,
+                                   -1, 0, 0,
+                                    0,-1, 0);
+
+    //publish right handed, x forward, y right, z down (NED)
+    static tf::TransformBroadcaster br;
+    tf::Transform transformCoordSystem = tf::Transform(rotation270degZX,tf::Vector3(0.0, 0.0, 0.0));
+    br.sendTransform(tf::StampedTransform(transformCoordSystem, ros::Time::now(), "camera_link", "camera_pose"));
+
+    tf::Transform transformCamera = tf::Transform(rh_cameraPose,rh_cameraTranslation);
+    br.sendTransform(tf::StampedTransform(transformCamera, ros::Time::now(), "camera_pose", "pose"));
+}
 
