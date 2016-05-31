@@ -84,8 +84,8 @@ g2o
 )
 
 include(GenerateExportHeader)
-set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
+set_target_properties(ORB_SLAM2 PROPERTIES CXX_VISIBILITY_PRESET hidden)
+set_target_properties(ORB_SLAM2 PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
 generate_export_header(ORB_SLAM2)
 
 install(TARGETS ORB_SLAM2
@@ -101,27 +101,22 @@ add_executable(rgbd_tum
 Examples/RGB-D/rgbd_tum.cc)
 target_link_libraries(rgbd_tum ORB_SLAM2)
 
-install(TARGETS rgbd_tum
-  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin )
-
 add_executable(stereo_kitti
 Examples/Stereo/stereo_kitti.cc)
 target_link_libraries(stereo_kitti ORB_SLAM2)
 
-install(TARGETS stereo_kitti
-  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin )
-
 add_executable(mono_tum
 Examples/Monocular/mono_tum.cc)
 target_link_libraries(mono_tum ORB_SLAM2)
-
-install(TARGETS mono_tum
-  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin )
-  
+ 
 add_executable(mono_kitti
 Examples/Monocular/mono_kitti.cc)
 target_link_libraries(mono_kitti ORB_SLAM2)
 
-install(TARGETS mono_kitti
+install(TARGETS 
+    rgbd_tum
+    stereo_kitti
+    mono_tum
+    mono_kitti
   RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin )
 
