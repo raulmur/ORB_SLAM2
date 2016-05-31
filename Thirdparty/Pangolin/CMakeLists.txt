@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
-project(Pangolin)
+project(PangolinBuild)
 
 include(ExternalProject)
 set(COMMON_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
@@ -27,15 +27,16 @@ set(PANGOLIN_CMAKE_ARGS ${COMMON_CMAKE_ARGS}
     -DBUILD_EXTERN_LIBJPEG=False
     -DBUILD_EXTERN_LIBPNG=False)
 
-ExternalProject_Add(Pangolin
+ExternalProject_Add(pangolin
   URL https://github.com/stevenlovegrove/Pangolin/archive/v0.3.tar.gz
   URL_HASH SHA256=8881c1102671ea99c241b273474ca7a5b3377fbde9c7d376253424c36d8ed678
   CMAKE_ARGS ${PANGOLIN_CMAKE_ARGS}
   BINARY_DIR ${CMAKE_BINARY_DIR}/Pangolin-build)
 
-ExternalProject_Add_Step(PangolinBuild PangolinExportInstall 
-    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/Pangolin-build/src/include/pangolin/pangolin_export.h"
-            "${CMAKE_INSTALL_PREFIX}/include/pangolin/pangolin_export.h"
-    COMMENT "Install pangolin_export"
-    DEPENDEES install)
-
+if(WIN32)
+    ExternalProject_Add_Step(pangolin pangolinExportInstall 
+        COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/Pangolin-prefix/src/Pangolin-build/src/include/pangolin/pangolin_export.h"
+                "${CMAKE_INSTALL_PREFIX}/include/pangolin/pangolin_export.h"
+        COMMENT "Install pangolin_export"
+        DEPENDEES install)
+endif()
