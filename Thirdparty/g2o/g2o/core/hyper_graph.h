@@ -34,13 +34,7 @@
 #include <vector>
 #include <limits>
 #include <cstddef>
-
-#ifdef _MSC_VER
 #include <unordered_map>
-#else
-#include <tr1/unordered_map>
-#endif
-
 
 /** @addtogroup graph */
 //@{
@@ -90,7 +84,7 @@ namespace g2o {
       typedef std::set<Edge*>                           EdgeSet;
       typedef std::set<Vertex*>                         VertexSet;
 
-      typedef std::tr1::unordered_map<int, Vertex*>     VertexIDMap;
+      typedef std::unordered_map<int, Vertex*>     VertexIDMap;
       typedef std::vector<Vertex*>                      VertexContainer;
 
       //! abstract Vertex, your types must derive from that one
