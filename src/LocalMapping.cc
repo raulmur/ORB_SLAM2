@@ -93,7 +93,7 @@ void LocalMapping::Run()
             // Safe area to stop
             while(isStopped() && !CheckFinish())
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+                std::this_thread::sleep_for(std::chrono::microseconds(3000));
             }
             if(CheckFinish())
                 break;
@@ -107,7 +107,7 @@ void LocalMapping::Run()
         if(CheckFinish())
             break;
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        std::this_thread::sleep_for(std::chrono::microseconds(3000));
     }
 
     SetFinish();
@@ -718,7 +718,7 @@ void LocalMapping::RequestReset()
             if(!mbResetRequested)
                 break;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        std::this_thread::sleep_for(std::chrono::microseconds(3000));
     }
 }
 
