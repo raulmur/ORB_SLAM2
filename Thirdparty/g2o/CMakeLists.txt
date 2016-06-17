@@ -13,7 +13,11 @@ ENDIF()
 
 MESSAGE(STATUS "BUILD TYPE:" ${CMAKE_BUILD_TYPE})
 
-SET(G2O_LIB_TYPE STATIC)
+IF(WIN32)
+    SET(G2O_LIB_TYPE STATIC)
+ELSE()
+    SET(G2O_LIB_TYPE SHARED)
+ENDIF()
 
 # There seems to be an issue with MSVC8
 # see http://eigen.tuxfamily.org/bz/show_bug.cgi?id=83
