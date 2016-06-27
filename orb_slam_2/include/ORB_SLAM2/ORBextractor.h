@@ -82,6 +82,10 @@ public:
         return mvInvLevelSigma2;
     }
 
+    void computeDescriptorsForGivenKeypoints(const cv::Mat& image,
+                                   std::vector<cv::KeyPoint>& keypoints,
+                                   cv::Mat& descriptors);
+
     std::vector<cv::Mat> mvImagePyramid;
 
 protected:
