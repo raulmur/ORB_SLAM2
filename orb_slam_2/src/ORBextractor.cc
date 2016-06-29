@@ -1031,13 +1031,21 @@ void ORBextractor::ComputeKeyPointsOld(std::vector<std::vector<KeyPoint> > &allK
         computeOrientation(mvImagePyramid[level], allKeypoints[level], umax);
 }
 
-static void computeDescriptors(const Mat& image, vector<KeyPoint>& keypoints, Mat& descriptors,
+static void computeDescriptors(const Mat& image,
+                               const vector<KeyPoint>& keypoints,
+                               Mat& descriptors,
                                const vector<Point>& pattern)
 {
     descriptors = Mat::zeros((int)keypoints.size(), 32, CV_8UC1);
 
     for (size_t i = 0; i < keypoints.size(); i++)
         computeOrbDescriptor(keypoints[i], image, &pattern[0], descriptors.ptr((int)i));
+}
+
+void ORBextractor::computeDescriptorsForGivenKeypoints(
+    const Mat& image, const vector<KeyPoint>& keypoints, Mat& descriptors)
+{
+  computeDescriptors(image, keypoints, descriptors, pattern);
 }
 
 void ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPoint>& _keypoints,
