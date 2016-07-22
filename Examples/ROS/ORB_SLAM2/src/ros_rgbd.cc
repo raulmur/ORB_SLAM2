@@ -36,7 +36,6 @@
 
 
 using namespace std;
-double PI = 3.14159265359;
 
 class ImageGrabber
 {
