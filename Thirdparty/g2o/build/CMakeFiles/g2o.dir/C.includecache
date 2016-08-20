@@ -1,0 +1,24 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/hyj/ORB_SLAM/ORB_SLAM2/Thirdparty/g2o/g2o/stuff/os_specific.c
+os_specific.h
+/home/hyj/ORB_SLAM/ORB_SLAM2/Thirdparty/g2o/g2o/stuff/os_specific.h
+
+/home/hyj/ORB_SLAM/ORB_SLAM2/Thirdparty/g2o/g2o/stuff/os_specific.h
+stdio.h
+-
+stdlib.h
+-
+stdarg.h
+-
+sys/time.h
+-
+sys/time.h
+-
+

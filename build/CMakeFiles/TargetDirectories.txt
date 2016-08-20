@@ -1,0 +1,8 @@
+/home/hyj/ORB_SLAM/ORB_SLAM2/build/CMakeFiles/ORB_SLAM2.dir
+/home/hyj/ORB_SLAM/ORB_SLAM2/build/CMakeFiles/bin_vocabulary.dir
+/home/hyj/ORB_SLAM/ORB_SLAM2/build/CMakeFiles/mono_hyj.dir
+/home/hyj/ORB_SLAM/ORB_SLAM2/build/CMakeFiles/mono_kitti.dir
+/home/hyj/ORB_SLAM/ORB_SLAM2/build/CMakeFiles/mono_semidense.dir
+/home/hyj/ORB_SLAM/ORB_SLAM2/build/CMakeFiles/mono_tum.dir
+/home/hyj/ORB_SLAM/ORB_SLAM2/build/CMakeFiles/rgbd_tum.dir
+/home/hyj/ORB_SLAM/ORB_SLAM2/build/CMakeFiles/stereo_kitti.dir
