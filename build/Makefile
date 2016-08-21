@@ -709,6 +709,30 @@ src/PnPsolver.cc.s:
 	$(MAKE) -f CMakeFiles/ORB_SLAM2.dir/build.make CMakeFiles/ORB_SLAM2.dir/src/PnPsolver.cc.s
 .PHONY : src/PnPsolver.cc.s
 
+src/ProbabilityMapping.o: src/ProbabilityMapping.cc.o
+.PHONY : src/ProbabilityMapping.o
+
+# target to build an object file
+src/ProbabilityMapping.cc.o:
+	$(MAKE) -f CMakeFiles/ORB_SLAM2.dir/build.make CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.o
+.PHONY : src/ProbabilityMapping.cc.o
+
+src/ProbabilityMapping.i: src/ProbabilityMapping.cc.i
+.PHONY : src/ProbabilityMapping.i
+
+# target to preprocess a source file
+src/ProbabilityMapping.cc.i:
+	$(MAKE) -f CMakeFiles/ORB_SLAM2.dir/build.make CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.i
+.PHONY : src/ProbabilityMapping.cc.i
+
+src/ProbabilityMapping.s: src/ProbabilityMapping.cc.s
+.PHONY : src/ProbabilityMapping.s
+
+# target to generate assembly for a file
+src/ProbabilityMapping.cc.s:
+	$(MAKE) -f CMakeFiles/ORB_SLAM2.dir/build.make CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.s
+.PHONY : src/ProbabilityMapping.cc.s
+
 src/Sim3Solver.o: src/Sim3Solver.cc.o
 .PHONY : src/Sim3Solver.o
 
@@ -908,6 +932,9 @@ help:
 	@echo "... src/PnPsolver.o"
 	@echo "... src/PnPsolver.i"
 	@echo "... src/PnPsolver.s"
+	@echo "... src/ProbabilityMapping.o"
+	@echo "... src/ProbabilityMapping.i"
+	@echo "... src/ProbabilityMapping.s"
 	@echo "... src/Sim3Solver.o"
 	@echo "... src/Sim3Solver.i"
 	@echo "... src/Sim3Solver.s"

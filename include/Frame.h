@@ -118,6 +118,9 @@ public:
     static float invfy;
     cv::Mat mDistCoef;
 
+    // pass img to keyframe, using to semidense create
+   cv::Mat im_;
+
     // Stereo baseline multiplied by fx.
     float mbf;
 

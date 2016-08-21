@@ -41,7 +41,7 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
     mvInvLevelSigma2(F.mvInvLevelSigma2), mnMinX(F.mnMinX), mnMinY(F.mnMinY), mnMaxX(F.mnMaxX),
     mnMaxY(F.mnMaxY), mK(F.mK), mvpMapPoints(F.mvpMapPoints), mpKeyFrameDB(pKFDB),
     mpORBvocabulary(F.mpORBvocabulary), mbFirstConnection(true), mpParent(NULL), mbNotErase(false),
-    mbToBeErased(false), mbBad(false), mHalfBaseline(F.mb/2), mpMap(pMap)
+    mbToBeErased(false), mbBad(false), mHalfBaseline(F.mb/2), mpMap(pMap), im_(F.im_.clone())
 {
     mnId=nNextId++;
 
@@ -660,6 +660,87 @@ float KeyFrame::ComputeSceneMedianDepth(const int q)
     sort(vDepths.begin(),vDepths.end());
 
     return vDepths[(vDepths.size()-1)/q];
+}
+
+cv::Mat KeyFrame::GetImage()
+{
+    //unique_lock<mutex> lock(mMutexImage);
+    return im_.clone();
+}
+
+
+cv::KeyPoint KeyFrame::GetKeyPointUn(const size_t &idx) const
+{
+    return mvKeysUn[idx];
+}
+
+int KeyFrame::GetKeyPointScaleLevel(const size_t &idx) const
+{
+    return mvKeysUn[idx].octave;
+}
+
+cv::Mat KeyFrame::GetDescriptor(const size_t &idx)
+{
+    return mDescriptors.row(idx).clone();
+}
+
+cv::Mat KeyFrame::GetDescriptors()
+{
+    return mDescriptors.clone();
+}
+
+vector<cv::KeyPoint> KeyFrame::GetKeyPoints() const
+{
+    return mvKeys;
+}
+
+vector<cv::KeyPoint> KeyFrame::GetKeyPointsUn() const
+{
+    return mvKeysUn;
+}
+
+cv::Mat KeyFrame::GetCalibrationMatrix() const
+{
+    return mK.clone();
+}
+
+DBoW2::FeatureVector KeyFrame::GetFeatureVector()
+{
+    unique_lock<mutex> lock(mMutexFeatures);
+    return mFeatVec;
+}
+
+vector<float> KeyFrame::GetAllPointDepths(int q)
+{
+    vector<MapPoint*> vpMapPoints;
+    cv::Mat Tcw_;
+    {
+    unique_lock<mutex>  lock(mMutexFeatures);
+    unique_lock<mutex>  lock2(mMutexPose);
+    vpMapPoints = mvpMapPoints;
+    Tcw_ = Tcw.clone();
+    }
+
+    vector<float> vDepths;
+    vDepths.reserve(mvpMapPoints.size());
+    cv::Mat Rcw2 = Tcw_.row(2).colRange(0,3);
+    Rcw2 = Rcw2.t();
+    float zcw = Tcw_.at<float>(2,3);
+    for(size_t i=0; i<mvpMapPoints.size(); i++)
+    {
+        if(mvpMapPoints[i])
+        {
+            MapPoint* pMP = mvpMapPoints[i];
+            cv::Mat x3Dw = pMP->GetWorldPos();
+            float z = Rcw2.dot(x3Dw)+zcw;
+            vDepths.push_back(z);
+        }
+    }
+
+    sort(vDepths.begin(),vDepths.end());
+
+    //README
+    return vDepths;//[(vDepths.size()-1)/q];
 }
 
 } //namespace ORB_SLAM

@@ -489,6 +489,29 @@ CMakeFiles/ORB_SLAM2.dir/src/Viewer.cc.o.provides: CMakeFiles/ORB_SLAM2.dir/src/
 
 CMakeFiles/ORB_SLAM2.dir/src/Viewer.cc.o.provides.build: CMakeFiles/ORB_SLAM2.dir/src/Viewer.cc.o
 
+CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.o: CMakeFiles/ORB_SLAM2.dir/flags.make
+CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.o: ../src/ProbabilityMapping.cc
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/hyj/ORB_SLAM/ORB_SLAM2/build/CMakeFiles $(CMAKE_PROGRESS_20)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.o"
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.o -c /home/hyj/ORB_SLAM/ORB_SLAM2/src/ProbabilityMapping.cc
+
+CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.i"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/hyj/ORB_SLAM/ORB_SLAM2/src/ProbabilityMapping.cc > CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.i
+
+CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.s"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/hyj/ORB_SLAM/ORB_SLAM2/src/ProbabilityMapping.cc -o CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.s
+
+CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.o.requires:
+.PHONY : CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.o.requires
+
+CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.o.provides: CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.o.requires
+	$(MAKE) -f CMakeFiles/ORB_SLAM2.dir/build.make CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.o.provides.build
+.PHONY : CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.o.provides
+
+CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.o.provides.build: CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.o
+
 # Object files for target ORB_SLAM2
 ORB_SLAM2_OBJECTS = \
 "CMakeFiles/ORB_SLAM2.dir/src/System.cc.o" \
@@ -509,7 +532,8 @@ ORB_SLAM2_OBJECTS = \
 "CMakeFiles/ORB_SLAM2.dir/src/KeyFrameDatabase.cc.o" \
 "CMakeFiles/ORB_SLAM2.dir/src/Sim3Solver.cc.o" \
 "CMakeFiles/ORB_SLAM2.dir/src/Initializer.cc.o" \
-"CMakeFiles/ORB_SLAM2.dir/src/Viewer.cc.o"
+"CMakeFiles/ORB_SLAM2.dir/src/Viewer.cc.o" \
+"CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.o"
 
 # External object files for target ORB_SLAM2
 ORB_SLAM2_EXTERNAL_OBJECTS =
@@ -533,6 +557,7 @@ ORB_SLAM2_EXTERNAL_OBJECTS =
 ../lib/libORB_SLAM2.so: CMakeFiles/ORB_SLAM2.dir/src/Sim3Solver.cc.o
 ../lib/libORB_SLAM2.so: CMakeFiles/ORB_SLAM2.dir/src/Initializer.cc.o
 ../lib/libORB_SLAM2.so: CMakeFiles/ORB_SLAM2.dir/src/Viewer.cc.o
+../lib/libORB_SLAM2.so: CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.o
 ../lib/libORB_SLAM2.so: CMakeFiles/ORB_SLAM2.dir/build.make
 ../lib/libORB_SLAM2.so: /usr/lib/x86_64-linux-gnu/libopencv_videostab.so.2.4.8
 ../lib/libORB_SLAM2.so: /usr/lib/x86_64-linux-gnu/libopencv_video.so.2.4.8
@@ -617,6 +642,7 @@ CMakeFiles/ORB_SLAM2.dir/requires: CMakeFiles/ORB_SLAM2.dir/src/KeyFrameDatabase
 CMakeFiles/ORB_SLAM2.dir/requires: CMakeFiles/ORB_SLAM2.dir/src/Sim3Solver.cc.o.requires
 CMakeFiles/ORB_SLAM2.dir/requires: CMakeFiles/ORB_SLAM2.dir/src/Initializer.cc.o.requires
 CMakeFiles/ORB_SLAM2.dir/requires: CMakeFiles/ORB_SLAM2.dir/src/Viewer.cc.o.requires
+CMakeFiles/ORB_SLAM2.dir/requires: CMakeFiles/ORB_SLAM2.dir/src/ProbabilityMapping.cc.o.requires
 .PHONY : CMakeFiles/ORB_SLAM2.dir/requires
 
 CMakeFiles/ORB_SLAM2.dir/clean:
