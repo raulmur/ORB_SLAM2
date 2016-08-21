@@ -24,6 +24,7 @@
 #include "Converter.h"
 #include <thread>
 #include <pangolin/pangolin.h>
+#include <iomanip>
 #include <time.h>
 
 bool has_suffix(const std::string &str, const std::string &suffix) {
