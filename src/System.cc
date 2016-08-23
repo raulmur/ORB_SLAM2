@@ -95,6 +95,10 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDatabase, mpVocabulary, mSensor!=MONOCULAR);
     mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, mpLoopCloser);
 
+    //Initialize
+    mpSemiDenseMapping = new ProbabilityMapping(mpMap);
+    mptSemiDense = new thread(&ProbabilityMapping::TestSemiDenseViewer, mpSemiDenseMapping);
+
     //Initialize the Viewer thread and launch
     mpViewer = new Viewer(this, mpFrameDrawer,mpMapDrawer,mpTracker,strSettingsFile);
     if(bUseViewer)
@@ -271,6 +275,7 @@ void System::Shutdown()
     mpLocalMapper->RequestFinish();
     mpLoopCloser->RequestFinish();
     mpViewer->RequestFinish();
+    mpSemiDenseMapping->RequestFinish();
 
     // Wait until all thread have effectively stopped
     while(!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished()  ||

@@ -32,7 +32,39 @@
 #define SAVE_IMAGES 1
 //#define SAVE(do_something) if (SAVE_IMAGES) { do_something }
 
-ProbabilityMapping::ProbabilityMapping() {}
+ProbabilityMapping::ProbabilityMapping(ORB_SLAM2::Map* pMap):mpMap(pMap)
+{
+ mbFinishRequested = false; //init
+}
+
+void ProbabilityMapping::TestSemiDenseViewer()
+{
+    while(1)
+    {
+
+        if(CheckFinish()) break;
+        sleep(1);
+        //std::cout<<"test thread"<<std::endl;
+        vector<ORB_SLAM2::KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+        if(vpKFs.size() < 2)
+        {
+            continue;
+        }
+        cout<<"semidense_Info:    vpKFs.size()--> "<<vpKFs.size()<<std::endl;
+
+    }
+
+    /*
+    vector<ORB_SLAM2::KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+    if(vpKFs.size() < 2)
+    {
+         DBG(cout<<"key frame size not enough")
+         exit(0);
+    }
+
+    DBG(cout<<"semidense_Info:    vpKFs.size()--> "<<vpKFs.size() )
+*/
+}
 
 void ProbabilityMapping::FirstLoop(ORB_SLAM2::KeyFrame *kf, std::vector<std::vector<depthHo> > &ho){
   DBG(cout << "Enter the FirstLoop\n")
@@ -40,11 +72,16 @@ void ProbabilityMapping::FirstLoop(ORB_SLAM2::KeyFrame *kf, std::vector<std::vec
   if(kf->isBad())
     exit(0);
   std::vector<ORB_SLAM2::KeyFrame*> closestMatches = kf->GetBestCovisibilityKeyFrames(covisN);
-
+  if(closestMatches.size() < 2)
+  {
+       DBG(cout<<"key frame size not enough")
+       exit(0);
+  }
   DBG(cout << "Find Stereo Search Constraints\n")
   float max_depth;
   float min_depth;
 
+  // get max_dephth  and min_depth in current key frame to limit search range
   StereoSearchConstraints(kf, &min_depth, &max_depth);
   DBG(cout << "Found! min:" << min_depth << "  max:" << max_depth << "\n";
       cout << "Getting Image Gradient\n")
@@ -81,10 +118,12 @@ void ProbabilityMapping::FirstLoop(ORB_SLAM2::KeyFrame *kf, std::vector<std::vec
 
         DBG(printf("FirstLoop: found a set of %d hypotheseses for pixel %d,%d\n", (int)(depth_ho.size()), x, y))
         if (depth_ho.size()) {
+          /*    depthfusion should not be run at here,  the code logical is wrong, need fix this bug. comment the code now.
           depthHo dh;
           DBG(cout << "Calculating Inverse Depth Hypothesis\n")
           InverseDepthHypothesisFusion(depth_ho, &dh);
-          dh.supported = true;
+         */
+         dh.supported = true;
           temp_ho[x][y] = dh;
         } else {
             temp_ho[x][y].supported = false;
@@ -118,6 +157,7 @@ void ProbabilityMapping::EpipolarSearch(ORB_SLAM2::KeyFrame* kf1, ORB_SLAM2::Key
   cv::meanStdDev(image,image_mean,image_stddev);
 
   cv::Mat F12 = ComputeFundamental(kf1,kf2);
+
   float a = x*F12.at<float>(0,0)+y*F12.at<float>(1,0)+F12.at<float>(2,0);
   float b = x*F12.at<float>(0,1)+y*F12.at<float>(1,1)+F12.at<float>(2,1);
   float c = x*F12.at<float>(0,2)+y*F12.at<float>(1,2)+F12.at<float>(2,2);

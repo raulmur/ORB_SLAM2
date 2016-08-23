@@ -39,6 +39,7 @@
 
 namespace ORB_SLAM2 {
 class KeyFrame;
+class Map;
 } 
 
 namespace cv {
@@ -56,7 +57,11 @@ public:
                 depthHo():depth(0),sigma(0),supported(false) {}
         };
 
-        ProbabilityMapping();
+        ProbabilityMapping(ORB_SLAM2::Map *pMap);
+
+        // add some const depth point into key frame
+        void TestSemiDenseViewer();
+
         /* * \brief void first_loop(ORB_SLAM2::KeyFrame kf, depthHo**, std::vector<depthHo>*): return results of epipolar search (depth hypotheses) */
         void FirstLoop(ORB_SLAM2::KeyFrame *kf, std::vector<std::vector<depthHo> > &ho);
         /* * \brief void stereo_search_constraints(): return min, max inverse depth */
@@ -72,8 +77,21 @@ public:
          * *         inter-keyframe depth-checking, smoothing, and growing. */
         void InterKeyFrameDepthChecking(const cv::Mat& im, ORB_SLAM2::KeyFrame* currentKF, std::vector<std::vector<depthHo> >& h);
 
-private:
+        void RequestFinish()
+        {
+            //unique_lock<mutex> lock(mMutexFinish);
+            mbFinishRequested = true;
+        }
 
+        bool CheckFinish()
+        {
+            //unique_lock<mutex> lock(mMutexFinish);
+            return mbFinishRequested;
+        }
+
+private:
+        bool mbFinishRequested;
+        ORB_SLAM2::Map* mpMap;
         void GetTR(ORB_SLAM2::KeyFrame* kf, cv::Mat* t, cv::Mat* r);
         void GetXp(const cv::Mat& K, int x, int y, cv::Mat* Xp);
         void GetParameterization(const cv::Mat& F12, const int x, const int y, float* a, float* b, float* c);
