@@ -97,7 +97,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     //Initialize
     mpSemiDenseMapping = new ProbabilityMapping(mpMap);
-    mptSemiDense = new thread(&ProbabilityMapping::TestSemiDenseViewer, mpSemiDenseMapping);
+    mptSemiDense = new thread(&ProbabilityMapping::Run, mpSemiDenseMapping);
 
     //Initialize the Viewer thread and launch
     mpViewer = new Viewer(this, mpFrameDrawer,mpMapDrawer,mpTracker,strSettingsFile);

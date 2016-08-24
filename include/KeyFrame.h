@@ -22,6 +22,7 @@
 #define KEYFRAME_H
 
 #include "MapPoint.h"
+#include "ProbabilityMapping.h"
 #include "Thirdparty/DBoW2/DBoW2/BowVector.h"
 #include "Thirdparty/DBoW2/DBoW2/FeatureVector.h"
 #include "ORBVocabulary.h"
@@ -133,7 +134,9 @@ public:
 
     // img used to semidense
     cv::Mat im_;
-
+    bool semidense_flag_;  // whether this frame have build dense map or not?
+    std::vector<std::vector<ProbabilityMapping::depthHo> > SemiDenseMatrix;
+    //
     static long unsigned int nNextId;
     long unsigned int mnId;
     const long unsigned int mnFrameId;

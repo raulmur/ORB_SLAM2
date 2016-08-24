@@ -23,6 +23,9 @@
 #include <stdio.h>
 #include <vector>
 #include <numeric>
+//#include <opencv2/opencv.hpp>
+#include <Eigen/Core>
+#include <mutex>
 
 #define covisN 7
 #define sigmaI 20
@@ -42,10 +45,10 @@ class KeyFrame;
 class Map;
 } 
 
+
 namespace cv {
 class Mat;
 }
-
 
 class ProbabilityMapping {
 public:
@@ -53,12 +56,14 @@ public:
 	struct depthHo {
 		float depth;
 		float sigma;
+                Eigen::Vector3d Pw; // point pose in world frame
                 bool supported;
-                depthHo():depth(0),sigma(0),supported(false) {}
+                depthHo():depth(0),sigma(0),supported(false){}
         };
 
         ProbabilityMapping(ORB_SLAM2::Map *pMap);
 
+        void Run();
         // add some const depth point into key frame
         void TestSemiDenseViewer();
 
@@ -108,6 +113,9 @@ private:
         void Equation14(depthHo& dHjn, float& depthp, cv::Mat& xp, cv::Mat& rji, cv::Mat& tji, float* res);
         cv::Mat ComputeFundamental(ORB_SLAM2::KeyFrame *&pKF1, ORB_SLAM2::KeyFrame *&pKF2);
         cv::Mat GetSkewSymmetricMatrix(const cv::Mat &v);
+
+protected:
+            std::mutex mMutexSemiDense;
 };
 
 #endif

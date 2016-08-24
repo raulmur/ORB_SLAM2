@@ -37,33 +37,56 @@ ProbabilityMapping::ProbabilityMapping(ORB_SLAM2::Map* pMap):mpMap(pMap)
  mbFinishRequested = false; //init
 }
 
-void ProbabilityMapping::TestSemiDenseViewer()
+void ProbabilityMapping::Run()
 {
     while(1)
     {
-
         if(CheckFinish()) break;
         sleep(1);
-        //std::cout<<"test thread"<<std::endl;
+        TestSemiDenseViewer();
+    }
+}
+void ProbabilityMapping::TestSemiDenseViewer()
+{
+        unique_lock<mutex> lock(mMutexSemiDense);
         vector<ORB_SLAM2::KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
         if(vpKFs.size() < 2)
         {
-            continue;
+            return;
+        }
+        for(size_t i =0;i < vpKFs.size(); i++ )
+        {
+            ORB_SLAM2::KeyFrame* pKF = vpKFs[i];
+            if(pKF->isBad() || pKF->semidense_flag_)
+                continue;
+
+            cv::Mat image = pKF->GetImage();
+            std::vector<std::vector<depthHo> > temp_ho (image.rows, std::vector<depthHo>(image.cols, depthHo()) );
+
+            for(int x = 0; x < image.rows; ){
+              for(int y = 0; y < image.cols; ){
+
+                       depthHo dh;
+                       dh.depth = 100.0;   // const
+                       float X = dh.depth*(x- pKF->cx ) / pKF->fx;
+                       float Y = dh.depth*(y- pKF->cy ) / pKF->fy;
+                       cv::Mat Pc = (cv::Mat_<float>(4,1) << X, Y , dh.depth, 1); // point in camera frame.
+                       cv::Mat Twc = pKF->GetPoseInverse();
+                       cv::Mat pos = Twc * Pc;
+                       dh.Pw<< pos.at<float>(0),pos.at<float>(1),pos.at<float>(2);
+                       dh.supported = true;
+                       temp_ho[x][y] = dh;  // save point to keyframe semidense map
+
+                       y = y+4;   // don't use all pixel to test
+              }
+              x = x+4;
+            }
+            pKF->SemiDenseMatrix = temp_ho;
+            pKF->semidense_flag_ = true;
         }
         cout<<"semidense_Info:    vpKFs.size()--> "<<vpKFs.size()<<std::endl;
 
-    }
 
-    /*
-    vector<ORB_SLAM2::KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
-    if(vpKFs.size() < 2)
-    {
-         DBG(cout<<"key frame size not enough")
-         exit(0);
-    }
-
-    DBG(cout<<"semidense_Info:    vpKFs.size()--> "<<vpKFs.size() )
-*/
 }
 
 void ProbabilityMapping::FirstLoop(ORB_SLAM2::KeyFrame *kf, std::vector<std::vector<depthHo> > &ho){

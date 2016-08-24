@@ -21,6 +21,7 @@
 #include "MapDrawer.h"
 #include "MapPoint.h"
 #include "KeyFrame.h"
+#include "ProbabilityMapping.h"
 #include <pangolin/pangolin.h>
 #include <mutex>
 
@@ -78,6 +79,32 @@ void MapDrawer::DrawMapPoints()
     }
 
     glEnd();
+}
+
+void MapDrawer::DrawSemiDense()
+{
+
+    const vector<KeyFrame*> &vpKf = mpMap->GetAllKeyFrames();
+    if(vpKf.empty())return;
+
+    glPointSize(mPointSize);
+    glBegin(GL_POINTS);
+    glColor3f(0.0,1.0,0.0);
+
+    for(size_t i = 0; i < vpKf.size();i=i+3)
+    {
+        KeyFrame* kf = vpKf[i];
+        if(! kf->semidense_flag_) continue;
+
+        for(size_t x=0; x<kf->im_.rows; x++)
+            for(size_t y=0; y<kf->im_.cols; y++)
+            {
+                 if(! kf->SemiDenseMatrix[x][y].supported) continue;
+                 glVertex3f( kf->SemiDenseMatrix[x][y].Pw[0],kf->SemiDenseMatrix[x][y].Pw[1],kf->SemiDenseMatrix[x][y].Pw[2]);
+            }
+    }
+     glEnd();
+
 }
 
 void MapDrawer::DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph)
