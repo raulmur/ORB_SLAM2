@@ -31,7 +31,7 @@ CMAKE_CXX_COMPILER:FILEPATH=/usr/bin/c++
 CMAKE_CXX_FLAGS:STRING=
 
 //Flags used by the compiler during debug builds.
-CMAKE_CXX_FLAGS_DEBUG:STRING=-g
+CMAKE_CXX_FLAGS_DEBUG:STRING=-O1 -g
 
 //Flags used by the compiler during release minsize builds.
 CMAKE_CXX_FLAGS_MINSIZEREL:STRING=-Os -DNDEBUG
@@ -138,10 +138,10 @@ CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO:STRING=
 
 //If set, runtime paths are not added when installing shared libraries,
 // but are added when building.
-CMAKE_SKIP_INSTALL_RPATH:BOOL=NO
+CMAKE_SKIP_INSTALL_RPATH:BOOL=OFF
 
 //If set, runtime paths are not added when using shared libraries.
-CMAKE_SKIP_RPATH:BOOL=NO
+CMAKE_SKIP_RPATH:BOOL=OFF
 
 //Flags used by the linker during the creation of static libraries.
 CMAKE_STATIC_LINKER_FLAGS:STRING=
@@ -168,7 +168,7 @@ CMAKE_USE_RELATIVE_PATHS:BOOL=OFF
 // .SILENT directive, and all commands will be echoed to the console
 // during the make.  This is useful for debugging only. With Visual
 // Studio IDE projects all commands are done without /nologo.
-CMAKE_VERBOSE_MAKEFILE:BOOL=FALSE
+CMAKE_VERBOSE_MAKEFILE:BOOL=OFF
 
 //Path to a file.
 EIGEN3_INCLUDE_DIR:PATH=/usr/include/eigen3
@@ -330,6 +330,9 @@ CMAKE_STATIC_LINKER_FLAGS_RELEASE-ADVANCED:INTERNAL=1
 CMAKE_STATIC_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_STRIP
 CMAKE_STRIP-ADVANCED:INTERNAL=1
+//Suppress Warnings that are meant for the author of the CMakeLists.txt
+// files.
+CMAKE_SUPPRESS_DEVELOPER_WARNINGS:INTERNAL=FALSE
 //uname command
 CMAKE_UNAME:INTERNAL=/bin/uname
 //ADVANCED property for variable: CMAKE_USE_RELATIVE_PATHS

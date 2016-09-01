@@ -95,13 +95,15 @@ void MapDrawer::DrawSemiDense()
     {
         KeyFrame* kf = vpKf[i];
         if(! kf->semidense_flag_) continue;
-
-        for(size_t x=0; x<kf->im_.rows; x++)
-            for(size_t y=0; y<kf->im_.cols; y++)
+        //int pcnt(0);
+        for(size_t y=0; y<kf->im_.rows; y++)
+            for(size_t x=0; x<kf->im_.cols; x++)
             {
-                 if(! kf->SemiDenseMatrix[x][y].supported) continue;
-                 glVertex3f( kf->SemiDenseMatrix[x][y].Pw[0],kf->SemiDenseMatrix[x][y].Pw[1],kf->SemiDenseMatrix[x][y].Pw[2]);
+                 if(! kf->SemiDenseMatrix[y][x].supported) continue;
+                 //pcnt ++;
+                 glVertex3f( kf->SemiDenseMatrix[y][x].Pw[0],kf->SemiDenseMatrix[y][x].Pw[1],kf->SemiDenseMatrix[y][x].Pw[2]);
             }
+        //std::cout<< "semi dense point cnt: \t"<<pcnt<<std::endl;
     }
      glEnd();
 
