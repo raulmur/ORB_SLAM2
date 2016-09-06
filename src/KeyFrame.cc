@@ -41,7 +41,8 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
     mvInvLevelSigma2(F.mvInvLevelSigma2), mnMinX(F.mnMinX), mnMinY(F.mnMinY), mnMaxX(F.mnMaxX),
     mnMaxY(F.mnMaxY), mK(F.mK), mvpMapPoints(F.mvpMapPoints), mpKeyFrameDB(pKFDB),
     mpORBvocabulary(F.mpORBvocabulary), mbFirstConnection(true), mpParent(NULL), mbNotErase(false),
-    mbToBeErased(false), mbBad(false), mHalfBaseline(F.mb/2), mpMap(pMap), im_(F.im_.clone()),semidense_flag_(false)
+    mbToBeErased(false), mbBad(false), mHalfBaseline(F.mb/2), mpMap(pMap), im_(F.im_.clone()),semidense_flag_(false),
+    SemiDenseMatrix(480, std::vector<ProbabilityMapping:: depthHo>(640, ProbabilityMapping::depthHo()) )
 {
     mnId=nNextId++;
 
@@ -54,6 +55,8 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
     }
 
     SetPose(F.mTcw);    
+
+    //SemiDenseMatrix = new std::vector<std::vector<ProbabilityMapping::depthHo> > (im_.rows, std::vector<ProbabilityMapping:: depthHo>(im_.cols, ProbabilityMapping::depthHo()) );
 }
 
 void KeyFrame::ComputeBoW()

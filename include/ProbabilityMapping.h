@@ -29,13 +29,14 @@
 
 #define covisN 1
 #define sigmaI 20
-#define lambdaG 200//8
+#define lambdaG 15//8
 #define lambdaL 80
 #define lambdaTheta 45
 #define lambdaN 3
 #define histo_length 30
 #define th_high 100
 #define th_low 50
+#define THETA 0.23
 #define NNRATIO 0.6
 
 #define NULL_DEPTH 999
@@ -56,9 +57,9 @@ public:
 	struct depthHo {
 		float depth;
 		float sigma;
-                Eigen::Vector3d Pw; // point pose in world frame
+                Eigen::Vector3f Pw; // point pose in world frame
                 bool supported;
-                depthHo():depth(0.0),sigma(0.0),supported(false){}
+                depthHo():depth(0.0),sigma(0.0),supported(false),Pw(0.0, 0.0, 0.0){}
         };
 
         ProbabilityMapping(ORB_SLAM2::Map *pMap);
@@ -72,8 +73,9 @@ public:
         /* * \brief void stereo_search_constraints(): return min, max inverse depth */
         void StereoSearchConstraints(ORB_SLAM2::KeyFrame* kf, float* min_depth, float* max_depth);
 	/* * \brief void epipolar_search(): return distribution of inverse depths/sigmas for each pixel */
-        void EpipolarSearch(ORB_SLAM2::KeyFrame *kf1, ORB_SLAM2::KeyFrame *kf2, int x, int y, float pixel, cv::Mat grad, float min_depth, float max_depth, depthHo *dh, cv::Mat F12, cv::Mat grad2mag, cv::Mat grad2th, cv::Mat image, cv::Mat image_stddev, int &best_u, int &best_v);
-	/* * \brief void inverse_depth_hypothesis_fusion(const vector<depthHo> H, depthHo* dist): 
+        void EpipolarSearch(ORB_SLAM2::KeyFrame *kf1, ORB_SLAM2::KeyFrame *kf2, const int x, const int y, float pixel, cv::Mat grad, float min_depth, float max_depth, depthHo *dh, cv::Mat F12, cv::Mat grad2mag, cv::Mat grad2th, cv::Mat image, cv::Mat image_stddev, float &best_u, float &best_v);        
+        void GetSearchRange(float& umin, float& umax, int px, int py, float mind, float maxd, ORB_SLAM2::KeyFrame* kf, ORB_SLAM2::KeyFrame* kf2);
+        /* * \brief void inverse_depth_hypothesis_fusion(const vector<depthHo> H, depthHo* dist):
 	 * *         get the parameters of depth hypothesis distrubution from list of depth hypotheses */
         void InverseDepthHypothesisFusion(const std::vector<depthHo>& h, depthHo* dist);
 	/* * \brief void intraKeyFrameDepthChecking(std::vector<std::vector<depthHo> > h, int imrows, int imcols): intra-keyframe depth-checking, smoothing, and growing. */
@@ -107,9 +109,8 @@ private:
         void PixelNeighborNeighborSupport(std::vector<std::vector<depthHo> > H, int px, int py, std::vector<std::vector<depthHo> >& support);
         void GetIntensityGradient_D(const cv::Mat& ImGrad, float a, float b, float c, int px, float* q);
         void GetPixelDepth(float uj, int px, int py, ORB_SLAM2::KeyFrame* kf, ORB_SLAM2::KeyFrame *kf2, float &p);
-        void GetPixelDepth(float uj, float vj, int px, int py, ORB_SLAM2::KeyFrame* kf,ORB_SLAM2::KeyFrame* kf2, float &p);
-        //void GetPixelDepth(const cv::Mat& Im, const cv::Mat& R, const cv::Mat& T, ORB_SLAM2::KeyFrame* kF, int u, float *p);
-	bool ChiTest(const depthHo& ha, const depthHo& hb, float* chi_val);
+        void GetPixelDepth(float uj, float vj, int px, int py, ORB_SLAM2::KeyFrame* kf, ORB_SLAM2::KeyFrame* kf2, float &p, depthHo *dh);
+        bool ChiTest(const depthHo& ha, const depthHo& hb, float* chi_val);
 	void GetFusion(const std::vector<depthHo>& best_compatible_ho, depthHo* hypothesis, float* min_sigma);
         void Equation14(depthHo& dHjn, float& depthp, cv::Mat& xp, cv::Mat& rji, cv::Mat& tji, float* res);
         cv::Mat ComputeFundamental(ORB_SLAM2::KeyFrame *&pKF1, ORB_SLAM2::KeyFrame *&pKF2);

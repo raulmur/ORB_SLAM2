@@ -101,7 +101,12 @@ void MapDrawer::DrawSemiDense()
             {
                  if(! kf->SemiDenseMatrix[y][x].supported) continue;
                  //pcnt ++;
-                 glVertex3f( kf->SemiDenseMatrix[y][x].Pw[0],kf->SemiDenseMatrix[y][x].Pw[1],kf->SemiDenseMatrix[y][x].Pw[2]);
+                 float z = kf->SemiDenseMatrix[y][x].Pw[2];
+                 //glColor3f(0.0,z,0.0);
+                 Eigen::Vector2f pos;
+                 pos << kf->SemiDenseMatrix[y][x].Pw[0],kf->SemiDenseMatrix[y][x].Pw[1];
+                 //glVertex3f( kf->SemiDenseMatrix[y][x].Pw[0],kf->SemiDenseMatrix[y][x].Pw[1],kf->SemiDenseMatrix[y][x].Pw[2]);
+                 glVertex3f( pos[0],pos[1],z);
             }
         //std::cout<< "semi dense point cnt: \t"<<pcnt<<std::endl;
     }

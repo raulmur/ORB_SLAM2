@@ -27,16 +27,46 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include <pcl/io/pcd_io.h>
+#include <pcl/io/ply_io.h>
+
 #define DEBUG 1
 #define DBG(do_something) if (DEBUG) { do_something; }
 //#define SAVE_IMAGES 1
 //#define SAVE(do_something) if (SAVE_IMAGES) { do_something }
 
-void saveMatToCsv(cv::Mat &data, std::string filename)
+void saveMatToCsv(cv::Mat data, std::string filename)
 {
     std::ofstream outputFile(filename.c_str());
     outputFile << cv::format(data,"CSV")<<std::endl;
     outputFile.close();
+}
+
+template<typename T>
+float bilinear(const cv::Mat& img, const float& y, const float& x)
+{
+    int x0 = (int)std::floor(x);
+    int y0 = (int )std::floor(y);
+    int x1 = x0 + 1;
+    int y1 =  y0 + 1;
+
+    float x0_weight = x1 - x;
+    float y0_weight = y1 - y;
+    float x1_weight = 1.0f - x0_weight;
+    float y1_weight = 1.0f - y0_weight;
+/*
+    if(x1 >= img.cols || y1 >= img.rows)
+    {
+        return 1000;   // return a large error
+    }
+*/
+    float interpolated =
+            img.at<T>(y0 , x0 ) * x0_weight + img.at<T>(y0 , x1)* x1_weight +
+            img.at<T>(y1 , x0 ) * x0_weight + img.at<T>(y1 , x1)* x1_weight +
+            img.at<T>(y0 , x0 ) * y0_weight + img.at<T>(y1 , x0)* y1_weight +
+            img.at<T>(y0 , x1 ) * y0_weight + img.at<T>(y1 , x1)* y1_weight ;
+
+  return (interpolated * 0.25f);
 }
 
 ProbabilityMapping::ProbabilityMapping(ORB_SLAM2::Map* pMap):mpMap(pMap)
@@ -104,53 +134,53 @@ void ProbabilityMapping::TestSemiDenseViewer()
 void ProbabilityMapping::FirstLoop(){
 
   unique_lock<mutex> lock(mMutexSemiDense);
+
   vector<ORB_SLAM2::KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
   cout<<"semidense_Info:    vpKFs.size()--> "<<vpKFs.size()<<std::endl;
   if(vpKFs.size() < 2){return;}
 
-
   for(size_t i =0;i < vpKFs.size(); i++ )
   {
+
+      pcl::PointCloud<pcl::PointXYZ>::Ptr cloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
+      cloudPtr->width = 640;
+      cloudPtr->height = 480;
+      cloudPtr->is_dense = false;
+      cloudPtr->points.resize(cloudPtr->width * cloudPtr->height);
+
       ORB_SLAM2::KeyFrame* kf = vpKFs[i];
       if(kf->isBad() || kf->semidense_flag_)
-          continue;
+        continue;
 
       std::vector<ORB_SLAM2::KeyFrame*> closestMatches = kf->GetBestCovisibilityKeyFrames(covisN);
-      if(closestMatches.size() < covisN)
-      {
-           //DBG(cout<<"key frame size not enough")
-          continue;
-      }
+      if(closestMatches.size() < covisN) {continue;}
 
       float max_depth;
       float min_depth;
       // get max_dephth  and min_depth in current key frame to limit search range
       StereoSearchConstraints(kf, &min_depth, &max_depth);
       //std::cout<< "min_d: "<<min_depth<<"\t max_d: "<<max_depth<<std::endl;
+
       cv::Mat gradx, grady, gradmag, gradth;
       cv::Mat image = kf->GetImage();
       cv::Mat image_debug = image.clone();
-      //imwrite("mainImage.png",image);
-      GetGradientMagAndOri(image, &gradx, &grady, &gradmag, &gradth);
 
-      // test gradient threashold
-/*
-      for(int y = 0; y< image.rows; y++)
-      {
-        for(int x = 0; x < image.cols; x++)
-        {
-          if(gradmag.at<float>(y,x) < lambdaG){continue;}
-          cv::circle(image_debug,cv::Point(x,y),1,cv::Scalar(255));
-        }
-      }
-*/
+      GetGradientMagAndOri(image, &gradx, &grady, &gradmag, &gradth);
+      /*
+      saveMatToCsv(image,"image.csv");
+      saveMatToCsv(gradmag,"grad.csv");
+      saveMatToCsv(gradx,"gradx.csv");
+      saveMatToCsv(grady,"grady.csv");
+      std::cout<<gradx.at<float>(10,10)<<"\t"<<grady.at<float>(10,10)<<std::endl;
+      */
       std::vector<std::vector<depthHo> > temp_ho (image.rows, std::vector<depthHo>(image.cols, depthHo()) );
       std::vector<depthHo> depth_ho;
       depth_ho.clear();
-      int draw_line = 0;
-      for(size_t i=0; i<closestMatches.size(); i++)
+
+      for(size_t j=0; j<closestMatches.size(); j++)
       {
-        ORB_SLAM2::KeyFrame* kf2 = closestMatches[i];
+        //std::cout<<closestMatches.size()<<std::endl;
+        ORB_SLAM2::KeyFrame* kf2 = closestMatches[ j ];
 
         /* Preapare  to do epiploar search */
         cv::Mat image2 = kf2->GetImage();
@@ -162,67 +192,73 @@ void ProbabilityMapping::FirstLoop(){
         cv::Mat gradx2, grady2, grad2mag, grad2th;
         GetGradientMagAndOri(image2, &gradx2, &grady2, &grad2mag, &grad2th);
         cv::Mat depth_image= cv::Mat(480,640,CV_32F,0.0);
-        int pcnt(0);
-        for(int y = 0; y < image.rows; y++)
+
+        for(int y = 0+2; y < image.rows-2; y++)
         {
-          for(int x = 0; x< image.cols; x++)
+          for(int x = 0+2; x< image.cols-2; x++)
           {
 
-            if(gradmag.at<float>(y,x) < lambdaG+100){continue;}
+            if(gradmag.at<float>(y,x) < lambdaG){continue;}
 
             depthHo dh;
             float pixel =(float) image.at<uchar>(y,x); //maybe it should be cv::Mat
-            /* debug: draw a epipolar line in image*/
-/*
-            float a,b,c;
-            GetParameterization(F12,x,y,a,b,c);
-            if(y> 100+ draw_line * 20 && x> 100 && draw_line < 10)   // select some points to draw
-            {
-               //  fixme:   using mindepth and maxdepth to limit exploar search range
-               // cv::Mat kj = pKFj->GetCalibrationMatrix();
-              //  cv::Mat xp;
-             //   GetXp(kj, x, y, &xp);
 
-                for(int uj = 0; uj < image.cols; uj++)// FIXME should use  min and max depth
-                {
-                    int vj =-( (a/b)*uj+(c/b));
-                    if(!kf2 -> IsInImage(uj,vj)){continue;}
-                    if(vj<0 || vj > image.rows ){continue;}
+            float best_u(0.0),best_v(0.0);
+            EpipolarSearch(kf, kf2, x, y, pixel, gradmag, min_depth, max_depth, &dh,F12,
+                           grad2mag,grad2th,image2,image2_stddev,best_u,best_v);
 
-                    if(grad2mag.at<float>(vj,uj) <  8){continue;}
-                    //FIXME ASAP
-                    float th_epipolar_line = cv::fastAtan2(a,b);
-                    //std::cout<<"atan2: "<<th_epipolar_line<< "\t"<<grad2th.at<float>(vj,uj)<<std::endl;
-                   if(abs(grad2th.at<float>(vj,uj) - th_epipolar_line + 180) < lambdaL){continue;}
-                   if(abs(grad2th.at<float>(vj,uj) - th_epipolar_line - 180) < lambdaL){continue;}
-                    //if(abs(th_grad - ( th_pi + th_rot )) < lambdaTheta)
-                      //continue;
-
-                  cv::circle(image2_debug,cv::Point(uj,vj),1,cv::Scalar(255));
-                  cv::circle(image_debug,cv::Point(x,y),2,cv::Scalar(255),8);
-                }
-
-                int best_u(0),best_v(0);
-                EpipolarSearch(kf, kf2, x, y, pixel, gradmag, min_depth, max_depth, &dh,F12,grad2mag,grad2th,image2,image2_stddev,
-                               best_u,best_v);
-
-                cv::circle(image2_debug,cv::Point(best_u,best_v),2,cv::Scalar(0),8);
-
-                draw_line ++;
-            }
-*/
-            int best_u(0),best_v(0);
-            EpipolarSearch(kf, kf2, x, y, pixel, gradmag, min_depth, max_depth, &dh,F12,grad2mag,grad2th,image2,image2_stddev,
-                           best_u,best_v);
-
-             // DBG(cout << "Depth: " << dh.depth << "\n")
-            if (dh.supported && dh.depth > 0.01)
+            if (dh.supported && 1/dh.depth > 0.0)
             {
                 //pcnt++;
-                depth_image.at<float>(y,x) = 1/dh.depth*100;
-                cv::circle(image2_debug,cv::Point(best_u,best_v),1,cv::Scalar(255));
-                 float Z = 1;    //  const depth test
-               // float Z = 1/dh.depth ;
+                //std::uut<<"z: "<<dh.depth<<std::endl;
+                depth_image.at<float>(y,x) = dh.depth*1;
+
+               // if(x> 100 && x<400 && y > 100 && y <300 && x%10 == 0 && y% 10 ==0)
+               // if(1/dh.depth < 0.1)
+                {
+                  cv::circle(image2_debug,cv::Point(best_u,best_v),1,cv::Scalar(255),-1);
+                 // cv::circle(image2_debug,cv::Point(best_u_ssd,best_v_ssd),5,cv::Scalar(0),-1);
+                  cv::circle(image_debug,cv::Point(x,y),1,cv::Scalar(255),-1);
+/*
+                 if(x> 0 && x<400 && y > 0 && y <300 && x%20 == 0 && y% 20 ==0)
+                {
+                  float a = x*F12.at<float>(0,0)+y*F12.at<float>(1,0)+F12.at<float>(2,0);
+                  float b = x*F12.at<float>(0,1)+y*F12.at<float>(1,1)+F12.at<float>(2,1);
+                  float c = x*F12.at<float>(0,2)+y*F12.at<float>(1,2)+F12.at<float>(2,2);
+
+                  float umin(0.0),umax(0.0);
+                  GetSearchRange(umin,umax,x,y,min_depth,max_depth,kf,kf2);
+                  for(int uj = std::floor(umin); uj < std::ceil(umax); uj++)// FIXME should use  min and max depth
+                  {
+                    float vj =-( (a/b)*uj+(c/b));
+
+                    if(vj<0 || vj > image2.rows ){continue;}
+
+                    if(grad2mag.at<float>(vj,uj) < lambdaG){continue;}
+
+                    cv::circle(image2_debug,cv::Point(uj,vj),1,cv::Scalar(0),-1);
+
+                    std::cout<<"u: "<<uj<<" v: "<<vj <<" grad: "<< grad2mag.at<float>((int)vj,uj)<<" pixel: "<<(int)image2.at<uchar>((int)vj,uj)<<std::endl;
+
+                  }
+                  std::cout <<"grad kf1: "<< gradmag.at<float>(y,x)<<" pixel kf1: "<<pixel<<std::endl;
+                  std::cout <<"best grad kf2: "<<grad2mag.at<float>((int)best_v,(int)best_u)<<" best pixel kf1: "<<(int)image2.at<uchar>((int)best_v,(int)best_u)<<std::endl;
+                  cv::circle(image2_debug,cv::Point(best_u,best_v),8,cv::Scalar(255),-1);
+                  cv::circle(image_debug,cv::Point(x,y),8,cv::Scalar(255),-1);
+                  cv::imwrite("grad2_image.png",image2_debug);
+                  cv::imwrite("grad_image.png",image_debug);
+                  std::cout<< "u: "<<best_u<<"\t x:"<<x<<"\t v:"<<best_v<<"\t y:"<<y<<std::endl;
+                 }
+                 */
+                  //std::cout<< "u: "<<best_u<<"\t x:"<<x<<"\t v:"<<best_v<<"\t y:"<<y<<std::endl;
+
+                }
+
+                //cv::imwrite("grad_image.png",image_debug);
+                //cv::imwrite("grad2_image.png",image2_debug);
+
+                //float Z = 1;    //  const depth test
+                float Z = 1/dh.depth ;
                 float X = Z *(x- kf->cx ) / kf->fx;
                 float Y = Z*(y- kf->cy ) / kf->fy;
 
@@ -230,7 +266,15 @@ void ProbabilityMapping::FirstLoop(){
                 cv::Mat Twc = kf->GetPoseInverse();
                 cv::Mat pos = Twc * Pc;
                 dh.Pw<< pos.at<float>(0),pos.at<float>(1),pos.at<float>(2);
-                //std::cout<<"Pw: "<< dh.Pw<<"\t";
+
+                pcl::PointXYZ xyz_pcl;
+                xyz_pcl.x = dh.Pw[0];
+                xyz_pcl.y = dh.Pw[1];
+                xyz_pcl.z = dh.Pw[2];
+                cloudPtr->at(x,y) = xyz_pcl;
+
+                //dh.Pw<< X,Y,Z;
+               // std::cout<<"Pw: "<< dh.Pw<<"\t";
 /*
                 // method 2
                 cv::Mat x3Dc = (cv::Mat_<float>(3,1) << X, Y , Z);
@@ -239,6 +283,12 @@ void ProbabilityMapping::FirstLoop(){
                // std::cout<< dh.Pw<<std::endl;
 */
                 temp_ho[y][x] = dh;  // save point to keyframe semidense map
+                kf->SemiDenseMatrix[y][x] = dh;
+/*
+                float z = kf->SemiDenseMatrix[y][x].Pw[2];
+                Eigen::Vector2f p;
+                p << kf->SemiDenseMatrix[y][x].Pw[0],kf->SemiDenseMatrix[y][x].Pw[1];
+*/
                // cout<<"semidense_Info:   save a point "<<std::endl;
 
             }
@@ -263,12 +313,14 @@ void ProbabilityMapping::FirstLoop(){
         cv::imwrite("grad2_image.png",image2_debug);
         cv::imwrite("depth_image.png",depth_image);
         saveMatToCsv(depth_image,"depth.csv");
+
         //std::cout<< "pcnt : \t"<<pcnt<<std::endl;
       }
 
-     kf->SemiDenseMatrix = temp_ho;
+     //kf->SemiDenseMatrix = temp_ho;
      kf->semidense_flag_ = true;
      //cv::imwrite("image.png",image);
+     pcl::io::savePLYFileBinary ("kf.ply", *cloudPtr);
      cv::imwrite("grad_image.png",image_debug);
 
   }
@@ -289,57 +341,63 @@ void ProbabilityMapping::StereoSearchConstraints(ORB_SLAM2::KeyFrame* kf, float*
   *max_depth = mean + 2 * stdev;
   *min_depth = mean - 2 * stdev;
 }
-
-void ProbabilityMapping::EpipolarSearch(ORB_SLAM2::KeyFrame* kf1, ORB_SLAM2::KeyFrame *kf2, int x, int y, float pixel, cv::Mat grad,
-    float min_depth, float max_depth, depthHo *dh,cv::Mat F12,cv::Mat grad2mag,cv::Mat grad2th,cv::Mat image,cv::Mat image_stddev,
-    int& best_u,int& best_v)
-{
 /*
-    cv::Mat image = kf2->GetImage();
-    cv::Mat image_stddev, image_mean;
-    cv::meanStdDev(image,image_mean,image_stddev);
-    cv::Mat F12 = ComputeFundamental(kf1,kf2);
-   */
+void ProbabilityMapping::EpipolarSearch(ORB_SLAM2::KeyFrame* kf1, ORB_SLAM2::KeyFrame *kf2, const int x, const int y, float pixel, cv::Mat grad,
+    float min_depth, float max_depth, depthHo *dh,cv::Mat F12,cv::Mat grad2mag,cv::Mat grad2th,cv::Mat image,cv::Mat image_stddev,
+    float& best_u,float& best_v)
+{
 
-  float a = x*F12.at<float>(0,0)+y*F12.at<float>(1,0)+F12.at<float>(2,0);
-  float b = x*F12.at<float>(0,1)+y*F12.at<float>(1,1)+F12.at<float>(2,1);
-  float c = x*F12.at<float>(0,2)+y*F12.at<float>(1,2)+F12.at<float>(2,2);
-  //DBG(cout << "Line Equation a:" << a << "  b:" << b << "  c:" << c << endl)
-  float old_err = 100000.0;
+  double a = x*F12.at<float>(0,0)+y*F12.at<float>(1,0)+F12.at<float>(2,0);
+  double b = x*F12.at<float>(0,1)+y*F12.at<float>(1,1)+F12.at<float>(2,1);
+  double c = x*F12.at<float>(0,2)+y*F12.at<float>(1,2)+F12.at<float>(2,2);
+
+  float old_err = 1000.0;
   float best_photometric_err = 0.0;
   float best_gradient_modulo_err = 0.0;
   int best_pixel = 0;
 
-  int vj,uj_plus,vj_plus,uj_minus,vj_minus;
+  float vj(0.0);
+  float uj_plus,vj_plus,uj_minus,vj_minus;
   float g, q,denomiator ,ustar , ustar_var;
 
-  /*
-  cv::Mat gradx2, grady2, grad2mag, grad2th, really2;
-  GetGradientMagAndOri(image, &gradx2, &grady2, &grad2mag, &grad2th, &really2);
-*/
-  for(int uj = 0; uj < image.cols; uj++)// FIXME should use  min and max depth
+  float umin(0.0),umax(0.0);
+  GetSearchRange(umin,umax,x,y,min_depth,max_depth,kf1,kf2);
+  //for(int uj = 0; uj < image.cols; uj++)// FIXME should use  min and max depth
+  for(int uj = std::floor(umin); uj < std::ceil(umax)+1; uj++)// FIXME should use  min and max depth
   {
-    vj =-( (a/b)*uj+(c/b));
-    if(!kf2 -> IsInImage(uj,vj)){continue;}
+    vj =-(a/b)*uj+(c/b);
+    uj = float(uj);
     if(vj<0 || vj > image.rows ){continue;}
 
-    if(grad2mag.at<float>(vj,uj) < lambdaG-lambdaG + 8){continue;}
+    if(grad2mag.at<float>((int)vj,(int)uj) < lambdaG){continue;}
+    //if(bilinear<float>(grad2mag,vj,uj)< lambdaG){continue;}
 
     //FIXME ASAP
     //float th_epipolar_line = cv::fastAtan2((float)vj,(float)uj);   // big bug!!!   the epipolar direction should not calculate as this way
-    float th_epipolar_line = cv::fastAtan2(a,b);
-    //std::cout<<"atan2: "<<th_epipolar_line<< "\t"<<grad2th.at<float>(vj,uj)<<std::endl;
-    if(abs(grad2th.at<float>(vj,uj) - th_epipolar_line + 180) < lambdaL){continue;}
-    if(abs(grad2th.at<float>(vj,uj) - th_epipolar_line - 180) < lambdaL){continue;}
+    float th_epipolar_line = cv::fastAtan2(-a/b,1);
+
+    float temp_gradth = grad2th.at<float>(vj,uj) ;
+    if(grad2th.at<float>(vj,uj) > 270) temp_gradth = grad2th.at<float>(vj,uj) - 360;
+    if(grad2th.at<float>(vj,uj) > 90 && grad2th.at<float>(vj,uj)<=270)
+      temp_gradth = grad2th.at<float>(vj,uj) - 180;
+    if(th_epipolar_line>270) th_epipolar_line = th_epipolar_line - 360;
+
+    if(abs(abs(temp_gradth - th_epipolar_line) - 90)< 10 ){
+     // std::cout<<"atan2: "<<th_epipolar_line<< "\t"<<grad2th.at<float>(vj,uj)<<std::endl;
+     // std::cout<<"epipolar line perpendicular to gradient direction"<<std::endl;
+      continue;}
+
+    //if(abs(grad2th.at<float>(vj,uj) - th_epipolar_line + 180) > lambdaL){continue;}   // bug report by hyj. this condition code is wrong!!
+    //if(abs(grad2th.at<float>(vj,uj) - th_epipolar_line - 180) > lambdaL){continue;}
+
     //if(abs(th_grad - ( th_pi + th_rot )) < lambdaTheta)
       //continue;
 
-    float photometric_err = pixel - (float)image.at<uchar>(vj,uj); //FIXME properly calculate photometric error
-    float gradient_modulo_err = grad.at<float>(y,x)  - grad2mag.at<float>(vj,uj);
+    float photometric_err = pixel -  bilinear<uchar>(image,vj,uj); //FIXME properly calculate photometric error
+    float gradient_modulo_err = grad.at<float>(y,x)  - bilinear<float>(grad2mag,vj,uj);
 
-    //float err = (photometric_err*photometric_err + (gradient_modulo_err*gradient_modulo_err)/0.23)/(image_stddev.at<double>(0,0)*image_stddev.at<double>(0,0));
-    float err = (photometric_err*photometric_err + (gradient_modulo_err*gradient_modulo_err)/0.23);
-    //float err = (photometric_err*photometric_err);
+    //float err = (photometric_err*photometric_err + (gradient_modulo_err*gradient_modulo_err)/THETA)/(image_stddev.at<double>(0,0)*image_stddev.at<double>(0,0));
+    float err = (photometric_err*photometric_err + (gradient_modulo_err*gradient_modulo_err)/THETA);
     //if(abs(err) < abs(old_err))
     if(err < old_err)
     {
@@ -350,10 +408,93 @@ void ProbabilityMapping::EpipolarSearch(ORB_SLAM2::KeyFrame* kf1, ORB_SLAM2::Key
     }
   }
 
-  if(old_err >= 1000.0){
-    //DBG(cout << "no best pixel\n")
+  if(old_err < 1000.0)
+  {
+
+     uj_plus = best_pixel + 1;
+     vj_plus = -((a/b)*uj_plus + (c/b));
+     uj_minus = best_pixel - 1;
+     vj_minus = -((a/b)*uj_minus + (c/b));
+
+     g = (bilinear<uchar>(image,vj_plus, uj_plus) - bilinear<uchar>(image,vj_minus, uj_minus))/2.0;
+     q = (bilinear<float>(grad2mag,vj_plus, uj_plus) - bilinear<float>(grad2mag,vj_minus, uj_minus))/2.0;
+
+     denomiator = (g*g + (1/THETA)*q*q);
+     ustar = best_pixel + (g*best_photometric_err + (1/THETA)*q*best_gradient_modulo_err)/denomiator;
+     ustar_var = (2*image_stddev.at<double>(0,0)*image_stddev.at<double>(0,0) /denomiator);
+     //std::cout<< "g:"<<g<< "  q:"<<q<<"  I_err:"<<best_photometric_err<<"  g_err"<<best_gradient_modulo_err<< "   denomiator:"<<denomiator<< "  ustar:"<<ustar<<std::endl;
+
+     best_u = ustar;
+     best_v =  -( (a/b)*best_u + (c/b) );
+     //std::cout<<"best_pixel: "<<best_pixel<<"\t ustar"<<ustar<<std::endl;
+
+    // GetPixelDepth(best_u, best_v, x ,y,kf1, kf2,dh->depth,dh);
+     //std::cout<<"linear : "<<1/dh->depth;
+     GetPixelDepth(best_u, x , y, kf1, kf2, dh->depth);
+     //std::cout<<"\t equation 8: "<<1/dh->depth<<std::endl;
+     dh->supported = true;
+     //ComputeInvDepthHypothesis(kf1, kf2,best_pixel, ustar, ustar_var, a, b, c, dh,x,y);
   }
-  else{
+
+}
+*/
+void ProbabilityMapping::EpipolarSearch(ORB_SLAM2::KeyFrame* kf1, ORB_SLAM2::KeyFrame *kf2, const int x, const int y, float pixel, cv::Mat grad,
+    float min_depth, float max_depth, depthHo *dh,cv::Mat F12,cv::Mat grad2mag,cv::Mat grad2th,cv::Mat image,cv::Mat image_stddev,
+    float& best_u,float& best_v)
+{
+
+  float a = x*F12.at<float>(0,0)+y*F12.at<float>(1,0)+F12.at<float>(2,0);
+  float b = x*F12.at<float>(0,1)+y*F12.at<float>(1,1)+F12.at<float>(2,1);
+  float c = x*F12.at<float>(0,2)+y*F12.at<float>(1,2)+F12.at<float>(2,2);
+
+  float old_err = 1000.0;
+  float best_photometric_err = 0.0;
+  float best_gradient_modulo_err = 0.0;
+  int best_pixel = 0;
+
+  int vj,uj_plus,vj_plus,uj_minus,vj_minus;
+  float g, q,denomiator ,ustar , ustar_var;
+
+  float umin(0.0),umax(0.0);
+  GetSearchRange(umin,umax,x,y,min_depth,max_depth,kf1,kf2);
+  //for(int uj = 0; uj < image.cols; uj++)// FIXME should use  min and max depth
+  for(int uj = std::floor(umin); uj < std::ceil(umax)+1; uj++)// FIXME should use  min and max depth
+  {
+    vj =-(int)( (a/b)*uj+(c/b));
+    if(vj<0 || vj > image.rows ){continue;}
+
+    if(grad2mag.at<float>(vj,uj) < lambdaG){continue;}
+
+    //FIXME ASAP
+    //float th_epipolar_line = cv::fastAtan2((float)vj,(float)uj);   // big bug!!!   the epipolar direction should not calculate as this way
+    float th_epipolar_line = cv::fastAtan2(-a/b,1);
+
+    float temp_gradth = grad2th.at<float>(vj,uj) ;
+    if(grad2th.at<float>(vj,uj) > 270) temp_gradth = grad2th.at<float>(vj,uj) - 360;
+    if(grad2th.at<float>(vj,uj) > 90 && grad2th.at<float>(vj,uj)<=270)
+      temp_gradth = grad2th.at<float>(vj,uj) - 180;
+    if(th_epipolar_line>270) th_epipolar_line = th_epipolar_line - 360;
+
+    if(abs(abs(temp_gradth - th_epipolar_line) - 90)< 10 ){
+      continue;}
+
+
+    float photometric_err = pixel - (float)image.at<uchar>(vj,uj); //FIXME properly calculate photometric error
+    float gradient_modulo_err = grad.at<float>(y,x)  - grad2mag.at<float>(vj,uj);
+
+    //float err = (photometric_err*photometric_err + (gradient_modulo_err*gradient_modulo_err)/THETA)/(image_stddev.at<double>(0,0)*image_stddev.at<double>(0,0));
+    float err = (photometric_err*photometric_err  + (gradient_modulo_err*gradient_modulo_err)/THETA);
+    if(err < old_err)
+    {
+      best_pixel = uj;
+      old_err = err;
+      best_photometric_err = photometric_err;
+      best_gradient_modulo_err = gradient_modulo_err;
+    }
+  }
+
+  if(old_err < 500.0)
+  {
 
      uj_plus = best_pixel + 1;
      vj_plus = -((a/b)*uj_plus + (c/b));
@@ -363,23 +504,21 @@ void ProbabilityMapping::EpipolarSearch(ORB_SLAM2::KeyFrame* kf1, ORB_SLAM2::Key
      g = ((float)image.at<uchar>(vj_plus, uj_plus) -(float) image.at<uchar>(vj_minus, uj_minus))/2.0;
      q = (grad2mag.at<float>(vj_plus, uj_plus) - grad2mag.at<float>(vj_minus, uj_minus))/2.0;
 
-     denomiator = (g*g + (1/0.23)*q*q);
-     ustar = best_pixel + (g*best_photometric_err + (1/0.23)*q*best_gradient_modulo_err)/denomiator;
+     denomiator = (g*g + (1/THETA)*q*q);
+     ustar = best_pixel + (g*best_photometric_err + (1/THETA)*q*best_gradient_modulo_err)/denomiator;
      ustar_var = (2*image_stddev.at<double>(0,0)*image_stddev.at<double>(0,0) /denomiator);
      //std::cout<< "g:"<<g<< "  q:"<<q<<"  I_err:"<<best_photometric_err<<"  g_err"<<best_gradient_modulo_err<< "   denomiator:"<<denomiator<< "  ustar:"<<ustar<<std::endl;
-     //float ustar_var = (2*image_stddev.at<float>(0,0)*image_stddev.at<float>(0,0)/(g*g + (1/0.23)*q*q));
 
-    //DBG(cout << "Computing Inverse Depth Hypothesis\n")
-
-     best_u = best_pixel;
+     best_u = ustar;
      best_v =  -( (a/b)*best_u + (c/b) );
-    // std::cout<<"x: "<<pixel<<"\t "<<(float) image.at<uchar>(best_v, best_u)<<std::endl;
 
-     ComputeInvDepthHypothesis(kf1, kf2,best_pixel, ustar, ustar_var, a, b, c, dh,x,y);
+    // GetPixelDepth(best_u, best_v, x ,y,kf1, kf2,dh->depth,dh);
+     GetPixelDepth(best_u, x , y, kf1, kf2, dh->depth);
+     dh->supported = true;
+     //ComputeInvDepthHypothesis(kf1, kf2,best_pixel, ustar, ustar_var, a, b, c, dh,x,y);
   }
 
 }
-
 void ProbabilityMapping::IntraKeyFrameDepthChecking(std::vector<std::vector<depthHo> >& ho, int imrows, int imcols) {
 
     std::vector<std::vector<depthHo> > ho_new;
@@ -609,14 +748,17 @@ void ProbabilityMapping::Equation14(depthHo& dHjn, float& depthp, cv::Mat& xp, c
 // Utility functions
 ////////////////////////
 
-void ProbabilityMapping::ComputeInvDepthHypothesis(ORB_SLAM2::KeyFrame* kf, ORB_SLAM2::KeyFrame* kf2,int pixel_x, float ustar, float ustar_var, float a, float b, float c,
-    ProbabilityMapping::depthHo *dh,int x,int y) {
+void ProbabilityMapping::ComputeInvDepthHypothesis(ORB_SLAM2::KeyFrame* kf, ORB_SLAM2::KeyFrame* kf2,int pixel_x, float ustar, float ustar_var,
+                                                   float a, float b, float c,ProbabilityMapping::depthHo *dh, int x,int y) {
   int pixel_y =- ((a/b) * pixel_x + (c/b));
   float inv_pixel_depth =  0.0;
-  //DBG(cout << "getting pixel depth\n")
-  GetPixelDepth(pixel_x, x , y,kf, kf2,inv_pixel_depth);
+
+  // equation 8 comput depth
+  GetPixelDepth(ustar, x , y,kf, kf2,inv_pixel_depth);
   //std::cout<< "p depth 1: "<<inv_pixel_depth<<"\t";
-  GetPixelDepth(pixel_x, pixel_y, x ,y,kf, kf2,inv_pixel_depth);
+
+  // linear triangulation method
+   GetPixelDepth(pixel_x, pixel_y, x ,y,kf, kf2,inv_pixel_depth,dh);
   //std::cout<<inv_pixel_depth<<std::endl;
 
   //(inv_frame_rot.row(2)*corrected_image.at<float>(ujcx,vjcx)-fx*inv_frame_rot.row(0)*corrected_image.at<float>(ujcx,vjcx))/(transform_data.row(2)*ujcx[vjcx]+fx*transform_data[0]);
@@ -637,22 +779,14 @@ void ProbabilityMapping::ComputeInvDepthHypothesis(ORB_SLAM2::KeyFrame* kf, ORB_
   //DBG(cout << "getting max pixel depth \n")
   GetPixelDepth(ustar_max,x,y,kf, kf2,inv_depth_max);
   //(inv_frame_rot[2]*corrected_image.at<float>(ustarcx_max ,vstarcx_max)-fx*inv_frame_rot[0]*corrected_image.at<float>(ujcx,vjcx)/)/(-transform_data[2][ustarcx_max][vstarcx_max]+fx*transform_data[0]);
- /*
-  DBG(cout << "Got Depths! \n";
-      cout << "max inv depth: " << inv_depth_max << endl;
-      cout << "min inv depth: " << inv_depth_min << endl)
-*/
+
   // Equation 9
   float sigma_depth = cv::max(abs(inv_depth_max), abs(inv_depth_min));
 
   dh->depth = inv_pixel_depth;
   dh->sigma = sigma_depth;
   dh->supported = true;
-  /*
-  DBG(cout << "pixel depth: " << inv_pixel_depth << endl;
-      cout << "sigma depth: " << sigma_depth << endl;
-      cout << "return from compute Inv depth ho\n")
-*/
+
 }
 
 void ProbabilityMapping::GetGradientMagAndOri(const cv::Mat& image, cv::Mat* gradx, cv::Mat* grady, cv::Mat* mag, cv::Mat* ori) {
@@ -663,11 +797,17 @@ void ProbabilityMapping::GetGradientMagAndOri(const cv::Mat& image, cv::Mat* gra
   *ori = cv::Mat::zeros(image.rows, image.cols, CV_32F);
 
   //For built in version
-  cv::Scharr(image, *gradx, CV_32F, 1, 0);
-  cv::Scharr(image, *grady, CV_32F, 0, 1);
-  //cv::imwrite("gradx.png",*gradx);
-  //cv::imwrite("grady.png",*grady);
+  //cv::Scharr(image, *gradx, CV_32F, 1, 0);
+  //cv::Scharr(image, *grady, CV_32F, 0, 1);
 
+  cv::Scharr(image, *gradx, CV_32F, 1, 0, 1/32.0);
+  cv::Scharr(image, *grady, CV_32F, 0, 1, 1/32.0);
+
+/*
+  saveMatToCsv(image,"img_ori.csv");
+  saveMatToCsv(*gradx,"gradx_ori.csv");
+  saveMatToCsv(*grady,"grady_ori.csv");
+*/
   cv::magnitude(*gradx,*grady,*mag);
   cv::phase(*gradx,*grady,*ori,true);
 
@@ -894,8 +1034,9 @@ void ProbabilityMapping::GetXp(const cv::Mat& k, int px, int py, cv::Mat* xp) {
 }
 
 // Linear Triangulation Method
-void ProbabilityMapping::GetPixelDepth(float uj, float vj, int px, int py, ORB_SLAM2::KeyFrame* kf,ORB_SLAM2::KeyFrame* kf2, float &p)
+void ProbabilityMapping::GetPixelDepth(float uj, float vj, int px, int py, ORB_SLAM2::KeyFrame* kf,ORB_SLAM2::KeyFrame* kf2, float &p,ProbabilityMapping::depthHo *dh)
 {
+
     float fx = kf->fx;
     float fy = kf->fy;
     float cx = kf->cx;
@@ -904,7 +1045,7 @@ void ProbabilityMapping::GetPixelDepth(float uj, float vj, int px, int py, ORB_S
     cv::Mat R1w = kf->GetRotation();
     cv::Mat t1w = kf->GetTranslation();
     cv::Mat T1w(3,4,CV_32F);
-    R1w.copyTo(T1w.colRange(0,3));
+    R1w.copyTo(T1w.colRange(0,3));  // 0,1,2 cols
     t1w.copyTo(T1w.col(3));
 
     cv::Mat R2w = kf2->GetRotation();
@@ -928,40 +1069,58 @@ void ProbabilityMapping::GetPixelDepth(float uj, float vj, int px, int py, ORB_S
     if(pw.at<float>(3) == 0) return;
 
     cv::Mat pw_normalize = pw.rowRange(0,3) / pw.at<float>(3) ; // Point at world frame.
+    //dh->Pw << pw_normalize.at<float>(0),pw_normalize.at<float>(1),pw_normalize.at<float>(2);
+    //dh->Pw << pw_normalize.at<float>(0),pw_normalize.at<float>(1),1;
+
+    //std::cout<<"linear method: "<<dh->Pw<<std::endl;
+
     cv::Mat x3Dt = pw_normalize.t();
     float z1 = R1w.row(2).dot(x3Dt)+t1w.at<float>(2);
     p = 1/z1;
 
+/*
+    // method 3
+    cv::Mat R21 = R2w*R1w.t();
+    cv::Mat t21 = -R2w*R1w.t()*t1w+t2w;
+
+    cv::Mat B(3,2,CV_32F);
+    cv::Mat aa = R21 * xn1;
+    aa.copyTo(B.col(0));
+    xn2.copyTo(B.col(1));
+    cv::Mat BtB = B.t() * B;
+
+    cv::Mat d =  - BtB.inv() * B.t() * t21;
+    float depth = fabs(d.at<float>(0));
+    //float depth = (d.at<float>(0));
+    p  = 1/depth;
+*/
+
 }
+
 // Equation (8)
 void ProbabilityMapping::GetPixelDepth(float uj, int px, int py, ORB_SLAM2::KeyFrame* kf,ORB_SLAM2::KeyFrame* kf2, float &p) {
 
     float fx = kf->fx;
     float cx = kf->cx;
+    float fy = kf->fy;
+    float cy = kf->cy;
 
     float ucx = uj - cx;
 
-    //cv::Mat rcw = kf->GetRotation();
-    //cv::Mat tcw = kf->GetTranslation();
+    //cv::Mat R21 = kf->GetRotation();
+    //cv::Mat t21 = kf->GetTranslation();
 
-    cv::Mat R1w = kf->GetRotation();
-    cv::Mat t1w = kf->GetTranslation();
-    cv::Mat R2w = kf2->GetRotation();
-    cv::Mat t2w = kf2->GetTranslation();
+    cv::Mat Rcw1 = kf->GetRotation();
+    cv::Mat tcw1 = kf->GetTranslation();
+    cv::Mat Rcw2 = kf2->GetRotation();
+    cv::Mat tcw2 = kf2->GetTranslation();
 
-    cv::Mat R21 = R2w*R1w.t();
-    cv::Mat t21 = -R2w*R1w.t()*t1w+t2w;
+    cv::Mat R21 = Rcw2*Rcw1.t();
+    cv::Mat t21 = -Rcw2*Rcw1.t()*tcw1+tcw2;
 
-    cv::Mat xp;
-    //DBG(cout << "Getting XP\n")
+    cv::Mat xp=(cv::Mat_<float>(3,1) << (px-cx)/fx, (py-cy)/fy,1.0);
+
     //GetXp(kf->GetCalibrationMatrix(), px, py, &xp);
-    //std::cout<< xp.at<float>(0,0)<<"\t"<< (px - cx)/fx<<std::endl ;
-    cv::Mat xp2d = cv::Mat(3,1,CV_32F);
-    xp2d.at<float>(0,0) = (px - cx)/fx;
-    xp2d.at<float>(1,0) = (py - kf->cy)/kf->fy;
-    xp2d.at<float>(2,0) = 1;
-    xp = xp2d.clone();
- /**/
 
     cv::Mat temp = R21.row(2) * xp * ucx;
     float num1 = temp.at<float>(0,0);
@@ -970,26 +1129,62 @@ void ProbabilityMapping::GetPixelDepth(float uj, int px, int py, ORB_SLAM2::KeyF
     float denom1 = -t21.at<float>(2) * ucx;
     float denom2 = fx * t21.at<float>(0);
 
-   /*
-    cv::Mat temp = rcw.row(2) * xp * ucx;
-    double num1 = temp.at<float>(0,0);
-    temp = fx * (rcw.row(0) * xp);
-    double num2 = temp.at<float>(0,0);
-    double denom1 = -tcw.at<float>(2) * ucx;
-    double denom2 = fx * tcw.at<float>(0);
- */
-/*
-    DBG(cout << "calculate depth\n";
-        cout << "num1:" << num1 << endl;
-        cout << "num2:" << num2 << endl;
-        cout << "denom1:" << denom1 << endl;
-        cout << "denom2:" << denom2 << endl)
-*/
-
     p = (num1 - num2) / (denom1 + denom2);
- //   DBG(cout << "depth: " << p << endl)
+
+/*
+  float fx = kf->fx;
+  float cx = kf->cx;
+
+  float ucx = px - cx;
+
+  cv::Mat rcw = kf->GetRotation();
+  cv::Mat tcw = kf->GetTranslation();
+
+  cv::Mat xp;
+
+  GetXp(kf->GetCalibrationMatrix(), px, py, &xp);
+
+  cv::Mat temp = rcw.row(2) * xp*ucx;
+  double num1 = temp.at<float>(0,0);
+  temp = fx * (rcw.row(0) * xp);
+  double num2 = temp.at<float>(0,0);
+  double denom1 = -tcw.at<float>(2) * ucx;
+  double denom2 = fx * tcw.at<float>(0);
+
+  p = (num1 - num2) / (denom1 + denom2);
+*/
 }
 
+void ProbabilityMapping::GetSearchRange(float& umin, float& umax, int px, int py,float mind,float maxd,
+                                        ORB_SLAM2::KeyFrame* kf,ORB_SLAM2::KeyFrame* kf2)
+{
+  float fx = kf->fx;
+  float cx = kf->cx;
+  float fy = kf->fy;
+  float cy = kf->cy;
+
+  cv::Mat Rcw1 = kf->GetRotation();
+  cv::Mat tcw1 = kf->GetTranslation();
+  cv::Mat Rcw2 = kf2->GetRotation();
+  cv::Mat tcw2 = kf2->GetTranslation();
+
+  cv::Mat R21 = Rcw2*Rcw1.t();
+  cv::Mat t21 = -Rcw2*Rcw1.t()*tcw1+tcw2;
+
+  cv::Mat xp1=(cv::Mat_<float>(3,1) << (px-cx)/fx, (py-cy)/fy,1.0);
+
+  if(mind<0) mind = 0;
+  cv::Mat xp2_min = R21*xp1*mind+t21;
+  cv::Mat xp2_max = R21*xp1*maxd+t21;
+
+  umin = fx*xp2_min.at<float>(0)/xp2_min.at<float>(2) + cx;
+  umax = fx*xp2_max.at<float>(0)/xp2_max.at<float>(2) + cx;
+
+  if(umin<0) umin = 0;
+  if(umax<0) umax = 0;
+  if(umin>kf->im_.cols ) umin = kf->im_.cols;
+  if(umax>kf->im_.cols)  umax = kf->im_.cols;
+}
 bool ProbabilityMapping::ChiTest(const depthHo& ha, const depthHo& hb, float* chi_val) {
     float chi_test = (ha.depth - hb.depth)*(ha.depth - hb.depth) / (ha.sigma*ha.sigma) + (ha.depth - hb.depth)*(ha.depth - hb.depth) / (hb.sigma*hb.sigma);
     if (chi_val)
@@ -1020,7 +1215,7 @@ void ProbabilityMapping::GetFusion(const std::vector<depthHo>& compatible_ho, de
     }
 }
 
-cv::Mat ProbabilityMapping::ComputeFundamental(ORB_SLAM2::KeyFrame *&pKF1, ORB_SLAM2::KeyFrame *&pKF2) {
+cv::Mat ProbabilityMapping::ComputeFundamental( ORB_SLAM2::KeyFrame *&pKF1,  ORB_SLAM2::KeyFrame *&pKF2) {
     cv::Mat R1w = pKF1->GetRotation();
     cv::Mat t1w = pKF1->GetTranslation();
     cv::Mat R2w = pKF2->GetRotation();
@@ -1033,7 +1228,6 @@ cv::Mat ProbabilityMapping::ComputeFundamental(ORB_SLAM2::KeyFrame *&pKF1, ORB_S
 
     cv::Mat K1 = pKF1->GetCalibrationMatrix();
     cv::Mat K2 = pKF2->GetCalibrationMatrix();
-
 
     return K1.t().inv()*t12x*R12*K2.inv();
 }
