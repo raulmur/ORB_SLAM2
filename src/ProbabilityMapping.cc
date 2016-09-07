@@ -142,12 +142,13 @@ void ProbabilityMapping::FirstLoop(){
 
   for(size_t i =0;i < vpKFs.size(); i++ )
   {
-
+/*
       pcl::PointCloud<pcl::PointXYZ>::Ptr cloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
       cloudPtr->width = 640;
       cloudPtr->height = 480;
       cloudPtr->is_dense = false;
       cloudPtr->points.resize(cloudPtr->width * cloudPtr->height);
+*/
 
       ORB_SLAM2::KeyFrame* kf = vpKFs[i];
       if(kf->isBad() || kf->semidense_flag_)
@@ -160,161 +161,106 @@ void ProbabilityMapping::FirstLoop(){
       float min_depth;
       // get max_dephth  and min_depth in current key frame to limit search range
       StereoSearchConstraints(kf, &min_depth, &max_depth);
-      //std::cout<< "min_d: "<<min_depth<<"\t max_d: "<<max_depth<<std::endl;
 
-      cv::Mat gradx, grady, gradmag, gradth;
       cv::Mat image = kf->GetImage();
       cv::Mat image_debug = image.clone();
 
-      GetGradientMagAndOri(image, &gradx, &grady, &gradmag, &gradth);
-      /*
-      saveMatToCsv(image,"image.csv");
-      saveMatToCsv(gradmag,"grad.csv");
-      saveMatToCsv(gradx,"gradx.csv");
-      saveMatToCsv(grady,"grady.csv");
-      std::cout<<gradx.at<float>(10,10)<<"\t"<<grady.at<float>(10,10)<<std::endl;
-      */
       std::vector<std::vector<depthHo> > temp_ho (image.rows, std::vector<depthHo>(image.cols, depthHo()) );
-      std::vector<depthHo> depth_ho;
-      depth_ho.clear();
 
+      std::vector <cv::Mat> F;
+      F.clear();
       for(size_t j=0; j<closestMatches.size(); j++)
       {
-        //std::cout<<closestMatches.size()<<std::endl;
         ORB_SLAM2::KeyFrame* kf2 = closestMatches[ j ];
-
-        /* Preapare  to do epiploar search */
-        cv::Mat image2 = kf2->GetImage();
-        cv::Mat image2_debug = image2.clone();
-        cv::Mat image2_stddev, image2_mean;
-        cv::meanStdDev(image2,image2_mean,image2_stddev);
-
         cv::Mat F12 = ComputeFundamental(kf,kf2);
-        cv::Mat gradx2, grady2, grad2mag, grad2th;
-        GetGradientMagAndOri(image2, &gradx2, &grady2, &grad2mag, &grad2th);
-        cv::Mat depth_image= cv::Mat(480,640,CV_32F,0.0);
+        F.push_back(F12);
+      }
 
+        cv::Mat depth_map = cv::Mat::zeros(image.rows, image.cols, CV_32F);
+        cv::Mat depth_sigma = cv::Mat::zeros(image.rows, image.cols, CV_32F);
+        //std::cout<<"EpipolarSearch"<<std::endl;
         for(int y = 0+2; y < image.rows-2; y++)
         {
           for(int x = 0+2; x< image.cols-2; x++)
           {
 
-            if(gradmag.at<float>(y,x) < lambdaG){continue;}
-
-            depthHo dh;
+            if(kf->GradImg.at<float>(y,x) < lambdaG){continue;}
             float pixel =(float) image.at<uchar>(y,x); //maybe it should be cv::Mat
 
-            float best_u(0.0),best_v(0.0);
-            EpipolarSearch(kf, kf2, x, y, pixel, gradmag, min_depth, max_depth, &dh,F12,
-                           grad2mag,grad2th,image2,image2_stddev,best_u,best_v,gradth.at<float>(y,x));
-
-            if (dh.supported && 1/dh.depth > 0.0)
+            std::vector<depthHo> depth_ho;
+            depth_ho.clear();
+            for(size_t j=0; j<closestMatches.size(); j++)
             {
-                //pcnt++;
-                depth_image.at<float>(y,x) = dh.depth*1;
+                ORB_SLAM2::KeyFrame* kf2 = closestMatches[ j ];
+                cv::Mat F12 = F[j];
 
-               // if(x> 100 && x<400 && y > 100 && y <300 && x%10 == 0 && y% 10 ==0)
-               // if(1/dh.depth < 0.1)
+                float best_u(0.0),best_v(0.0);
+                depthHo dh;
+                EpipolarSearch(kf, kf2, x, y, pixel, min_depth, max_depth, &dh,F12,best_u,best_v,kf->GradTheta.at<float>(y,x));
+
+                if (dh.supported && 1/dh.depth > 0.0)
                 {
-                  cv::circle(image2_debug,cv::Point(best_u,best_v),1,cv::Scalar(255),-1);
-                 // cv::circle(image2_debug,cv::Point(best_u_ssd,best_v_ssd),5,cv::Scalar(0),-1);
-                  cv::circle(image_debug,cv::Point(x,y),1,cv::Scalar(255),-1);
-/*
-                 if(x> 0 && x<400 && y > 0 && y <300 && x%20 == 0 && y% 20 ==0)
-                {
-                  float a = x*F12.at<float>(0,0)+y*F12.at<float>(1,0)+F12.at<float>(2,0);
-                  float b = x*F12.at<float>(0,1)+y*F12.at<float>(1,1)+F12.at<float>(2,1);
-                  float c = x*F12.at<float>(0,2)+y*F12.at<float>(1,2)+F12.at<float>(2,2);
-
-                  float umin(0.0),umax(0.0);
-                  GetSearchRange(umin,umax,x,y,min_depth,max_depth,kf,kf2);
-                  for(int uj = std::floor(umin); uj < std::ceil(umax); uj++)// FIXME should use  min and max depth
-                  {
-                    float vj =-( (a/b)*uj+(c/b));
-
-                    if(vj<0 || vj > image2.rows ){continue;}
-
-                    if(grad2mag.at<float>(vj,uj) < lambdaG){continue;}
-
-                    cv::circle(image2_debug,cv::Point(uj,vj),1,cv::Scalar(0),-1);
-
-                    std::cout<<"u: "<<uj<<" v: "<<vj <<" grad: "<< grad2mag.at<float>((int)vj,uj)<<" pixel: "<<(int)image2.at<uchar>((int)vj,uj)<<std::endl;
-
+                      depth_ho.push_back(dh);
                   }
-                  std::cout <<"grad kf1: "<< gradmag.at<float>(y,x)<<" pixel kf1: "<<pixel<<std::endl;
-                  std::cout <<"best grad kf2: "<<grad2mag.at<float>((int)best_v,(int)best_u)<<" best pixel kf1: "<<(int)image2.at<uchar>((int)best_v,(int)best_u)<<std::endl;
-                  cv::circle(image2_debug,cv::Point(best_u,best_v),8,cv::Scalar(255),-1);
-                  cv::circle(image_debug,cv::Point(x,y),8,cv::Scalar(255),-1);
-                  cv::imwrite("grad2_image.png",image2_debug);
-                  cv::imwrite("grad_image.png",image_debug);
-                  std::cout<< "u: "<<best_u<<"\t x:"<<x<<"\t v:"<<best_v<<"\t y:"<<y<<std::endl;
-                 }
-                 */
-                  //std::cout<< "u: "<<best_u<<"\t x:"<<x<<"\t v:"<<best_v<<"\t y:"<<y<<std::endl;
-
-                }
-
-                //cv::imwrite("grad_image.png",image_debug);
-                //cv::imwrite("grad2_image.png",image2_debug);
-
-                //float Z = 1;    //  const depth test
-                float Z = 1/dh.depth ;
-                float X = Z *(x- kf->cx ) / kf->fx;
-                float Y = Z*(y- kf->cy ) / kf->fy;
-
-                cv::Mat Pc = (cv::Mat_<float>(4,1) << X, Y , Z, 1); // point in camera frame.
-                cv::Mat Twc = kf->GetPoseInverse();
-                cv::Mat pos = Twc * Pc;
-                dh.Pw<< pos.at<float>(0),pos.at<float>(1),pos.at<float>(2);
-
-                pcl::PointXYZ xyz_pcl;
-                xyz_pcl.x = dh.Pw[0];
-                xyz_pcl.y = dh.Pw[1];
-                xyz_pcl.z = dh.Pw[2];
-                cloudPtr->at(x,y) = xyz_pcl;
-/*
-                // method 2
-                cv::Mat x3Dc = (cv::Mat_<float>(3,1) << X, Y , Z);
-                cv::Mat pos2 = Twc.rowRange(0,3).colRange(0,3)*x3Dc+Twc.rowRange(0,3).col(3);
-                dh.Pw<< pos2.at<float>(0),pos2.at<float>(1),pos2.at<float>(2);
-               // std::cout<< dh.Pw<<std::endl;
-*/
-                temp_ho[y][x] = dh;  // save point to keyframe semidense map
-                kf->SemiDenseMatrix[y][x] = dh;
-
-               // cout<<"semidense_Info:   save a point "<<std::endl;
-
             }
 
-              //  depth_ho.push_back(dh);
+            if (depth_ho.size()) {
+                depthHo dh_temp;
+                InverseDepthHypothesisFusion(depth_ho, dh_temp);
+                if(dh_temp.supported)
+                {
+                  /*
+                  float Z = 1/dh_temp.depth ;
+                  float X = Z *(x- kf->cx ) / kf->fx;
+                  float Y = Z*(y- kf->cy ) / kf->fy;
 
-            //DBG(printf("FirstLoop: found a set of %d hypotheseses for pixel %d,%d\n", (int)(depth_ho.size()), x, y))
-           // if (depth_ho.size()) {
-           //   depthfusion should not be run at here,  the code logical is wrong, need fix this bug. comment the code now.
-          //    depthHo dh;
-          //    DBG(cout << "Calculating Inverse Depth Hypothesis\n")
-         //     InverseDepthHypothesisFusion(depth_ho, &dh);
-
-          //   dh.supported = true;
-        //      temp_ho[x][y] = dh;
-          //  } else {
-          //      temp_ho[x][y].supported = false;
-         //   }
+                  cv::Mat Pc = (cv::Mat_<float>(4,1) << X, Y , Z, 1); // point in camera frame.
+                  cv::Mat Twc = kf->GetPoseInverse();
+                  cv::Mat pos = Twc * Pc;
+                  dh_temp.Pw<< pos.at<float>(0),pos.at<float>(1),pos.at<float>(2);
+                  kf->SemiDenseMatrix[y][x] = dh_temp;
+                  */
+                  temp_ho[y][x] = dh_temp;  // save point to keyframe semidense map
+                  depth_map.at<float>(y,x) = dh_temp.depth;   //  used to do IntraKeyFrameDepthChecking
+                  depth_sigma.at<float>(y,x) = dh_temp.sigma;
+                 //
+                }
+            }
 
           }
         }
-        cv::imwrite("grad2_image.png",image2_debug);
-        cv::imwrite("depth_image.png",depth_image);
-        saveMatToCsv(depth_image,"depth.csv");
+        //cv::imwrite("grad2_image.png",image2_debug);
+       // cv::imwrite("depth_image.png",depth_image);
+       // saveMatToCsv(depth_image,"depth.csv");
 
-        //std::cout<< "pcnt : \t"<<pcnt<<std::endl;
-      }
+        //std::cout<<"IntraKeyFrameDepthChecking"<<std::endl;
+     IntraKeyFrameDepthChecking( depth_map,  depth_sigma,temp_ho);
+     //IntraKeyFrameDepthChecking(temp_ho,image.rows,image.cols);    //  this function  is too slow!!!!!! replace it!!
 
-     //kf->SemiDenseMatrix = temp_ho;
+     for(int y = 0+2; y < image.rows-2; y++)
+     {
+       for(int x = 0+2; x< image.cols-2; x++)
+       {
+
+         if( ! temp_ho[y][x].supported) continue;
+
+         depthHo dh_temp = temp_ho[y][x];
+         float Z = 1/dh_temp.depth ;
+         float X = Z *(x- kf->cx ) / kf->fx;
+         float Y = Z*(y- kf->cy ) / kf->fy;
+
+         cv::Mat Pc = (cv::Mat_<float>(4,1) << X, Y , Z, 1); // point in camera frame.
+         cv::Mat Twc = kf->GetPoseInverse();
+         cv::Mat pos = Twc * Pc;
+         dh_temp.Pw<< pos.at<float>(0),pos.at<float>(1),pos.at<float>(2);
+         kf->SemiDenseMatrix[y][x] = dh_temp;
+       }
+     }
+
      kf->semidense_flag_ = true;
      //cv::imwrite("image.png",image);
-     pcl::io::savePLYFileBinary ("kf.ply", *cloudPtr);
-     cv::imwrite("grad_image.png",image_debug);
+     //pcl::io::savePLYFileBinary ("kf.ply", *cloudPtr);
+     //cv::imwrite("grad_image.png",image_debug);
 
   }
 
@@ -335,9 +281,8 @@ void ProbabilityMapping::StereoSearchConstraints(ORB_SLAM2::KeyFrame* kf, float*
   *min_depth = mean - 2 * stdev;
 }
 
-void ProbabilityMapping::EpipolarSearch(ORB_SLAM2::KeyFrame* kf1, ORB_SLAM2::KeyFrame *kf2, const int x, const int y, float pixel, cv::Mat grad,
-    float min_depth, float max_depth, depthHo *dh,cv::Mat F12,cv::Mat grad2mag,cv::Mat grad2th,cv::Mat image,cv::Mat image_stddev,
-    float& best_u,float& best_v,float th_pi)
+void ProbabilityMapping::EpipolarSearch(ORB_SLAM2::KeyFrame* kf1, ORB_SLAM2::KeyFrame *kf2, const int x, const int y, float pixel,
+    float min_depth, float max_depth, depthHo *dh,cv::Mat F12,float& best_u,float& best_v,float th_pi)
 {
 
   float a = x*F12.at<float>(0,0)+y*F12.at<float>(1,0)+F12.at<float>(2,0);
@@ -360,28 +305,26 @@ void ProbabilityMapping::EpipolarSearch(ORB_SLAM2::KeyFrame* kf1, ORB_SLAM2::Key
   for(int uj = std::floor(umin); uj < std::ceil(umax)+1; uj++)// FIXME should use  min and max depth
   {
     vj =-(int)( (a/b)*uj+(c/b));
-    if(vj<0 || vj > image.rows ){continue;}
+    if(vj<0 || vj > kf2->im_.rows ){continue;}
 
     // condition 1:
-    if(grad2mag.at<float>(vj,uj) < lambdaG){continue;}
+    if( kf2->GradImg.at<float>(vj,uj) < lambdaG){continue;}
 
     // condition 2:
     float th_epipolar_line = cv::fastAtan2(-a/b,1);
-    float temp_gradth = grad2th.at<float>(vj,uj) ;
-    if(grad2th.at<float>(vj,uj) > 270) temp_gradth = grad2th.at<float>(vj,uj) - 360;
-    if(grad2th.at<float>(vj,uj) > 90 && grad2th.at<float>(vj,uj)<=270)
-      temp_gradth = grad2th.at<float>(vj,uj) - 180;
+    float temp_gradth =  kf2->GradTheta.at<float>(vj,uj) ;
+    if( temp_gradth > 270) temp_gradth =  temp_gradth - 360;
+    if( temp_gradth > 90 &&  temp_gradth<=270)
+      temp_gradth =  temp_gradth - 180;
     if(th_epipolar_line>270) th_epipolar_line = th_epipolar_line - 360;
     if(abs(abs(temp_gradth - th_epipolar_line) - 90)< 10 ){  continue;}
 
     // condition 3:
     //if(abs(th_grad - ( th_pi + th_rot )) > lambdaTheta)continue;
-    if(abs(grad2th.at<float>(vj,uj) -  th_pi ) > lambdaTheta)continue;
+    if(abs( kf2->GradTheta.at<float>(vj,uj) -  th_pi ) > lambdaTheta)continue;
 
-   // float photometric_err = pixel - (float)image.at<uchar>(vj,uj);
-   // float gradient_modulo_err = grad.at<float>(y,x)  - grad2mag.at<float>(vj,uj);
-     float photometric_err = pixel - bilinear<uchar>(image,-((a/b)*uj+(c/b)),uj);
-     float gradient_modulo_err = grad.at<float>(y,x)  - bilinear<float>(grad2mag,-((a/b)*uj+(c/b)),uj);
+     float photometric_err = pixel - bilinear<uchar>(kf2->im_,-((a/b)*uj+(c/b)),uj);
+     float gradient_modulo_err = kf1->GradImg.at<float>(y,x)  - bilinear<float>( kf2->GradImg,-((a/b)*uj+(c/b)),uj);
 
    // std::cout<<bilinear<float>(grad2mag,-((a/b)*uj+(c/b)),uj)<<"  grad : "<< grad2mag.at<float>(vj,uj)<<std::endl;
    // std::cout<<bilinear<uchar>(image,-((a/b)*uj+(c/b)),uj)<<"  image : "<< (float)image.at<uchar>(vj,uj)<<std::endl;
@@ -405,8 +348,8 @@ void ProbabilityMapping::EpipolarSearch(ORB_SLAM2::KeyFrame* kf1, ORB_SLAM2::Key
      uj_minus = best_pixel - 1;
      vj_minus = -((a/b)*uj_minus + (c/b));
 
-     g = ((float)image.at<uchar>(vj_plus, uj_plus) -(float) image.at<uchar>(vj_minus, uj_minus))/2.0;
-     q = (grad2mag.at<float>(vj_plus, uj_plus) - grad2mag.at<float>(vj_minus, uj_minus))/2.0;
+     g = ((float)kf2->im_.at<uchar>(vj_plus, uj_plus) -(float) kf2->im_.at<uchar>(vj_minus, uj_minus))/2.0;
+     q = ( kf2->GradImg.at<float>(vj_plus, uj_plus) -  kf2->GradImg.at<float>(vj_minus, uj_minus))/2.0;
 /*
      if(vj_plus< 0)   //  if abs(a/b) is large,   a little step for uj, may produce a large change on vj. so there is a bug !!!  vj_plus may <0
      {
@@ -421,7 +364,7 @@ void ProbabilityMapping::EpipolarSearch(ORB_SLAM2::KeyFrame* kf1, ORB_SLAM2::Key
 
      denomiator = (g*g + (1/THETA)*q*q);
      ustar = best_pixel + (g*best_photometric_err + (1/THETA)*q*best_gradient_modulo_err)/denomiator;
-     ustar_var = (2*image_stddev.at<double>(0,0)*image_stddev.at<double>(0,0) /denomiator);
+     ustar_var = (2*kf2->I_stddev*kf2->I_stddev/denomiator);
      //std::cout<< "g:"<<g<< "  q:"<<q<<"  I_err:"<<best_photometric_err<<"  g_err"<<best_gradient_modulo_err<< "   denomiator:"<<denomiator<< "  ustar:"<<ustar<<std::endl;
 
      //if(ustar_var > 5) return;
@@ -436,6 +379,7 @@ void ProbabilityMapping::EpipolarSearch(ORB_SLAM2::KeyFrame* kf1, ORB_SLAM2::Key
   }
 
 }
+/*
 void ProbabilityMapping::IntraKeyFrameDepthChecking(std::vector<std::vector<depthHo> >& ho, int imrows, int imcols) {
 
     std::vector<std::vector<depthHo> > ho_new;
@@ -507,29 +451,139 @@ void ProbabilityMapping::IntraKeyFrameDepthChecking(std::vector<std::vector<dept
     //    }
     //}
 }
+*/
+void ProbabilityMapping::IntraKeyFrameDepthChecking(cv::Mat depth_map, cv::Mat depth_sigma,std::vector<std::vector<depthHo> >& ho)
+{
+   std::vector<std::vector<depthHo> > ho_new (depth_map.rows, std::vector<depthHo>(depth_map.cols, depthHo()) );
+   for (int py = 2; py < (depth_map.rows - 2); py++)
+   {
+       //std::cout<< "one row "<<std::endl;
+       for (int px = 2; px < (depth_map.cols - 2); px++)
+       {
+           if (depth_map.at<float>(py,px) < 0.0001)  // if  d ==0.0 : grow the reconstruction getting more density
+           {
 
-void ProbabilityMapping::InverseDepthHypothesisFusion(const std::vector<depthHo>& h, depthHo* dist) {
-    dist->depth = 0;
-    dist->sigma = 0;
-    dist->supported = false;
+           }
+           else
+           {
+             std::vector<depthHo> compatible_neighbor_ho;
+
+             depthHo dha,dhb;
+             dha.depth = depth_map.at<float>(py,px);
+             dha.sigma = depth_sigma.at<float>(py,px);
+             for (int y = py - 1; y <= py + 1; y++)
+             {
+                 for (int x = px - 1; x <= px + 1; x++)
+                 {
+
+                   if (x == px && y == py) continue;
+                   if( depth_map.at<float>(y,x)> 0)
+                   {
+                     float num = (depth_map.at<float>(y,x) - depth_map.at<float>(py,px))*(depth_map.at<float>(y,x) - depth_map.at<float>(py,px));
+                     float chi_test = num / (depth_sigma.at<float>(y,x)*depth_sigma.at<float>(y,x)) + num / (depth_sigma.at<float>(py,px)*depth_sigma.at<float>(py,px));
+                     if(chi_test < 5.99)
+                     {
+                       dhb.depth = depth_map.at<float>(y,x);
+                       dhb.sigma = depth_sigma.at<float>(y,x);
+                       compatible_neighbor_ho.push_back(dhb);
+                     }
+                   }
+                 }
+             }
+             compatible_neighbor_ho.push_back(dha);  // dont forget itself.
+
+             if (compatible_neighbor_ho.size() > 2)
+             {
+                 depthHo fusion;
+                 float min_sigma = 0;
+                 GetFusion(compatible_neighbor_ho, &fusion, &min_sigma);
+
+                 ho_new[py][px].depth = fusion.depth;
+                 ho_new[py][px].sigma = min_sigma;
+                 ho_new[py][px].supported = true;
+
+             } else
+             {
+                 ho_new[py][px].supported = false;   // outlier
+             }
+
+           }
+       }
+   }
+   ho = ho_new;
+
+}
+
+/*
+ *
+ *  std::vector<std::vector<depthHo> >& ho  : access  this vector one by one is too slow!!!!!!!!!!!
+ *  this function we discard it.  replace by " IntraKeyFrameDepthChecking(cv::Mat depth_map, cv::Mat depth_sigma,std::vector<std::vector<depthHo> >& ho)"
+*/
+void ProbabilityMapping::IntraKeyFrameDepthChecking(std::vector<std::vector<depthHo> >& ho,int imrows, int imcols)
+{
+
+  std::vector<std::vector<depthHo> > ho_new (imrows, std::vector<depthHo>(imcols, depthHo()) );
+  for (int py = 2; py < (imrows - 2); py++)
+  {
+      //std::cout<< "one row "<<std::endl;
+      for (int px = 2; px < (imcols - 2); px++)
+      {
+          if (ho[py][px].supported == false)  // grow the reconstruction getting more density
+          {
+
+          }
+          else
+          {
+
+            std::vector<depthHo> compatible_neighbor_ho;
+            PixelNeighborSupport(ho, px, py, compatible_neighbor_ho);
+
+            if (compatible_neighbor_ho.size() > 2)
+            {
+                // average depth of the retained pixels
+                // set sigma to minimum of neighbor pixels
+
+                depthHo fusion;
+                float min_sigma = 0;
+                GetFusion(compatible_neighbor_ho, &fusion, &min_sigma);
+
+                ho_new[py][px].depth = fusion.depth;
+                ho_new[py][px].sigma = min_sigma;
+                ho_new[py][px].supported = true;
+
+            } else
+            {
+                ho_new[py][px].supported = false;   // outlier
+            }
+
+          }
+      }
+  }
+  std::cout<< "end "<<std::endl;
+  ho = ho_new;
+}
+void ProbabilityMapping::InverseDepthHypothesisFusion(const std::vector<depthHo>& h, depthHo& dist) {
+    dist.depth = 0;
+    dist.sigma = 0;
+    dist.supported = false;
 
     std::vector<depthHo> compatible_ho;
     std::vector<depthHo> compatible_ho_temp;
     float chi = 0;
 
     for (size_t a=0; a < h.size(); a++) {
-        compatible_ho_temp.clear();
 
-        for (size_t b=0; b < h.size(); b++) {
-            // test if the hypotheses a and b are compatible
-            if (ChiTest(h[a], h[b], &chi)) {
-                compatible_ho_temp.push_back(h[b]);
-            }
+        compatible_ho_temp.clear();
+        for (size_t b=0; b < h.size(); b++)
+        {
+          if (ChiTest(h[a], h[b], &chi))
+            {compatible_ho_temp.push_back(h[b]);}// test if the hypotheses a and b are compatible
         }
+
         // test if hypothesis 'a' has the required support
-        if (compatible_ho_temp.size()-1 >= lambdaN && compatible_ho_temp.size() > compatible_ho.size()) {
-            compatible_ho_temp.push_back(h[a]);
-            compatible_ho = compatible_ho_temp;
+        if (compatible_ho_temp.size() >= lambdaN )
+        {
+            compatible_ho.push_back(h[a]);
         }
     }
 
@@ -824,14 +878,19 @@ void ProbabilityMapping::GetInPlaneRotation(ORB_SLAM2::KeyFrame* k1, ORB_SLAM2::
 void ProbabilityMapping::PixelNeighborSupport(std::vector<std::vector<depthHo> > H, int px, int py, std::vector<depthHo>& support) {
     support.clear();
     float chi = 0;
-    for (int x = px - 1; x <= px + 1; x++) {
-        for (int y = py - 1; y <= py + 1; y++) {
-            if (x == px && y == py) continue;
-            if (ChiTest(H[x][y], H[px][py], &chi)) {
-                support.push_back(H[px][py]);
+    for (int y = py - 1; y <= py + 1; y++) {
+        for (int x = px - 1; x <= px + 1; x++) {
+
+          if (x == px && y == py) continue;
+          if(!H[y][x].supported) continue;
+
+            if (ChiTest(H[y][x], H[py][px], &chi))
+            {
+                support.push_back(H[y][x]);
             }
         }
     }
+    support.push_back(H[py][px]);  // dont forget itself.
 }
 
 void ProbabilityMapping::PixelNeighborNeighborSupport(std::vector<std::vector<depthHo> > H, int px, int py, std::vector<std::vector<depthHo> >& support) {
@@ -917,6 +976,7 @@ void ProbabilityMapping::GetPixelDepth(float uj, float vj, int px, int py, ORB_S
     R2w.copyTo(T2w.colRange(0,3));
     t2w.copyTo(T2w.col(3));
 
+    // inverse project.    if has distortion, this code shoud fix
     cv::Mat xn1 = (cv::Mat_<float>(3,1) << (px-cx)/fx, (py-cy)/fy,1.0);
     cv::Mat xn2 = (cv::Mat_<float>(3,1) << (uj-cx)/fx, (vj-cy)/fy, 1.0);
 
@@ -961,7 +1021,7 @@ void ProbabilityMapping::GetPixelDepth(float uj, int px, int py, ORB_SLAM2::KeyF
     cv::Mat R21 = Rcw2*Rcw1.t();
     cv::Mat t21 = -Rcw2*Rcw1.t()*tcw1+tcw2;
 
-    cv::Mat xp=(cv::Mat_<float>(3,1) << (px-cx)/fx, (py-cy)/fy,1.0);
+    cv::Mat xp=(cv::Mat_<float>(3,1) << (px-cx)/fx, (py-cy)/fy,1.0);// inverse project.    if has distortion, this code shoud fix
 
     //GetXp(kf->GetCalibrationMatrix(), px, py, &xp);
 
@@ -992,7 +1052,7 @@ void ProbabilityMapping::GetSearchRange(float& umin, float& umax, int px, int py
   cv::Mat R21 = Rcw2*Rcw1.t();
   cv::Mat t21 = -Rcw2*Rcw1.t()*tcw1+tcw2;
 
-  cv::Mat xp1=(cv::Mat_<float>(3,1) << (px-cx)/fx, (py-cy)/fy,1.0);
+  cv::Mat xp1=(cv::Mat_<float>(3,1) << (px-cx)/fx, (py-cy)/fy,1.0);  // inverse project.    if has distortion, this code shoud fix
 
   if(mind<0) mind = 0;
   cv::Mat xp2_min = R21*xp1*mind+t21;
@@ -1006,18 +1066,20 @@ void ProbabilityMapping::GetSearchRange(float& umin, float& umax, int px, int py
   if(umin>kf->im_.cols ) umin = kf->im_.cols;
   if(umax>kf->im_.cols)  umax = kf->im_.cols;
 }
+
 bool ProbabilityMapping::ChiTest(const depthHo& ha, const depthHo& hb, float* chi_val) {
-    float chi_test = (ha.depth - hb.depth)*(ha.depth - hb.depth) / (ha.sigma*ha.sigma) + (ha.depth - hb.depth)*(ha.depth - hb.depth) / (hb.sigma*hb.sigma);
+    float num = (ha.depth - hb.depth)*(ha.depth - hb.depth);
+    float chi_test = num / (ha.sigma*ha.sigma) + num / (hb.sigma*hb.sigma);
     if (chi_val)
         *chi_val = chi_test;
-    return (chi_test < 5.99);
+    return (chi_test < 5.99);  // 5.99 -> 95%
 }
 
 void ProbabilityMapping::GetFusion(const std::vector<depthHo>& compatible_ho, depthHo* hypothesis, float* min_sigma) {
     hypothesis->depth = 0;
     hypothesis->sigma = 0;
 
-    float temp_min_sigma = 0;
+    float temp_min_sigma = 100;
     float pjsj =0; // numerator
     float rsj =0; // denominator
 
@@ -1031,6 +1093,33 @@ void ProbabilityMapping::GetFusion(const std::vector<depthHo>& compatible_ho, de
 
     hypothesis->depth = pjsj / rsj;
     hypothesis->sigma = sqrt(1 / rsj);
+    hypothesis->supported = true;
+
+    if (min_sigma) {
+        *min_sigma = temp_min_sigma;
+    }
+}
+
+void ProbabilityMapping::GetFusion(const std::vector<depthHo>& compatible_ho, depthHo& hypothesis, float* min_sigma) {
+    hypothesis.depth = 0;
+    hypothesis.sigma = 0;
+
+    float temp_min_sigma = 100;
+    float pjsj =0; // numerator
+    float rsj =0; // denominator
+
+    for (size_t j = 0; j < compatible_ho.size(); j++) {
+        pjsj += compatible_ho[j].depth / pow(compatible_ho[j].sigma, 2);
+        rsj += 1 / pow(compatible_ho[j].sigma, 2);
+        if (pow(compatible_ho[j].sigma, 2) < pow(temp_min_sigma, 2)) {
+            temp_min_sigma = compatible_ho[j].sigma;
+        }
+    }
+
+    hypothesis.depth = pjsj / rsj;
+    hypothesis.sigma = sqrt(1 / rsj);
+    hypothesis.supported = true;
+
     if (min_sigma) {
         *min_sigma = temp_min_sigma;
     }

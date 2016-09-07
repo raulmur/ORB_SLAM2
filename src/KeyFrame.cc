@@ -42,7 +42,7 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
     mnMaxY(F.mnMaxY), mK(F.mK), mvpMapPoints(F.mvpMapPoints), mpKeyFrameDB(pKFDB),
     mpORBvocabulary(F.mpORBvocabulary), mbFirstConnection(true), mpParent(NULL), mbNotErase(false),
     mbToBeErased(false), mbBad(false), mHalfBaseline(F.mb/2), mpMap(pMap), im_(F.im_.clone()),semidense_flag_(false),
-    SemiDenseMatrix(480, std::vector<ProbabilityMapping:: depthHo>(640, ProbabilityMapping::depthHo()) )
+    SemiDenseMatrix(im_.rows, std::vector<ProbabilityMapping:: depthHo>(im_.cols, ProbabilityMapping::depthHo()) )
 {
     mnId=nNextId++;
 
@@ -55,6 +55,22 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
     }
 
     SetPose(F.mTcw);    
+
+    //  compute some value for  semi dense  process
+     cv::Mat image_mean,image_stddev,gradx,grady;
+     cv::meanStdDev(im_,image_mean,image_stddev);
+     I_stddev = image_stddev.at<double>(0,0);
+     image_mean.release();
+     image_stddev.release();
+
+     gradx = cv::Mat::zeros(im_.rows, im_.cols, CV_32F);
+     grady = cv::Mat::zeros(im_.rows, im_.cols, CV_32F);
+     cv::Scharr(im_, gradx, CV_32F, 1, 0, 1/32.0);
+     cv::Scharr(im_, grady, CV_32F, 0, 1, 1/32.0);
+     cv::magnitude(gradx,grady,GradImg);
+     cv::phase(gradx,grady,GradTheta,true);
+     gradx.release();
+     grady.release();
 
     //SemiDenseMatrix = new std::vector<std::vector<ProbabilityMapping::depthHo> > (im_.rows, std::vector<ProbabilityMapping:: depthHo>(im_.cols, ProbabilityMapping::depthHo()) );
 }

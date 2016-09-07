@@ -27,7 +27,7 @@
 #include <Eigen/Core>
 #include <mutex>
 
-#define covisN 1
+#define covisN 7
 #define sigmaI 20
 #define lambdaG 15//8
 #define lambdaL 80
@@ -73,13 +73,15 @@ public:
         /* * \brief void stereo_search_constraints(): return min, max inverse depth */
         void StereoSearchConstraints(ORB_SLAM2::KeyFrame* kf, float* min_depth, float* max_depth);
 	/* * \brief void epipolar_search(): return distribution of inverse depths/sigmas for each pixel */
-        void EpipolarSearch(ORB_SLAM2::KeyFrame *kf1, ORB_SLAM2::KeyFrame *kf2, const int x, const int y, float pixel, cv::Mat grad, float min_depth, float max_depth, depthHo *dh, cv::Mat F12, cv::Mat grad2mag, cv::Mat grad2th, cv::Mat image, cv::Mat image_stddev, float &best_u, float &best_v, float th_pi);
+        void EpipolarSearch(ORB_SLAM2::KeyFrame *kf1, ORB_SLAM2::KeyFrame *kf2, const int x, const int y, float pixel, float min_depth, float max_depth, depthHo *dh, cv::Mat F12, float &best_u, float &best_v,float th_pi);
         void GetSearchRange(float& umin, float& umax, int px, int py, float mind, float maxd, ORB_SLAM2::KeyFrame* kf, ORB_SLAM2::KeyFrame* kf2);
         /* * \brief void inverse_depth_hypothesis_fusion(const vector<depthHo> H, depthHo* dist):
 	 * *         get the parameters of depth hypothesis distrubution from list of depth hypotheses */
-        void InverseDepthHypothesisFusion(const std::vector<depthHo>& h, depthHo* dist);
+        void InverseDepthHypothesisFusion(const std::vector<depthHo>& h, depthHo &dist);
 	/* * \brief void intraKeyFrameDepthChecking(std::vector<std::vector<depthHo> > h, int imrows, int imcols): intra-keyframe depth-checking, smoothing, and growing. */
         void IntraKeyFrameDepthChecking(std::vector<std::vector<depthHo> >& ho, int imrows, int imcols);
+        //  vector is low.  use depth_map and detph_sigma (cv::Mat)  to speed
+        void IntraKeyFrameDepthChecking(cv::Mat depth_map, cv::Mat depth_sigma,std::vector<std::vector<depthHo> >& ho);
         /* * \brief void interKeyFrameDepthChecking(ORB_SLAM2::KeyFrame* currentKF, std::vector<std::vector<depthHo> > h, int imrows, int imcols):
          * *         inter-keyframe depth-checking, smoothing, and growing. */
         void InterKeyFrameDepthChecking(const cv::Mat& im, ORB_SLAM2::KeyFrame* currentKF, std::vector<std::vector<depthHo> >& h);
@@ -112,6 +114,7 @@ private:
         void GetPixelDepth(float uj, float vj, int px, int py, ORB_SLAM2::KeyFrame* kf, ORB_SLAM2::KeyFrame* kf2, float &p, depthHo *dh);
         bool ChiTest(const depthHo& ha, const depthHo& hb, float* chi_val);
 	void GetFusion(const std::vector<depthHo>& best_compatible_ho, depthHo* hypothesis, float* min_sigma);
+        void GetFusion(const std::vector<depthHo>& best_compatible_ho, depthHo& hypothesis, float* min_sigma);
         void Equation14(depthHo& dHjn, float& depthp, cv::Mat& xp, cv::Mat& rji, cv::Mat& tji, float* res);
         cv::Mat ComputeFundamental(ORB_SLAM2::KeyFrame *&pKF1, ORB_SLAM2::KeyFrame *&pKF2);
         cv::Mat GetSkewSymmetricMatrix(const cv::Mat &v);

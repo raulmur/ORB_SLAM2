@@ -131,11 +131,14 @@ public:
 
     // The following variables are accesed from only 1 thread or never change (no mutex needed).
 public:
-
+/***********semi dense*******************************/
     // img used to semidense
     cv::Mat im_;
     bool semidense_flag_;  // whether this frame have build dense map or not?
     std::vector<std::vector<ProbabilityMapping::depthHo> > SemiDenseMatrix;
+    cv::Mat GradImg,GradTheta;
+    double I_stddev;
+/******************************************/
     //
     static long unsigned int nNextId;
     long unsigned int mnId;
