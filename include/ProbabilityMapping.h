@@ -31,7 +31,7 @@
 #define sigmaI 20
 #define lambdaG 15//8
 #define lambdaL 80
-#define lambdaTheta 45
+#define lambdaTheta 45  // 45
 #define lambdaN 3
 #define histo_length 30
 #define th_high 100
@@ -73,7 +73,7 @@ public:
         /* * \brief void stereo_search_constraints(): return min, max inverse depth */
         void StereoSearchConstraints(ORB_SLAM2::KeyFrame* kf, float* min_depth, float* max_depth);
 	/* * \brief void epipolar_search(): return distribution of inverse depths/sigmas for each pixel */
-        void EpipolarSearch(ORB_SLAM2::KeyFrame *kf1, ORB_SLAM2::KeyFrame *kf2, const int x, const int y, float pixel, cv::Mat grad, float min_depth, float max_depth, depthHo *dh, cv::Mat F12, cv::Mat grad2mag, cv::Mat grad2th, cv::Mat image, cv::Mat image_stddev, float &best_u, float &best_v);        
+        void EpipolarSearch(ORB_SLAM2::KeyFrame *kf1, ORB_SLAM2::KeyFrame *kf2, const int x, const int y, float pixel, cv::Mat grad, float min_depth, float max_depth, depthHo *dh, cv::Mat F12, cv::Mat grad2mag, cv::Mat grad2th, cv::Mat image, cv::Mat image_stddev, float &best_u, float &best_v, float th_pi);
         void GetSearchRange(float& umin, float& umax, int px, int py, float mind, float maxd, ORB_SLAM2::KeyFrame* kf, ORB_SLAM2::KeyFrame* kf2);
         /* * \brief void inverse_depth_hypothesis_fusion(const vector<depthHo> H, depthHo* dist):
 	 * *         get the parameters of depth hypothesis distrubution from list of depth hypotheses */
@@ -102,7 +102,7 @@ private:
         void GetTR(ORB_SLAM2::KeyFrame* kf, cv::Mat* t, cv::Mat* r);
         void GetXp(const cv::Mat& K, int x, int y, cv::Mat* Xp);
         void GetParameterization(const cv::Mat& F12, const int x, const int y, float &a, float &b, float &c);
-        void ComputeInvDepthHypothesis(ORB_SLAM2::KeyFrame* kf, ORB_SLAM2::KeyFrame *kf2, int pixel, float ustar, float ustar_var, float a, float b, float c, depthHo *dh, int x, int y);
+        void ComputeInvDepthHypothesis(ORB_SLAM2::KeyFrame* kf, ORB_SLAM2::KeyFrame *kf2, float ustar, float ustar_var, float a, float b, float c, depthHo *dh, int x, int y);
         void GetGradientMagAndOri(const cv::Mat& image, cv::Mat* gradx, cv::Mat* grady, cv::Mat* mag, cv::Mat* ori);
         void GetInPlaneRotation(ORB_SLAM2::KeyFrame* k1, ORB_SLAM2::KeyFrame* k2, float* th);
         void PixelNeighborSupport(std::vector<std::vector<depthHo> > H, int x, int y, std::vector<depthHo>& support);
