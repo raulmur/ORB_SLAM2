@@ -722,7 +722,7 @@ void ProbabilityMapping::Equation14(depthHo& dHjn, float& depthp, cv::Mat& xp, c
 void ProbabilityMapping::ComputeInvDepthHypothesis(ORB_SLAM2::KeyFrame* kf, ORB_SLAM2::KeyFrame* kf2, float ustar, float ustar_var,
                                                    float a, float b, float c,ProbabilityMapping::depthHo *dh, int x,int y) {
 
-  float v_star=- ((a/b) * ustar + (c/b));
+  //float v_star=- ((a/b) * ustar + (c/b));
   float inv_pixel_depth =  0.0;
 
   // equation 8 comput depth
@@ -730,15 +730,15 @@ void ProbabilityMapping::ComputeInvDepthHypothesis(ORB_SLAM2::KeyFrame* kf, ORB_
   // linear triangulation method
   // GetPixelDepth(ustar, pixel_y, x ,y,kf, kf2,inv_pixel_depth,dh);
 
-  int ustar_min = ustar - sqrt(ustar_var);
-  int vstar_min = -((a/b)*ustar_min + (c/b));
+  float ustar_min = ustar - sqrt(ustar_var);
+  //int vstar_min = -((a/b)*ustar_min + (c/b));
 
   float inv_depth_min = 0.0;
   GetPixelDepth(ustar_min,x,y,kf,kf2, inv_depth_min);
   //(inv_frame_rot[2]*corrected_image.at<float>(ustarcx_min ,vstarcx_min)-fx*inv_frame_rot[0]*corrected_image.at<float>(ujcx,vjcx))/(-transform_data[2][ustarcx_min][vstarcx_min]+fx*transform_data[0]);
 
-  int ustar_max = ustar +  sqrt(ustar_var);
-  int vstar_max = -((a/b)*ustar_max + (c/b));
+  float ustar_max = ustar +  sqrt(ustar_var);
+  //int vstar_max = -((a/b)*ustar_max + (c/b));
 
   float inv_depth_max = 0.0;
   GetPixelDepth(ustar_max,x,y,kf, kf2,inv_depth_max);
