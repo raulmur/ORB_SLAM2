@@ -1,17 +1,22 @@
-/* * =====================================================================================
+/*
+ * =====================================================================================
  *
- *       Filename:  ProbabilityMapping.h
+ *       Filename:  ProbabilityMapping.cc
  *
- *    Description:  Semi-dense Probability Mapping Module for ORB-SLAM
- *    inspired by Raul-Mur Artal's paper
+ *    Description:
  *
- *        Version:  0.01
- *        Created:  01/21/2016 03:48:26 PM
+ *        Version:  0.1
+ *        Created:  01/21/2016 10:39:12 PM
  *       Revision:  none
  *       Compiler:  gcc
  *
- *         Authors: Josh Tang, Rebecca Frederick 
- *   Organization:  Unkei
+ *         Author:  Josh Tang, Rebecca Frederick
+ *
+ *        version: 1.0
+ *        created: 8/9/2016
+ *        Log: fix a lot of bug, Almost rewrite the code
+ *
+ *        author: He Yijia
  *
  * =====================================================================================
  */

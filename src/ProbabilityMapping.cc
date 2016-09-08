@@ -11,7 +11,12 @@
  *       Compiler:  gcc
  *
  *         Author:  Josh Tang, Rebecca Frederick
- *   Organization:  Unkei
+ *
+ *        version: 1.0
+ *        created: 8/9/2016
+ *        Log: fix a lot of bug, Almost rewrite the code.
+ *
+ *        author: He Yijia
  *
  * =====================================================================================
  */
