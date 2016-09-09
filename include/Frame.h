@@ -56,6 +56,7 @@ public:
 
     // Constructor for Monocular cameras.
     Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+    Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, cv::Mat rgbimg);
 
     // Extract ORB on the image. 0 for left image and 1 for right image.
     void ExtractORB(int flag, const cv::Mat &im);
@@ -120,6 +121,7 @@ public:
 
     // pass img to keyframe, using to semidense create
    cv::Mat im_;
+   cv::Mat rgb_;
 
     // Stereo baseline multiplied by fx.
     float mbf;

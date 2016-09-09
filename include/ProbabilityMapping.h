@@ -73,8 +73,8 @@ public:
         // add some const depth point into key frame
         void TestSemiDenseViewer();
 
-        /* * \brief void first_loop(ORB_SLAM2::KeyFrame kf, depthHo**, std::vector<depthHo>*): return results of epipolar search (depth hypotheses) */
-        void FirstLoop();
+        /* * \brief void SemiDenseLoop(ORB_SLAM2::KeyFrame kf, depthHo**, std::vector<depthHo>*): return results of epipolar search (depth hypotheses) */
+        void SemiDenseLoop();
         /* * \brief void stereo_search_constraints(): return min, max inverse depth */
         void StereoSearchConstraints(ORB_SLAM2::KeyFrame* kf, float* min_depth, float* max_depth);
 	/* * \brief void epipolar_search(): return distribution of inverse depths/sigmas for each pixel */
@@ -86,11 +86,11 @@ public:
 	/* * \brief void intraKeyFrameDepthChecking(std::vector<std::vector<depthHo> > h, int imrows, int imcols): intra-keyframe depth-checking, smoothing, and growing. */
         void IntraKeyFrameDepthChecking(std::vector<std::vector<depthHo> >& ho, int imrows, int imcols);
         //  vector is low.  use depth_map and detph_sigma (cv::Mat)  to speed
-        void IntraKeyFrameDepthChecking(cv::Mat depth_map, cv::Mat depth_sigma,std::vector<std::vector<depthHo> >& ho);
+        void IntraKeyFrameDepthChecking(cv::Mat& depth_map, cv::Mat& depth_sigma, const cv::Mat gradimg);
         /* * \brief void interKeyFrameDepthChecking(ORB_SLAM2::KeyFrame* currentKF, std::vector<std::vector<depthHo> > h, int imrows, int imcols):
          * *         inter-keyframe depth-checking, smoothing, and growing. */
         void InterKeyFrameDepthChecking(const cv::Mat& im, ORB_SLAM2::KeyFrame* currentKF, std::vector<std::vector<depthHo> >& h);
-
+        void InterKeyFrameDepthChecking(ORB_SLAM2::KeyFrame* currentKf);
         void RequestFinish()
         {
             //unique_lock<mutex> lock(mMutexFinish);
@@ -118,7 +118,9 @@ private:
         void GetPixelDepth(float uj, int px, int py, ORB_SLAM2::KeyFrame* kf, ORB_SLAM2::KeyFrame *kf2, float &p);
         void GetPixelDepth(float uj, float vj, int px, int py, ORB_SLAM2::KeyFrame* kf, ORB_SLAM2::KeyFrame* kf2, float &p, depthHo *dh);
         bool ChiTest(const depthHo& ha, const depthHo& hb, float* chi_val);
-	void GetFusion(const std::vector<depthHo>& best_compatible_ho, depthHo* hypothesis, float* min_sigma);
+        bool ChiTest(const float& a, const float& b, const float sigma_a, float sigma_b);
+        //void GetFusion(const std::vector<depthHo>& best_compatible_ho, depthHo* hypothesis, float* min_sigma);
+        void GetFusion(const std::vector<std::pair <float,float> > supported, float& depth, float& sigma);
         void GetFusion(const std::vector<depthHo>& best_compatible_ho, depthHo& hypothesis, float* min_sigma);
         void Equation14(depthHo& dHjn, float& depthp, cv::Mat& xp, cv::Mat& rji, cv::Mat& tji, float* res);
         cv::Mat ComputeFundamental(ORB_SLAM2::KeyFrame *&pKF1, ORB_SLAM2::KeyFrame *&pKF2);

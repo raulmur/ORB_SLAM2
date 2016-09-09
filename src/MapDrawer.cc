@@ -92,25 +92,30 @@ void MapDrawer::DrawSemiDense()
     glColor3f(0.0,1.0,0.0);
 
     //for(size_t i = 0; i < vpKf.size();i=i+3)
+    int draw_cnt(0);
     for(size_t i = 0; i < vpKf.size();++i)
     {
         KeyFrame* kf = vpKf[i];
         if(! kf->semidense_flag_) continue;
+        draw_cnt ++;
+        for(size_t y = 0; y< kf->im_.rows; y++)
+          for(size_t x = 0; x< kf->im_.cols; x++)
+        {
 
-        for(size_t y=0; y<kf->im_.rows; y++)
-            for(size_t x=0; x<kf->im_.cols; x++)
-            {
-                 if(! kf->SemiDenseMatrix[y][x].supported) continue;
-
-                 float z = kf->SemiDenseMatrix[y][x].Pw[2];
-                 //glColor3f(0.0,z,0.0);
-                 Eigen::Vector2f pos;
-                 pos << kf->SemiDenseMatrix[y][x].Pw[0],kf->SemiDenseMatrix[y][x].Pw[1];
-                 //glVertex3f( kf->SemiDenseMatrix[y][x].Pw[0],kf->SemiDenseMatrix[y][x].Pw[1],kf->SemiDenseMatrix[y][x].Pw[2]);
-                 glVertex3f( pos[0],pos[1],z);
-            }
+          Eigen::Vector3f Pw  (kf->SemiDensePointSets_.at<float>(y,3*x), kf->SemiDensePointSets_.at<float>(y,3*x+1), kf->SemiDensePointSets_.at<float>(y,3*x+2));
+          //float z = Pw[2];
+          if(Pw[2]>0)
+          {
+            float b = kf->rgb_.at<uchar>(y,3*x) / 255.0;
+            float g = kf->rgb_.at<uchar>(y,3*x+1) / 255.0;
+            float r = kf->rgb_.at<uchar>(y,3*x+2) / 255.0;
+            glColor3f(r,g,b);
+            glVertex3f( Pw[0],Pw[1],Pw[2]);
+          }
+        }
     }
-     glEnd();
+    //if( draw_cnt>0) std::cout<<"Have Drawn : "<<draw_cnt<<"KeyFrame's semidense map "<<std::endl;
+    glEnd();
 
 }
 

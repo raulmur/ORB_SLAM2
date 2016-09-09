@@ -134,10 +134,15 @@ public:
 /***********semi dense*******************************/
     // img used to semidense
     cv::Mat im_;
+    cv::Mat rgb_;
     bool semidense_flag_;  // whether this frame have build dense map or not?
     std::vector<std::vector<ProbabilityMapping::depthHo> > SemiDenseMatrix;
     cv::Mat GradImg,GradTheta;
     double I_stddev;
+    cv::Mat depth_map_;
+    cv::Mat depth_sigma_;
+    //std::vector< Eigen::Vector3f > SemiDensePointSets_;
+    cv::Mat SemiDensePointSets_;
 /******************************************/
     //
     static long unsigned int nNextId;
