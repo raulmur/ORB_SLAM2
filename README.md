@@ -1,3 +1,12 @@
+# ORB-SLAM2: semi dense reconstruction 
+  [I post the code log on my blog](http://blog.csdn.net/heyijia0327/article/details/52464278). I replace ORBvoc.txt with ORBvoc.bin. So, you can run the code with: 
+  ```
+  ./mono_semidense ../../Vocabulary/ORBvoc.bin TUM2.yaml /home/hyj/datasets/freiburg2_desk
+  ```
+  
+  the result :
+  ![结果](http://img.blog.csdn.net/20160909121926348)
+  
 # ORB-SLAM2
 **Authors:** [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
 
