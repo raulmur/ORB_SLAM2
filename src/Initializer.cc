@@ -175,7 +175,7 @@ void Initializer::FindHomography(vector<bool> &vbMatchesInliers, float &score, c
 void Initializer::FindFundamental(vector<bool> &vbMatchesInliers, float &score, cv::Mat &F21)
 {
     // Number of putative matches
-    const int N = vbMatchesInliers.size();
+    const int N = mvMatches12.size();
 
     // Normalize coordinates
     vector<cv::Point2f> vPn1, vPn2;
