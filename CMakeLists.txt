@@ -7,6 +7,13 @@ ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
+if(APPLE)
+  # enable @rpath in the install name for any shared library being built
+  # note: it is planned that a future version of CMake will enable this by default
+  set(CMAKE_MACOSX_RPATH 1)
+  MESSAGE("###### Building on MAC ######")
+endif()
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3 -march=native")
 
@@ -63,12 +70,20 @@ src/Initializer.cc
 src/Viewer.cc
 )
 
+if (APPLE)
+  set(lib_extensions "dylib")
+elseif(WIN32)
+  set(lib_extensions "dll")
+else()
+  set(lib_extensions "so")
+endif()
+
 target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
 ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
-${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
-${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.${lib_extensions}
+${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.${lib_extensions}
 )
 
 # Build examples

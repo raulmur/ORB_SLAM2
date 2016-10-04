@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 2.8)
 project(DBoW2)
 
+if(APPLE)
+  # enable @rpath in the install name for any shared library being built
+  # note: it is planned that a future version of CMake will enable this by default
+  set(CMAKE_MACOSX_RPATH 1)
+  MESSAGE("###### Building on MAC ######")
+endif()
+
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native")
 
