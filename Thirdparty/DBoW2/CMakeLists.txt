@@ -5,7 +5,6 @@ if(APPLE)
   # enable @rpath in the install name for any shared library being built
   # note: it is planned that a future version of CMake will enable this by default
   set(CMAKE_MACOSX_RPATH 1)
-  MESSAGE("###### Building on MAC ######")
 endif()
 
 
