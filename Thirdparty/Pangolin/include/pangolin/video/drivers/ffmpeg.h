@@ -46,14 +46,12 @@ extern "C"
 #include <libavcodec/avcodec.h>
 }
 
+#ifndef HAVE_FFMPEG_AVPIXELFORMAT
+#  define AVPixelFormat PixelFormat
+#endif
+
 namespace pangolin
 {
-
-
-#if (LIBAVFORMAT_VERSION_MAJOR > 55) || ((LIBAVFORMAT_VERSION_MAJOR == 55) && (LIBAVFORMAT_VERSION_MINOR >= 7))
-typedef AVCodecID CodecID;
-typedef AVPixelFormat PixelFormat;
-#endif
 
 class PANGOLIN_EXPORT FfmpegVideo : public VideoInterface
 {
@@ -97,7 +95,7 @@ protected:
     AVPacket        packet;
     int             numBytesOut;
     uint8_t         *buffer;
-    PixelFormat     fmtout;
+    AVPixelFormat     fmtout;
 };
 
 enum FfmpegMethod
@@ -145,8 +143,8 @@ protected:
     VideoInterface* videoin;
     SwsContext *img_convert_ctx;
     
-    PixelFormat     fmtsrc;
-    PixelFormat     fmtdst;
+    AVPixelFormat     fmtsrc;
+    AVPixelFormat     fmtdst;
     AVFrame*        avsrc;
     AVFrame*        avdst;
     uint8_t*        bufsrc;
@@ -155,6 +153,10 @@ protected:
     int             numbytesdst;
     unsigned        w,h;
 };
+
+#if (LIBAVFORMAT_VERSION_MAJOR > 55) || ((LIBAVFORMAT_VERSION_MAJOR == 55) && (LIBAVFORMAT_VERSION_MINOR >= 7))
+typedef AVCodecID CodecID;
+#endif
 
 // Forward declaration
 class FfmpegVideoOutputStream;
@@ -170,6 +172,7 @@ public:
     const std::vector<StreamInfo>& Streams() const;
     void SetStreams(const std::vector<StreamInfo>& streams, const std::string& uri, const json::value& properties);
     int WriteStreams(unsigned char* data, const json::value& frame_properties);
+    bool IsPipe() const;
     
 protected:
     void Initialise(std::string filename);
@@ -185,7 +188,8 @@ protected:
     int frame_count;
     
     int base_frame_rate;
-    int bit_rate;    
+    int bit_rate;
+    bool is_pipe;
 };
 
 }

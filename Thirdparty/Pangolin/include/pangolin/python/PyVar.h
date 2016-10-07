@@ -77,25 +77,31 @@ void SetPangoVarFromPython(const std::string& name, PyObject* val)
         if (PyFloat_Check(val)) {
             pangolin::Var<double> pango_var(name);
             pango_var = PyFloat_AsDouble(val);
+            pango_var.Meta().gui_changed = true;
         }else if (PyLong_Check(val)) {
             pangolin::Var<long> pango_var(name);
             pango_var = PyLong_AsLong(val);
+            pango_var.Meta().gui_changed = true;
         }else if (PyBool_Check(val)) {
             pangolin::Var<bool> pango_var(name);
             pango_var = (val == Py_True) ? true : false;
+            pango_var.Meta().gui_changed = true;
         }
 #if PY_MAJOR_VERSION >= 3
         else if (PyUnicode_Check(val)) {
             pangolin::Var<std::string> pango_var(name);
             pango_var = PyUnicode_AsUTF8(val);
+            pango_var.Meta().gui_changed = true;
         }
 #else
-        if (PyString_Check(val)) {
+        else if (PyString_Check(val)) {
             pangolin::Var<std::string> pango_var(name);
             pango_var = PyString_AsString(val);
+            pango_var.Meta().gui_changed = true;
         } else if (PyInt_Check(val)) {
             pangolin::Var<int> pango_var(name);
             pango_var = PyInt_AsLong(val);
+            pango_var.Meta().gui_changed = true;
         }
 #endif
         else {
@@ -107,7 +113,9 @@ void SetPangoVarFromPython(const std::string& name, PyObject* val)
 #endif
             pangolin::Var<std::string> pango_var(name);
             pango_var = str;
+            pango_var.Meta().gui_changed = true;
         }
+        FlagVarChanged();
     }catch(std::exception e) {
         pango_print_error("%s\n", e.what());
     }

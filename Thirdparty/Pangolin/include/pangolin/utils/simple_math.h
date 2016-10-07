@@ -255,7 +255,7 @@ void LieSetRotation(P T_ba[3*4], const P R_ba[3*3] )
 }
 
 template<typename P>
-void LieSetTranslation(P T_ba[3*4], const P a_b[3*3] )
+void LieSetTranslation(P T_ba[3*4], const P a_b[3] )
 {
     std::copy(a_b, a_b+3, T_ba+(3*3));
 }

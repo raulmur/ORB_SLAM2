@@ -65,6 +65,8 @@ public:
 
     ~ConsoleView();
 
+    View& ShowWithoutAnimation(bool show=true);
+
     // Replace implementation in View to account for hiding animation
     View& Show(bool show=true);
 

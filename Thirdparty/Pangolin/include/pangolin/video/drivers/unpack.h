@@ -36,7 +36,9 @@ namespace pangolin
 
 // Video class that debayers its video input using the given method.
 class PANGOLIN_EXPORT UnpackVideo :
-    public VideoInterface, public VideoFilterInterface
+    public VideoInterface,
+    public VideoFilterInterface,
+    public BufferAwareVideoInterface
 {
 public:
     UnpackVideo(VideoInterface* videoin, VideoPixelFormat new_fmt);
@@ -60,13 +62,23 @@ public:
     //! Implement VideoInput::GrabNewest()
     bool GrabNewest( unsigned char* image, bool wait = true );
 
+    //! Implement VideoFilterInterface method
     std::vector<VideoInterface*>& InputStreams();
 
+    uint32_t AvailableFrames() const;
+
+    bool DropNFrames(uint32_t n);
+
 protected:
+    void Process(unsigned char* image, const unsigned char* buffer);
+
     std::vector<VideoInterface*> videoin;
     std::vector<StreamInfo> streams;
     size_t size_bytes;
     unsigned char* buffer;
+
+    json::value device_properties;
+    json::value frame_properties;
 };
 
 }

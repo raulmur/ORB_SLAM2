@@ -68,6 +68,9 @@ PANGOLIN_EXPORT
 TypedImage LoadImage(const std::string& filename);
 
 PANGOLIN_EXPORT
+TypedImage LoadImage(const std::string& filename, const VideoPixelFormat& raw_fmt, size_t raw_width, size_t raw_height, size_t raw_pitch);
+
+PANGOLIN_EXPORT
 void SaveImage(const Image<unsigned char>& image, const pangolin::VideoPixelFormat& fmt, const std::string& filename, bool top_line_first = true);
 
 PANGOLIN_EXPORT

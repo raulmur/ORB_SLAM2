@@ -36,6 +36,28 @@ namespace pangolin
 /// Represent OpenGL floating point colour: Red, Green and Blue with alpha.
 struct Colour
 {
+    inline static Colour White() {
+        return Colour(1.0f,1.0f,1.0f,1.0f);
+    }
+    inline static Colour Black() {
+        return Colour(0.0f,0.0f,0.0f,1.0f);
+    }
+    inline static Colour Red() {
+        return Colour(1.0f,0.0f,0.0f,1.0f);
+    }
+    inline static Colour Green() {
+        return Colour(0.0f,1.0f,0.0f,1.0f);
+    }
+    inline static Colour Blue() {
+        return Colour(0.0f,0.0f,1.0f,1.0f);
+    }
+    inline static Colour Unspecified() {
+        return Colour(
+            std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN(),
+            std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN()
+        );
+    }
+
     /// Default constructs white.
     inline Colour()
         : red(1.0), green(1.0), blue(1.0), alpha(1.0)

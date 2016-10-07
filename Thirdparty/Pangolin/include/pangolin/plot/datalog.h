@@ -40,7 +40,7 @@
 #endif
 
 #ifdef USE_EIGEN
-#include <Eigen/Eigen>
+#include <Eigen/Core>
 #endif
 
 namespace pangolin
@@ -94,6 +94,7 @@ public:
         samples = 0;
         if(nextBlock) {
             delete nextBlock;
+            nextBlock = NULL;
         }
     }
 
@@ -173,7 +174,7 @@ public:
     void SetLabels(const std::vector<std::string> & labels);
     const std::vector<std::string>& Labels() const;
 
-    void Log(unsigned int dimension, const float * vals, unsigned int samples = 1);
+    void Log(size_t dimension, const float * vals, unsigned int samples = 1);
     void Log(float v);
     void Log(float v1, float v2);
     void Log(float v1, float v2, float v3);
@@ -204,7 +205,7 @@ public:
     const DataLogBlock* LastBlock() const;
 
     // Return number of samples stored in this DataLog
-    unsigned int Samples() const;
+    size_t Samples() const;
 
     // Return pointer to stored sample n
     const float* Sample(int n) const;

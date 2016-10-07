@@ -32,7 +32,7 @@
 #include <pangolin/utils/type_convert.h>
 
 #include <string>
-#include <map>
+#include <vector>
 
 namespace pangolin
 {
@@ -40,28 +40,30 @@ namespace pangolin
 class PANGOLIN_EXPORT Params
 {
 public:
-    typedef std::map<std::string,std::string> ParamMap;
+    typedef std::vector<std::pair<std::string,std::string>> ParamMap;
 
     bool Contains(const std::string& key) const
     {
-        return params.find(key) != params.end();
+        for(ParamMap::const_iterator it = params.begin(); it!=params.end(); ++it) {
+            if(it->first == key) return true;
+        }
+        return false;
     }
 
     template<typename T>
     T Get(const std::string& key, T default_val) const
     {
-        ParamMap::const_iterator v = params.find(key);
-        if(v != params.end()) {
-            return Convert<T, std::string>::Do(v->second);
-        }else{
-            return default_val;
+        // Return last value passed to the key.
+        for(ParamMap::const_reverse_iterator it = params.rbegin(); it!=params.rend(); ++it) {
+            if(it->first == key) return Convert<T, std::string>::Do(it->second);
         }
+        return default_val;
     }
 
     template<typename T>
     void Set(const std::string& key, const T& val)
     {
-        params[key] = Convert<std::string,T>::Do(val);
+        params.push_back(std::pair<std::string,std::string>(key,Convert<std::string,T>::Do(val)));
     }
 
     ParamMap params;

@@ -28,7 +28,21 @@
 #ifndef PANGOLIN_RANGE_H
 #define PANGOLIN_RANGE_H
 
+#include <pangolin/platform.h>
+
 #include <limits>
+#include <algorithm>
+#include <cmath>
+
+//prevent including Eigen in cuda files
+#if defined(HAVE_EIGEN) && !defined(__CUDACC__)
+#  define USE_EIGEN
+#endif
+
+#ifdef USE_EIGEN
+#  include <Eigen/Core>
+#  include <Eigen/src/Geometry/AlignedBox.h>
+#endif // USE_EIGEN
 
 namespace pangolin
 {
@@ -121,7 +135,7 @@ struct Range
 
     T AbsSize() const
     {
-        return std::abs(max - min);
+        return std::abs(Size());
     }
 
     T Mid() const
@@ -158,8 +172,19 @@ struct Range
         max = -std::numeric_limits<T>::max();
     }
 
+    bool Contains(T v) const
+    {
+        return min <= v && v <= max;
+    }
+
+    bool ContainsWeak(T v) const
+    {
+        return (min <= v && v <= max)
+            || (max <= v && v <= min);
+    }
+
     template<typename To>
-    Range<To> Cast()
+    Range<To> Cast() const
     {
         return Range<To>(To(min), To(max));
     }
@@ -232,14 +257,33 @@ struct XYRange
         return x.Size() * y.Size();
     }
 
+    bool Contains(float px, float py) const
+    {
+        return x.Contains(px) && y.Contains(py);
+    }
+
+    bool ContainsWeak(float px, float py) const
+    {
+        return x.ContainsWeak(px) && y.ContainsWeak(py);
+    }
+
     template<typename To>
-    XYRange<To> Cast()
+    XYRange<To> Cast() const
     {
         return XYRange<To>(
             x.template Cast<To>(),
             y.template Cast<To>()
         );
     }
+
+#ifdef USE_EIGEN
+    operator Eigen::AlignedBox<T,2>() const {
+        return Eigen::AlignedBox<T,2>(
+            Eigen::Matrix<T,2,1>(x.min, y.min),
+            Eigen::Matrix<T,2,1>(x.max, y.max)
+        );
+    }
+#endif
 
     Range<T> x;
     Range<T> y;
@@ -252,6 +296,18 @@ typedef Range<double> Ranged;
 typedef XYRange<int> XYRangei;
 typedef XYRange<float> XYRangef;
 typedef XYRange<double> XYRanged;
+
+template<typename T> inline
+Rangei Round(const Range<T>& r)
+{
+    return Rangei( int(r.min+0.5), int(r.max+0.5) );
+}
+
+template<typename T> inline
+XYRangei Round(const XYRange<T>& r)
+{
+    return XYRangei( Round(r.x), Round(r.y) );
+}
 
 }
 

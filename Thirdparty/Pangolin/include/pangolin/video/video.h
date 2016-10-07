@@ -34,16 +34,18 @@
 // Video URI's take the following form:
 //  scheme:[param1=value1,param2=value2,...]//device
 //
-// scheme = file | dc1394 | v4l | openni | convert | mjpeg
+// scheme = file | files | pango | shmem | dc1394 | uvc | v4l | openni2 |
+//          openni | depthsense | pleora | teli | mjpeg | test |
+//          thread | convert | debayer | split | join | shift | mirror | unpack
 //
-// files - read one or more streams from image files
-// e.g.  "files://~/data/dataset/img_*.jpg"
-// e.g.  "files://~/data/dataset/img_[left,right]_*.pgm"
-//
-// file/files - read PVN file format (pangolin video) or other formats using ffmpeg
-//  e.g. "file:[realtime=1]///home/user/video/movie.pvn"
-//  e.g. "file:[stream=1]///home/user/video/movie.avi"
+// file/files - read one or more streams from image file(s) / video
+//  e.g. "files://~/data/dataset/img_*.jpg"
+//  e.g. "files://~/data/dataset/img_[left,right]_*.pgm"
 //  e.g. "files:///home/user/sequence/foo%03d.jpeg"
+//
+//  e.g. "file:[fmt=GRAY8,size=640x480]///home/user/raw_image.bin"
+//  e.g. "file:[realtime=1]///home/user/video/movie.pango"
+//  e.g. "file:[stream=1]///home/user/video/movie.avi"
 //
 // dc1394 - capture video through a firewire camera
 //  e.g. "dc1394:[fmt=RGB24,size=640x480,fps=30,iso=400,dma=10]//0"
@@ -79,6 +81,17 @@
 //  e.g. "depthsense://"
 //  e.g. "depthsense:[img1=depth,img2=rgb]//"
 //
+// pleora - USB 3 vision cameras accepts any option in the same format reported by eBUSPlayer
+//  e.g. for lightwise cameras: "pleora:[size=512x256,pos=712x512,sn=00000274,ExposureTime=10000,PixelFormat=Mono12p,AcquisitionMode=SingleFrame,TriggerSource=Line0,TriggerMode=On]//"
+//  e.g. for toshiba cameras: "pleora:[size=512x256,pos=712x512,sn=0300056,PixelSize=Bpp12,ExposureTime=10000,ImageFormatSelector=Format1,BinningHorizontal=2,BinningVertical=2]//"
+//  e.g. toshiba alternated "pleora:[UserSetSelector=UserSet1,ExposureTime=10000,PixelSize=Bpp12,Width=1400,OffsetX=0,Height=1800,OffsetY=124,LineSelector=Line1,LineSource=ExposureActive,LineSelector=Line2,LineSource=Off,LineModeAll=6,LineInverterAll=6,UserSetSave=Execute,
+//                                   UserSetSelector=UserSet2,PixelSize=Bpp12,Width=1400,OffsetX=1048,Height=1800,OffsetY=124,ExposureTime=10000,LineSelector=Line1,LineSource=Off,LineSelector=Line2,LineSource=ExposureActive,LineModeAll=6,LineInverterAll=6,UserSetSave=Execute,
+//                                   SequentialShutterIndex=1,SequentialShutterEntry=1,SequentialShutterIndex=2,SequentialShutterEntry=2,SequentialShutterTerminateAt=2,SequentialShutterEnable=On,,AcquisitionFrameRateControl=Manual,AcquisitionFrameRate=70]//"
+//
+// thread - thread that continuously pulls from the child streams so that data in, unpacking, debayering etc can be decoupled from the main application thread
+//  e.g. thread://pleora://
+//  e.g. thread://unpack://pleora:[PixelFormat=Mono12p]//
+//
 // convert - use FFMPEG to convert between video pixel formats
 //  e.g. "convert:[fmt=RGB24]//v4l:///dev/video0"
 //  e.g. "convert:[fmt=GRAY8]//v4l:///dev/video0"
@@ -86,24 +99,38 @@
 // mjpeg - capture from (possibly networked) motion jpeg stream using FFMPEG
 //  e.g. "mjpeg://http://127.0.0.1/?action=stream"
 //
+// debayer - debayer an input video stream
+//  e.g.  "debayer:[tile="BGGR",method="downsample"]//v4l:///dev/video0
+//
 // split - split an input video into a one or more streams based on Region of Interest / memory specification
 //           roiN=X+Y+WxH
 //           memN=Offset:WxH:PitchBytes:Format
 //  e.g. "split:[roi1=0+0+640x480,roi2=640+0+640x480]//files:///home/user/sequence/foo%03d.jpeg"
 //  e.g. "split:[mem1=307200:640x480:1280:GRAY8,roi2=640+0+640x480]//files:///home/user/sequence/foo%03d.jpeg"
+//  e.g. "split:[stream1=2,stream2=1]//pango://video.pango"
 //
-// debayer - debayer an input video stream
-// e.g.  "debayer://v4l:///dev/video0
+// join - join streams
+//  e.g. "join:[sync_tolerance_us=100, sync_continuously=true]//{pleora:[sn=00000274]//}{pleora:[sn=00000275]//}"
 //
 // test - output test video sequence
 //  e.g. "test://"
 //  e.g. "test:[size=640x480,fmt=RGB24]//"
 
+#include <pangolin/compat/function.h>
 #include <pangolin/image/image.h>
 #include <pangolin/image/image_common.h>
 #include <pangolin/utils/picojson.h>
 
 #include <vector>
+
+#define PANGO_HOST_RECEPTION_TIME_US "host_reception_time_us"
+#define PANGO_CAPTURE_TIME_US "capture_time_us"
+#define PANGO_EXPOSURE_US "exposure_us"
+#define PANGO_GAMMA "gamma"
+#define PANGO_ANALOG_GAIN "analog_gain"
+#define PANGO_ANALOG_BLACK_LEVEL "analog_black_level"
+#define PANGO_SENSOR_TEMPERATURE_C "sensor_temperature_C"
+
 
 namespace pangolin
 {
@@ -133,20 +160,41 @@ public:
     
     //! Pitch: Number of bytes between one image row and the next
     inline size_t Pitch() const { return img_offset.pitch; }
-    
+
     //! Number of contiguous bytes in memory that the image occupies
-    inline size_t SizeBytes() const { return img_offset.h * img_offset.pitch; }
+    inline size_t RowBytes() const {
+        // Row size without padding
+        return (fmt.bpp*img_offset.w)/8;
+    }
     
+    //! Returns true iff image contains padding or stridded access
+    //! This implies that the image data is not contiguous in memory.
+    inline bool IsPitched() const {
+        return Pitch() != RowBytes();
+    }
+
+    //! Number of contiguous bytes in memory that the image occupies
+    inline size_t SizeBytes() const {
+        return (img_offset.h-1) * img_offset.pitch + RowBytes();
+    }
+
     //! Offset in bytes relative to start of frame buffer
     inline unsigned char* Offset() const { return img_offset.ptr; }
     
     //! Return Image wrapper around raw base pointer
-    Image<unsigned char> StreamImage(unsigned char* base_ptr) const {
+    inline Image<unsigned char> StreamImage(unsigned char* base_ptr) const {
         Image<unsigned char> img = img_offset;
         img.ptr += (size_t)base_ptr;
         return img;
     }
-    
+
+    //! Return Image wrapper around raw base pointer
+    inline const Image<unsigned char> StreamImage(const unsigned char* base_ptr) const {
+        Image<unsigned char> img = img_offset;
+        img.ptr += (size_t)base_ptr;
+        return img;
+    }
+
 protected:
     VideoPixelFormat fmt;        
     Image<unsigned char> img_offset;
@@ -181,8 +229,33 @@ struct PANGOLIN_EXPORT VideoInterface
     virtual bool GrabNewest( unsigned char* image, bool wait = true ) = 0;
 };
 
+//! Interface to GENICAM video capture sources
+struct PANGOLIN_EXPORT GenicamVideoInterface
+{
+    virtual ~GenicamVideoInterface() {}
+
+    virtual std::string GetParameter(const std::string& name) = 0;
+
+    virtual void SetParameter(const std::string& name, const std::string& value) = 0;
+
+};
+
+struct PANGOLIN_EXPORT BufferAwareVideoInterface
+{
+    virtual ~BufferAwareVideoInterface() {}
+
+    //! Returns number of available frames
+    virtual uint32_t AvailableFrames() const = 0;
+
+    //! Drops N frames in the queue starting from the oldest
+    //! returns false if less than n frames arae available
+    virtual bool DropNFrames(uint32_t n) = 0;
+};
+
 struct PANGOLIN_EXPORT VideoPropertiesInterface
 {
+    virtual ~VideoPropertiesInterface() {}
+
     //! Access JSON properties of device
     virtual const json::value& DeviceProperties() const = 0;
 
@@ -204,6 +277,8 @@ enum UvcRequestCode {
 
 struct PANGOLIN_EXPORT VideoFilterInterface
 {
+    virtual ~VideoFilterInterface() {}
+
     template<typename T>
     std::vector<T*> FindMatchingStreams()
     {
@@ -229,11 +304,14 @@ struct PANGOLIN_EXPORT VideoFilterInterface
 
 struct PANGOLIN_EXPORT VideoUvcInterface
 {
+    virtual ~VideoUvcInterface() {}
     virtual int IoCtrl(uint8_t unit, uint8_t ctrl, unsigned char* data, int len, UvcRequestCode req_code) = 0;
 };
 
 struct PANGOLIN_EXPORT VideoPlaybackInterface
 {
+    virtual ~VideoPlaybackInterface() {}
+
     /// Return monotonic id of current frame
     virtual int GetCurrentFrameId() const = 0;
 
@@ -245,8 +323,12 @@ struct PANGOLIN_EXPORT VideoPlaybackInterface
     virtual int Seek(int frameid) = 0;
 };
 
+typedef boostd::function<VideoInterface*(const Uri& uri)> VideoInterfaceFactory;
+
 //! Generic wrapper class for different video sources
-struct PANGOLIN_EXPORT VideoInput : public VideoInterface
+struct PANGOLIN_EXPORT VideoInput :
+    public VideoInterface,
+    public VideoFilterInterface
 {
     VideoInput();
     VideoInput(const std::string& uri);
@@ -254,6 +336,7 @@ struct PANGOLIN_EXPORT VideoInput : public VideoInterface
     
     void Open(const std::string& uri);
     void Reset();
+    void Close();
     
     size_t SizeBytes() const;
     const std::vector<StreamInfo>& Streams() const;
@@ -272,16 +355,22 @@ struct PANGOLIN_EXPORT VideoInput : public VideoInterface
     // Return pointer to inner video class as VideoType
     template<typename VideoType>
     VideoType* Cast() {
-        return dynamic_cast<VideoType*>(video);
+        return videos.size() ? dynamic_cast<VideoType*>(videos[0]) : 0;
     }
 
     // experimental - not stable
     bool Grab( unsigned char* buffer, std::vector<Image<unsigned char> >& images, bool wait = true, bool newest = false);
     
+    std::vector<VideoInterface*>& InputStreams();
+
 protected:
     Uri uri;
-    VideoInterface* video;
+    std::vector<VideoInterface*> videos;
 };
+
+//! Allows the client to register a URI scheme
+PANGOLIN_EXPORT
+void RegisterVideoScheme(std::string scheme, const VideoInterfaceFactory& factory);
 
 //! Open Video Interface from string specification (as described in this files header)
 PANGOLIN_EXPORT
@@ -290,6 +379,93 @@ VideoInterface* OpenVideo(const std::string& uri);
 //! Open Video Interface from Uri specification
 PANGOLIN_EXPORT
 VideoInterface* OpenVideo(const Uri& uri);
+
+//! Create vector of matching interfaces either through direct cast or filter interface.
+template<typename T>
+std::vector<T*> FindMatchingVideoInterfaces( VideoInterface& video )
+{
+    std::vector<T*> matches;
+
+    T* vid = dynamic_cast<T*>(&video);
+    if(vid) {
+        matches.push_back(vid);
+    }
+
+    VideoFilterInterface* vidf = dynamic_cast<VideoFilterInterface*>(&video);
+    if(vidf) {
+        std::vector<T*> fmatches = vidf->FindMatchingStreams<T>();
+        matches.insert(matches.begin(), fmatches.begin(), fmatches.end());
+    }
+
+    return matches;
+}
+
+template<typename T>
+T* FindFirstMatchingVideoInterface( VideoInterface& video )
+{
+    T* vid = dynamic_cast<T*>(&video);
+    if(vid) {
+        return vid;
+    }
+
+    VideoFilterInterface* vidf = dynamic_cast<VideoFilterInterface*>(&video);
+    if(vidf) {
+        std::vector<T*> fmatches = vidf->FindMatchingStreams<T>();
+        if(fmatches.size()) {
+            return fmatches[0];
+        }
+    }
+
+    return 0;
+}
+
+inline
+json::value GetVideoFrameProperties(VideoInterface* video)
+{
+    VideoPropertiesInterface* pi = dynamic_cast<VideoPropertiesInterface*>(video);
+    VideoFilterInterface* fi = dynamic_cast<VideoFilterInterface*>(video);
+
+    if(pi) {
+        return pi->FrameProperties();
+    }else if(fi){
+        if(fi->InputStreams().size() == 1) {
+            return GetVideoFrameProperties(fi->InputStreams()[0]);
+        }else if(fi->InputStreams().size() > 0){
+            // Use first stream's properties as base, but also populate children.
+            json::value json = GetVideoFrameProperties(fi->InputStreams()[0]);
+            json::value& streams = json["streams"];
+            for(size_t i=0; i< fi->InputStreams().size(); ++i) {
+                streams.push_back( GetVideoFrameProperties(fi->InputStreams()[i]) );
+            }
+            return json;
+        }
+    }
+    return json::value();
+}
+
+inline
+json::value GetVideoDeviceProperties(VideoInterface* video)
+{
+    VideoPropertiesInterface* pi = dynamic_cast<VideoPropertiesInterface*>(video);
+    VideoFilterInterface* fi = dynamic_cast<VideoFilterInterface*>(video);
+
+    if(pi) {
+        return pi->DeviceProperties();
+    }else if(fi){
+        if(fi->InputStreams().size() == 1) {
+            return GetVideoDeviceProperties(fi->InputStreams()[0]);
+        }else if(fi->InputStreams().size() > 0){
+            // Use first stream's properties as base, but also populate children.
+            json::value json = GetVideoDeviceProperties(fi->InputStreams()[0]);
+            json::value& streams = json["streams"];
+            for(size_t i=0; i< fi->InputStreams().size(); ++i) {
+                streams.push_back( GetVideoDeviceProperties(fi->InputStreams()[i]) );
+            }
+            return json;
+        }
+    }
+    return json::value();
+}
 
 }
 

@@ -36,7 +36,7 @@ namespace pangolin
 /// Encapsulates OpenGl Viewport.
 struct PANGOLIN_EXPORT Viewport
 {
-    Viewport() {}
+    Viewport() : l(0),b(0),w(0),h(0) {}
     Viewport(GLint l,GLint b,GLint w,GLint h) : l(l),b(b),w(w),h(h) {}
     
     void Activate() const;

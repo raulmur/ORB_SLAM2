@@ -39,9 +39,9 @@ struct PANGOLIN_EXPORT XYUV
     XYUV(GLfloat x, GLfloat y, GLfloat tu, GLfloat tv)
         : x(x), y(y), tu(tu), tv(tv) {}
 
-    XYUV operator+(int dx) const {
+    XYUV operator+(float dx) const {
         return XYUV(x+dx,y,tu,tv);
-    }    
+    }
     
     GLfloat x, y, tu, tv;
 };

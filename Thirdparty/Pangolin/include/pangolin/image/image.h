@@ -49,7 +49,7 @@ struct Image {
     void Dealloc()
     {
         if(ptr) {
-            delete[] ptr;
+            ::operator delete(ptr);
             ptr = NULL;
         }
     }
@@ -60,7 +60,7 @@ struct Image {
         this->w = w;
         this->h = h;
         this->pitch = pitch;
-        this->ptr = new unsigned char[h*pitch];
+        this->ptr = (T*)::operator new(w*pitch);
     }
 
     size_t SizeBytes() const
@@ -74,12 +74,17 @@ struct Image {
     }
 
     template<typename To>
-    Image<To> Reinterpret()
+    Image<To> Reinterpret() const
     {
         return Image<To>(w,h,pitch, (To*)ptr);
     }
 
     T* RowPtr(int r)
+    {
+        return (T*)((char*)ptr + r*pitch);
+    }
+
+    const T* RowPtr(int r) const
     {
         return (T*)((char*)ptr + r*pitch);
     }

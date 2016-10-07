@@ -31,7 +31,7 @@
 #include <pangolin/gl/glplatform.h>
 
 #ifdef HAVE_GLES
-#include <pangolin/gl/gl_es_compat.h>
+#include <pangolin/gl/compat/gl_es_compat.h>
 #endif
 
 #define CheckGlDieOnError() pangolin::_CheckGlDieOnError( __FILE__, __LINE__ );

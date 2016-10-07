@@ -36,7 +36,9 @@
 
 #ifdef _WIN_
     // Define maths quantities when using <cmath> to match posix systems
-    #define _USE_MATH_DEFINES
+    #ifndef _USE_MATH_DEFINES
+    #  define _USE_MATH_DEFINES
+    #endif
 
     // Don't define min / max macros in windows.h or other unnecessary macros
     #define NOMINMAX
@@ -47,6 +49,7 @@
     #undef LoadImage
     #undef near
     #undef far
+    #undef ERROR
 #endif
 
 #ifdef HAVE_GLEW

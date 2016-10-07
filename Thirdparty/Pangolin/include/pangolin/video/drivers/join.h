@@ -49,6 +49,8 @@ public:
 
     void Stop();
 
+    bool Sync(int64_t tolerance_us, int64_t expected_delta_us = 0);
+
     bool GrabNext( unsigned char* image, bool wait = true );
 
     bool GrabNewest( unsigned char* image, bool wait = true );
@@ -59,6 +61,8 @@ protected:
     std::vector<VideoInterface*> src;
     std::vector<StreamInfo> streams;
     size_t size_bytes;
+    int64_t sync_tolerance_us;
+    int64_t expected_timestamp_delta_us;
 };
 
 

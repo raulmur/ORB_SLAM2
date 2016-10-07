@@ -56,7 +56,13 @@ struct GlBufferCudaPtr : public GlBuffer
     
     void Reinitialise(GlBufferType buffer_type, GLuint size_bytes, unsigned int cudause /*= cudaGraphicsMapFlagsNone*/, GLenum gluse /*= GL_DYNAMIC_DRAW*/ );
     void Reinitialise(GlBufferType buffer_type, GLuint num_elements, GLenum datatype, GLuint count_per_element, unsigned int cudause /*= cudaGraphicsMapFlagsNone*/, GLenum gluse /*= GL_DYNAMIC_DRAW*/ );
+
+    /**
+     * Use parameters from another @c GlBufferCudaPtr to initialize this buffer.
+     */
+    void Reinitialise(const GlBufferCudaPtr& other);
     
+    unsigned int cuda_use;
     cudaGraphicsResource* cuda_res;
 };
 
@@ -142,7 +148,14 @@ inline void GlBufferCudaPtr::Reinitialise(GlBufferType buffer_type, GLuint num_e
         cudaGraphicsUnregisterResource(cuda_res);
     }
     GlBuffer::Reinitialise(buffer_type, num_elements, datatype, count_per_element, gluse);
+
+    cuda_use = cudause;
     cudaGraphicsGLRegisterBuffer( &cuda_res, bo, cudause );    
+}
+
+inline void GlBufferCudaPtr::Reinitialise(const GlBufferCudaPtr& other)
+{
+  Reinitialise(other.buffer_type, other.num_elements, other.datatype, other.count_per_element, other.cuda_use, other.gluse);
 }
 
 inline GlTextureCudaArray::GlTextureCudaArray()

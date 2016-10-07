@@ -28,6 +28,8 @@
 #ifndef PANGOLIN_USER_APP_H
 #define PANGOLIN_USER_APP_H
 
+#include <pangolin/platform.h>
+
 namespace pangolin
 {
 

@@ -256,6 +256,9 @@ public:
     const value& operator[](const std::string& key) const;
     bool contains(const std::string& key) const;
 
+    template <typename T>
+    T get_value(const std::string& key, T default_value) const;
+
     /////////////////////////////
     // Serialization
     /////////////////////////////
@@ -477,6 +480,15 @@ inline bool value::contains(const std::string& key) const {
     }
 }
 
+template <typename T>
+inline T value::get_value(const std::string& key, T default_value) const {
+    if(contains(key)) {
+        return (*this)[key].get<T>();
+    }else{
+        return default_value;
+    }
+}
+
 inline std::string value::to_str() const {
     switch (type_) {
     case null_type:      return "null";
@@ -513,7 +525,6 @@ inline std::string value::to_str() const {
         __assume(0);
 #endif
     }
-    return std::string();
 }
 
 template <typename Iter> void copy(const std::string& s, Iter oi) {
@@ -797,7 +808,6 @@ template<typename String, typename Iter> inline bool _parse_string(String& out, 
             out.push_back(ch);
         }
     }
-    return false;
 }
 
 template <typename Context, typename Iter> inline bool _parse_array(Context& ctx, input<Iter>& in) {
@@ -1085,7 +1095,6 @@ inline bool operator==(const value& x, const value& y) {
 #ifdef _MSC_VER
     __assume(0);
 #endif
-    return false;
 }
 
 inline bool operator!=(const value& x, const value& y) {
@@ -1094,13 +1103,6 @@ inline bool operator!=(const value& x, const value& y) {
 
 } // namespace json
 } // namespace pangolin
-
-namespace std {
-template<> inline void swap(pangolin::json::value& x, pangolin::json::value& y)
-{
-    x.swap(y);
-}
-}
 
 inline std::istream& operator>>(std::istream& is, pangolin::json::value& x)
 {
@@ -1345,26 +1347,6 @@ int main(void)
         string err;
         pangolin::json::_parse(ctx, s, s + strlen(s), &err);
         ok(err.empty(), "null_parse_context");
-    }
-
-    {
-        pangolin::json::value v1, v2;
-        v1 = pangolin::json::value(true);
-        swap(v1, v2);
-        ok(v1.is<pangolin::json::null>(), "swap (null)");
-        ok(v2.get<bool>() == true, "swap (bool)");
-
-        v1 = pangolin::json::value("a");
-        v2 = pangolin::json::value(1.0);
-        swap(v1, v2);
-        ok(v1.get<double>() == 1.0, "swap (dobule)");
-        ok(v2.get<string>() == "a", "swap (string)");
-
-        v1 = pangolin::json::value(pangolin::json::object());
-        v2 = pangolin::json::value(pangolin::json::array());
-        swap(v1, v2);
-        ok(v1.is<pangolin::json::array>(), "swap (array)");
-        ok(v2.is<pangolin::json::object>(), "swap (object)");
     }
 
     {

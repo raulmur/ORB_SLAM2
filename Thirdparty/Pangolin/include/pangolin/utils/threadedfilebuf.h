@@ -44,19 +44,27 @@ class PANGOLIN_EXPORT threadedfilebuf : public std::streambuf
 public:
     ~threadedfilebuf();
     threadedfilebuf();
-    threadedfilebuf(const std::string& filename, unsigned int buffer_size_bytes);
+    threadedfilebuf(const std::string& filename, size_t buffer_size_bytes);
     
-    void open(const std::string& filename, unsigned int buffer_size_bytes);
+    void open(const std::string& filename, size_t buffer_size_bytes);
     void close();
+    void force_close();
     
     void operator()();
     
 protected:
+    void soft_close();
+
     //! Override streambuf::xsputn for asynchronous write
-    std::streamsize xsputn(const char * s, std::streamsize n);
+    std::streamsize xsputn(const char * s, std::streamsize n) PANGOLIN_OVERRIDE;
 
     //! Override streambuf::overflow for asynchronous write
-    int overflow(int c);
+    int overflow(int c) PANGOLIN_OVERRIDE;
+
+    std::streampos seekoff(
+        std::streamoff off, std::ios_base::seekdir way,
+        std::ios_base::openmode which = std::ios_base::in | std::ios_base::out
+    ) PANGOLIN_OVERRIDE;
     
     std::filebuf file;
     char* mem_buffer;
@@ -64,6 +72,8 @@ protected:
     std::streamsize mem_max_size;
     std::streamsize mem_start;
     std::streamsize mem_end;
+
+    std::streampos input_pos;
     
     boostd::mutex update_mutex;
     boostd::condition_variable cond_queued;
@@ -71,6 +81,7 @@ protected:
     boostd::thread write_thread;
 
     bool should_run;
+    bool is_pipe;
 };
 
 }

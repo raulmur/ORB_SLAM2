@@ -1,0 +1,14 @@
+# Compute paths
+get_filename_component( PROJECT_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH )
+SET( Pangolin_INCLUDE_DIRS "@EXPORT_LIB_INC_DIR@;@USER_INC@" )
+SET( Pangolin_INCLUDE_DIR  "@EXPORT_LIB_INC_DIR@;@USER_INC@" )
+
+# Library dependencies (contains definitions for IMPORTED targets)
+if( NOT TARGET @LIBRARY_NAME@ AND NOT @PROJECT_NAME@_BINARY_DIR )
+  include( "${PROJECT_CMAKE_DIR}/@PROJECT_NAME@Targets.cmake" )
+  @ExternConfig@
+endif()
+
+SET( Pangolin_LIBRARIES    @LIBRARY_NAME@ )
+SET( Pangolin_LIBRARY      @LIBRARY_NAME@ )
+SET( Pangolin_CMAKEMODULES @CMAKE_CURRENT_SOURCE_DIR@/../CMakeModules )

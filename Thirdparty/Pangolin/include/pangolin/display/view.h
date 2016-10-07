@@ -32,7 +32,6 @@
 
 #include <pangolin/display/viewport.h>
 #include <pangolin/display/attach.h>
-#include <pangolin/display/opengl_render_state.h>
 #include <pangolin/compat/function.h>
 
 namespace pangolin
@@ -56,8 +55,10 @@ enum Lock {
     LockTop = 2
 };
 
-// Forward declaration
+// Forward declarations
 struct Handler;
+
+class OpenGlRenderState;
 
 /// A Display manages the location and resizing of an OpenGl viewport.
 struct PANGOLIN_EXPORT View

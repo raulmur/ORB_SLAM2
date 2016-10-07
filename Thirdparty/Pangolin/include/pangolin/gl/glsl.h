@@ -49,7 +49,7 @@
 #endif
 
 #ifdef USE_EIGEN
-#include <Eigen/Eigen>
+#include <Eigen/Core>
 #endif // USE_EIGEN
 
 namespace pangolin
@@ -126,6 +126,11 @@ public:
     void SetUniform(const std::string& name, Colour c);
 
     void SetUniform(const std::string& name, const OpenGlMatrix& m);
+
+#if GL_VERSION_4_3
+    GLint GetProgramResourceIndex(const std::string& name);
+    void SetShaderStorageBlock(const std::string& name, const int& bindingIndex);
+#endif
 
     void Bind();
     void SaveBind();
@@ -391,10 +396,15 @@ inline void GlSlProgram::ParseGLSL(
         }else if( !strncmp(line, "#expect", 7) ) {
             // G3D style 'expect' directive, annotating expected preprocessor
             // definition with document string
+
+            // Consume whitespace before token
             size_t token_start = 7;
             while( std::isspace(line[token_start]) ) ++token_start;
+
+            // Iterate over contigous charecters until \0 or whitespace
             size_t token_end = token_start;
-            while( !std::isspace(line[token_end]) ) ++token_end;
+            while( line[token_end] && !std::isspace(line[token_end]) ) ++token_end;
+
             std::string token(line+token_start, line+token_end);
             std::map<std::string,std::string>::const_iterator it = program_defines.find(token);
             if( it == program_defines.end() ) {
@@ -534,6 +544,18 @@ inline void GlSlProgram::BindPangolinDefaultAttribLocationsAndLink()
     glBindAttribLocation(prog, DEFAULT_LOCATION_TEXCOORD, DEFAULT_NAME_TEXCOORD);
     Link();
 }
+
+#if GL_VERSION_4_3
+inline GLint GlSlProgram::GetProgramResourceIndex(const std::string& name)
+{
+    return glGetProgramResourceIndex(prog, GL_SHADER_STORAGE_BLOCK, name.c_str());
+}
+
+inline void GlSlProgram::SetShaderStorageBlock(const std::string& name, const int& bindingIndex)
+{
+    glShaderStorageBlockBinding(prog, GetProgramResourceIndex(name), bindingIndex);
+}
+#endif
 
 }
 

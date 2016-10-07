@@ -37,23 +37,28 @@ namespace pangolin
 class PANGOLIN_EXPORT PangoVideoOutput : public VideoOutputInterface
 {
 public:
-    PangoVideoOutput(const std::string& filename);
+    PangoVideoOutput(const std::string& filename, size_t buffer_size_bytes = 100*1024*1024);
     ~PangoVideoOutput();
 
     const std::vector<StreamInfo>& Streams() const PANGOLIN_OVERRIDE;
     void SetStreams(const std::vector<StreamInfo>& streams, const std::string& uri, const json::value& device_properties) PANGOLIN_OVERRIDE;
     int WriteStreams(unsigned char* data, const json::value& frame_properties) PANGOLIN_OVERRIDE;
+    bool IsPipe() const PANGOLIN_OVERRIDE;
 
 protected:
     void WriteHeader();
 
     std::vector<StreamInfo> streams;
     std::string input_uri;
+    const std::string filename;
     json::value device_properties;
 
     PacketStreamWriter packetstream;
+    size_t packetstream_buffer_size_bytes;
     int packetstreamsrcid;
+    bool first_frame;
     size_t total_frame_size;
+    bool is_pipe;
 };
 
 }

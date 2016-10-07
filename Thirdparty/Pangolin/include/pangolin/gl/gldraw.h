@@ -37,8 +37,8 @@
 #endif
 
 #ifdef USE_EIGEN
-#include <Eigen/Eigen>
-#include <Eigen/Geometry>
+#include <Eigen/Core>
+#include <Eigen/src/Geometry/AlignedBox.h>
 #endif // USE_EIGEN
 
 namespace pangolin
@@ -135,22 +135,18 @@ inline void glDrawCross( GLfloat x, GLfloat y, GLfloat z, GLfloat r )
     glDrawLine(x,y,z-r, x, y,z+r);
 }
 
-inline void glDrawRect( GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2 )
+inline void glDrawRect( GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2, GLenum mode = GL_TRIANGLE_FAN )
 {
     GLfloat verts[] = { x1,y1,  x2,y1,  x2,y2,  x1,y2 };    
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer(2, GL_FLOAT, 0, verts);
-    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    glDrawArrays(mode, 0, 4);
     glDisableClientState(GL_VERTEX_ARRAY);
 }
 
 inline void glDrawRectPerimeter( GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2 )
 {
-    GLfloat verts[] = { x1,y1,  x2,y1,  x2,y2,  x1,y2 };    
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(2, GL_FLOAT, 0, verts);
-    glDrawArrays(GL_LINE_LOOP, 0, 4);
-    glDisableClientState(GL_VERTEX_ARRAY);
+    glDrawRect(x1,y1, x2,y2, GL_LINE_LOOP);
 }
 
 inline void glDrawCircle( GLfloat x, GLfloat y, GLfloat rad )
@@ -376,6 +372,30 @@ inline void glDrawFrustrum( const Eigen::Matrix<T,3,3>& Kinv, int w, int h, cons
 }
 
 template<typename T>
+inline void glDrawAlignedBox( const Eigen::AlignedBox<T,2>& box, GLenum mode = GL_TRIANGLE_FAN )
+{
+    const Eigen::Matrix<float,2,1> l = box.min().template cast<float>();
+    const Eigen::Matrix<float,2,1> h = box.max().template cast<float>();
+
+    GLfloat verts[] = {
+        l[0], l[1],
+        h[0], l[1],
+        h[0], h[1],
+        l[0], h[1]
+    };
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glVertexPointer(2, GL_FLOAT, 0, verts);
+    glDrawArrays(mode, 0, 4);
+    glDisableClientState(GL_VERTEX_ARRAY);
+}
+
+template<typename T>
+inline void glDrawAlignedBoxPerimeter( const Eigen::AlignedBox<T,2>& box)
+{
+    glDrawAlignedBox<T>(box, GL_LINE_LOOP);
+}
+
+template<typename T>
 inline void glDrawAlignedBox( const Eigen::AlignedBox<T,3>& box)
 {
     const Eigen::Matrix<float,3,1> l = box.min().template cast<float>();
@@ -420,6 +440,8 @@ inline void glPixelTransferScale( float scale )
     glPixelTransferScale(scale,scale,scale);
 }
 #endif
+
+void glRecordGraphic(float x, float y, float radius);
 
 }
 

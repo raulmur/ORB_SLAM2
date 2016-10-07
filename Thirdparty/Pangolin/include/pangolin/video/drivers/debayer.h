@@ -40,10 +40,15 @@ typedef enum {
     BAYER_METHOD_SIMPLE,
     BAYER_METHOD_BILINEAR,
     BAYER_METHOD_HQLINEAR,
-    BAYER_METHOD_DOWNSAMPLE,
+    BAYER_METHOD_DOWNSAMPLE_,
     BAYER_METHOD_EDGESENSE,
     BAYER_METHOD_VNG,
-    BAYER_METHOD_AHD
+    BAYER_METHOD_AHD,
+
+    // Pangolin custom defines
+    BAYER_METHOD_NONE = 512,
+    BAYER_METHOD_DOWNSAMPLE,
+    BAYER_METHOD_DOWNSAMPLE_MONO
 } bayer_method_t;
 
 // Enum to match libdc1394's dc1394_color_filter_t
@@ -55,10 +60,13 @@ typedef enum {
 } color_filter_t;
 
 // Video class that debayers its video input using the given method.
-class PANGOLIN_EXPORT DebayerVideo : public VideoInterface, public VideoFilterInterface
+class PANGOLIN_EXPORT DebayerVideo :
+        public VideoInterface,
+        public VideoFilterInterface,
+        public BufferAwareVideoInterface
 {
 public:
-    DebayerVideo(VideoInterface* videoin, color_filter_t tile, bayer_method_t method);
+    DebayerVideo(VideoInterface* videoin, const std::vector<bayer_method_t> &method, color_filter_t tile);
     ~DebayerVideo();
 
     //! Implement VideoInput::Start()
@@ -81,14 +89,28 @@ public:
 
     std::vector<VideoInterface*>& InputStreams();
 
+    static color_filter_t ColorFilterFromString(std::string str);
+
+    static bayer_method_t BayerMethodFromString(std::string str);
+
+    uint32_t AvailableFrames() const;
+
+    bool DropNFrames(uint32_t n);
+
 protected:
+    void ProcessStreams(unsigned char* out, const unsigned char* in);
+
     std::vector<VideoInterface*> videoin;
     std::vector<StreamInfo> streams;
+
     size_t size_bytes;
     unsigned char* buffer;
 
+    std::vector<bayer_method_t> methods;
     color_filter_t tile;
-    bayer_method_t method;
+
+    json::value device_properties;
+    json::value frame_properties;
 };
 
 }

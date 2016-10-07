@@ -33,6 +33,7 @@
 #include <pangolin/compat/function.h>
 #include <pangolin/handler/handler_enums.h>
 #include <pangolin/utils/params.h>
+#include <pangolin/display/window.h>
 
 #include <string>
 
@@ -46,9 +47,11 @@ namespace pangolin
 
   // CreateWindowAndBind parameter key names.
   // X11 Window options:
+  extern const char* PARAM_DISPLAYNAME;    // std::string
   extern const char* PARAM_DOUBLEBUFFER;   // bool
   extern const char* PARAM_SAMPLE_BUFFERS; // int
   extern const char* PARAM_SAMPLES;        // int
+  extern const char* PARAM_HIGHRES;        // bool - Apple Retina screens only
 
   // Forward Declarations
   struct View;
@@ -61,12 +64,19 @@ namespace pangolin
   /// if you have used CreateWindowAndBind() to create a window
   /// or launched a pangolin::UserApp
   PANGOLIN_EXPORT
-  void BindToContext(std::string name);
+  WindowInterface& BindToContext(std::string name);
 
   /// Initialise OpenGL window (determined by platform) and bind context.
   /// This method will choose an available windowing system if one is present.
   PANGOLIN_EXPORT
-  void CreateWindowAndBind(std::string window_title, int w = 640, int h = 480, const Params& params = Params());
+  WindowInterface& CreateWindowAndBind(std::string window_title, int w = 640, int h = 480, const Params& params = Params());
+
+  /// Return pointer to current Pangolin Window context, or nullptr if none bound.
+  PANGOLIN_EXPORT
+  WindowInterface* GetBoundWindow();
+
+  PANGOLIN_EXPORT
+  void DestroyWindow(const std::string& window_title);
 
   /// Launch users derived UserApp, controlling OpenGL event loop.
   /// This method will block until the application exits, calling app's

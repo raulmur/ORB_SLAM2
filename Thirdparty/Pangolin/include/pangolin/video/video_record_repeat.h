@@ -35,21 +35,42 @@ namespace pangolin
 {
 
 struct PANGOLIN_EXPORT VideoRecordRepeat
-    : public VideoInterface, public VideoPropertiesInterface
+    : public VideoInterface,
+      public VideoFilterInterface
 {
-    VideoRecordRepeat();
-    VideoRecordRepeat(const std::string &input_uri, const std::string &output_uri = "video_log.pango", int buffer_size_bytes = 10240000);
-    ~VideoRecordRepeat();
-
-    void Open(const std::string &input_uri, const std::string &output_uri = "video_log.pango", int buffer_size_bytes = 10240000);
-    void Close();
-
     /////////////////////////////////////////////////////////////
     // VideoInterface Methods
     /////////////////////////////////////////////////////////////
 
-    size_t SizeBytes() const;
-    const std::vector<StreamInfo>& Streams() const;
+    size_t SizeBytes() const PANGOLIN_OVERRIDE;
+    const std::vector<StreamInfo>& Streams() const PANGOLIN_OVERRIDE;
+    void Start() PANGOLIN_OVERRIDE;
+    void Stop() PANGOLIN_OVERRIDE;
+    bool GrabNext( unsigned char* image, bool wait = true ) PANGOLIN_OVERRIDE;
+    bool GrabNewest( unsigned char* image, bool wait = true ) PANGOLIN_OVERRIDE;
+
+    /////////////////////////////////////////////////////////////
+    // VideoFilterInterface Methods
+    /////////////////////////////////////////////////////////////
+
+    std::vector<VideoInterface*>& InputStreams() PANGOLIN_OVERRIDE
+    {
+        return videos;
+    }
+
+    /////////////////////////////////////////////////////////////
+    // VideoRecordRepeat Methods
+    /////////////////////////////////////////////////////////////
+
+    VideoRecordRepeat();
+    VideoRecordRepeat(const std::string &input_uri, const std::string &output_uri = "pango:[buffer_size_mb=100]//video_log.pango");
+    ~VideoRecordRepeat();
+
+    void Open(const std::string &input_uri, const std::string &output_uri = "pango:[buffer_size_mb=100]//video_log.pango");
+    void Close();
+
+    // experimental - not stable
+    bool Grab( unsigned char* buffer, std::vector<Image<unsigned char> >& images, bool wait = true, bool newest = false);
 
     // Return details of first stream
     unsigned int Width() const {
@@ -65,25 +86,6 @@ struct PANGOLIN_EXPORT VideoRecordRepeat
         return uri_input;
     }
 
-    void Start();
-    void Stop();
-    bool GrabNext( unsigned char* image, bool wait = true );
-    bool GrabNewest( unsigned char* image, bool wait = true );
-
-    const json::value& DeviceProperties() const;
-    const json::value& FrameProperties() const;
-
-    /////////////////////////////////////////////////////////////
-    // VideoInput Methods
-    /////////////////////////////////////////////////////////////
-
-    // experimental - not stable
-    bool Grab( unsigned char* buffer, std::vector<Image<unsigned char> >& images, bool wait = true, bool newest = false);
-    
-    /////////////////////////////////////////////////////////////
-    // VideoRecordRepeat Methods
-    /////////////////////////////////////////////////////////////
-
     // Return pointer to inner video class as VideoType
     template<typename VideoType>
     VideoType* Cast() {
@@ -92,32 +94,54 @@ struct PANGOLIN_EXPORT VideoRecordRepeat
 
     const std::string& LogFilename() const;
 
-    void Record();
-    void Play(bool realtime = true);
+    // Switch to live video source
     void Source();
+
+    // Switch to previously recorded input
+    void Play(bool realtime = true);
+
+    // Switch to live video and record output to file
+    void Record();
+
+    // Switch to live video and record a single frame
+    void RecordOneFrame();
     
-    
+    // Specify that one in n frames are logged to file. Default is 1.
+    void SetTimelapse(size_t one_in_n_frames);
+
+    // True iff grabbed live frames are being logged to file
     bool IsRecording() const;
+
+    // True iff grabbed frames are from previously recorded video file
     bool IsPlaying() const;
     
     int FrameId();
 
+
 protected:
-    json::value null_props;
+    void InitialiseRecorder();
+
+    mutable json::value frame_properties;
+    mutable json::value device_properties;
     std::string str_uri_input;
     Uri uri_input;
     Uri uri_output;
 
     VideoInterface* video_src;
-    VideoPropertiesInterface* video_src_props;
-
     VideoInterface* video_file;
-    VideoPropertiesInterface* video_file_props;
     VideoOutputInterface* video_recorder;
+
+    // Use to store either video_src or video_file for VideoFilterInterface,
+    // depending on which is active
+    std::vector<VideoInterface*> videos;
     
     int buffer_size_bytes;
     
     int frame_num;
+    size_t record_frame_skip;
+
+    bool record_once;
+    bool record_continuous;
 };
 
 }

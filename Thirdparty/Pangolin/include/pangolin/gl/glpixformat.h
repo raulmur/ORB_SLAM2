@@ -29,6 +29,7 @@
 #define PANGOLIN_GLPANGOPIXFORMAT_H
 
 #include <pangolin/gl/glplatform.h>
+#include <pangolin/gl/glformattraits.h>
 #include <pangolin/image/image_common.h>
 #include <stdexcept>
 
@@ -43,16 +44,17 @@ struct GlPixFormat
     {
         switch( fmt.channels) {
         case 1: glformat = GL_LUMINANCE; break;
-        case 3: glformat = (fmt.format == "BGR24") ? GL_BGR : GL_RGB; break;
-        case 4: glformat = (fmt.format == "BGRA24") ? GL_BGRA : GL_RGBA; break;
-        default: throw std::runtime_error("Unable to display video format");
+        case 3: glformat = (fmt.format == "BGR24" || fmt.format == "BGR48")  ? GL_BGR  : GL_RGB;  break;
+        case 4: glformat = (fmt.format == "BGRA24"|| fmt.format == "BGRA48") ? GL_BGRA : GL_RGBA; break;
+        default: throw std::runtime_error("Unable to form OpenGL format from video format: '" + fmt.format + "'.");
         }
 
         switch (fmt.channel_bits[0]) {
         case 8: gltype = GL_UNSIGNED_BYTE; break;
         case 16: gltype = GL_UNSIGNED_SHORT; break;
         case 32: gltype = GL_FLOAT; break;
-        default: throw std::runtime_error("Unknown channel format");
+        case 64: gltype = GL_DOUBLE; break;
+        default: throw std::runtime_error("Unknown OpenGL data type for video format: '" + fmt.format + "'.");
         }
 
         if(glformat == GL_LUMINANCE) {
@@ -68,6 +70,16 @@ struct GlPixFormat
                 scalable_internal_format = GL_RGBA32F;
             }
         }
+    }
+
+    template<typename T>
+    static GlPixFormat FromType()
+    {
+        GlPixFormat fmt;
+        fmt.glformat = GlFormatTraits<T>::glformat;
+        fmt.gltype = GlFormatTraits<T>::gltype;
+        fmt.scalable_internal_format = GlFormatTraits<T>::glinternalformat;
+        return fmt;
     }
 
     GLint glformat;

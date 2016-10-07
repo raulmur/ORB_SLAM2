@@ -30,6 +30,7 @@
 
 #include <pangolin/pangolin.h>
 #include <pangolin/video/video.h>
+#include <pangolin/utils/timer.h>
 
 #include <TeliCamApi.h>
 
@@ -37,12 +38,15 @@ namespace pangolin
 {
 
 // Video class that outputs test video signal.
-class PANGOLIN_EXPORT TeliVideo : public VideoInterface
+class PANGOLIN_EXPORT TeliVideo : public VideoInterface, public VideoPropertiesInterface,
+        public BufferAwareVideoInterface, public GenicamVideoInterface
 {
 public:
-    TeliVideo();
-    TeliVideo(const ImageRoi& roi);
+    TeliVideo(const Params &p);
+    TeliVideo(const Params &p, const ImageRoi& roi);
     ~TeliVideo();
+
+    Params OpenCameraAndGetRemainingParameters(Params &params);
     
     //! Implement VideoInput::Start()
     void Start();
@@ -70,15 +74,40 @@ public:
         return strm;
     }
 
+    std::string GetParameter(const std::string& name);
+
+    void SetParameter(const std::string& name, const std::string& value);
+
+    //! Returns number of available frames
+    uint32_t AvailableFrames() const;
+
+    //! Drops N frames in the queue starting from the oldest
+    //! returns false if less than n frames arae available
+    bool DropNFrames(uint32_t n);
+
+    //! Access JSON properties of device
+    const json::value& DeviceProperties() const;
+
+    //! Access JSON properties of most recently captured frame
+    const json::value& FrameProperties() const;
+
 protected:
     void Initialise(const ImageRoi& roi);
+    void SetDeviceParams(const Params &p);
 
     std::vector<StreamInfo> streams;
     size_t size_bytes;
 
     Teli::CAM_HANDLE cam;
     Teli::CAM_STRM_HANDLE strm;
+#ifdef _WIN_
     HANDLE hStrmCmpEvt;
+#endif
+#ifdef _LINUX_
+    Teli::SIGNAL_HANDLE hStrmCmpEvt;
+#endif
+    json::value device_properties;
+    json::value frame_properties;
 };
 
 }

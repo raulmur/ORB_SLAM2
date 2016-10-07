@@ -29,30 +29,34 @@
 #define PANGOLIN_DISPLAY_INTERNAL_H
 
 #include <pangolin/platform.h>
-
-#ifdef HAVE_PYTHON
-#include <pangolin/console/ConsoleView.h>
-#endif // HAVE_PYTHON
+#include <pangolin/display/window.h>
 
 #include <pangolin/display/view.h>
-#include <pangolin/compat/function.h>
 #include <pangolin/display/user_app.h>
+#include <pangolin/compat/function.h>
+#include <pangolin/compat/memory.h>
 
 #include <map>
 #include <queue>
 
 #ifdef BUILD_PANGOLIN_VIDEO
-#include <pangolin/video/video_output.h>
+#  include <pangolin/video/video_output.h>
 #endif // BUILD_PANGOLIN_VIDEO
 
 
 namespace pangolin
 {
 
+// Forward Declarations
+#ifdef HAVE_PYTHON
+class ConsoleView;
+#endif // HAVE_PYTHON
+class GlFont;
+
 typedef std::map<const std::string,View*> ViewMap;
 typedef std::map<int,boostd::function<void(void)> > KeyhookMap;
 
-struct PANGOLIN_EXPORT PangolinGl
+struct PANGOLIN_EXPORT PangolinGl : public WindowInterface
 {
     PangolinGl();
     ~PangolinGl();
@@ -91,19 +95,40 @@ struct PANGOLIN_EXPORT PangolinGl
 #ifdef HAVE_PYTHON
     ConsoleView* console_view;
 #endif
+
+    boostd::shared_ptr<GlFont> font;
+
+    virtual void ToggleFullscreen() PANGOLIN_OVERRIDE {
+        pango_print_warn("ToggleFullscreen: Not available with non-pangolin window.\n");
+    }
+
+    virtual void ProcessEvents() PANGOLIN_OVERRIDE {
+        pango_print_warn("ProcessEvents: Not available with non-pangolin window.\n");
+    }
+
+    virtual void SwapBuffers() PANGOLIN_OVERRIDE {
+        pango_print_warn("SwapBuffers: Not available with non-pangolin window.\n");
+    }
+
+    virtual void MakeCurrent() PANGOLIN_OVERRIDE {
+        pango_print_warn("MakeCurrent: Not available with non-pangolin window.\n");
+    }
+
+    virtual void Move(int /*x*/, int /*y*/) PANGOLIN_OVERRIDE {
+        pango_print_warn("Move: Not available with non-pangolin window.\n");
+    }
+
+    virtual void Resize(unsigned int /*w*/, unsigned int /*h*/) PANGOLIN_OVERRIDE {
+        pango_print_warn("Resize: Not available with non-pangolin window.\n");
+    }
+
+
 };
 
-// Implemented in platform specific display file.
-PANGOLIN_EXPORT
-void PangolinPlatformInit(PangolinGl& context);
-
-// Implemented in platform specific display file.
-PANGOLIN_EXPORT
-void PangolinPlatformDeinit(PangolinGl& context);
-
-#ifdef BUILD_PANGOLIN_VIDEO
-  void SaveFramebuffer(VideoOutput& video, const Viewport& v);
-#endif // BUILD_PANGOLIN_VIDEO
+PangolinGl* GetCurrentContext();
+void AddNewContext(const std::string& name, boostd::shared_ptr<PangolinGl> newcontext);
+void DeleteContext(const std::string& name);
+PangolinGl *FindContext(const std::string& name);
 
 }
 

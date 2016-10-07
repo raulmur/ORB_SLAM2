@@ -14,20 +14,21 @@ if (WIN32)
   set(PANGOLIN_ADDITIONAL_SEARCH_PATHS ${PANGOLIN_ADDITIONAL_SEARCH_PATHS} "C:/Program Files/Pangolin/include" "C:/Program Files (x86)/Pangolin/include")
 endif(WIN32)
 
-find_path(Pangolin_INCLUDE_DIRS pangolin/pangolin.h
+find_path(Pangolin_INCLUDE_DIRS pangolin.h
     PATHS ${PROJECT_SOURCE_DIR}/Thirdparty/Pangolin/include
     HINTS ${PC_PANGOLIN__INCLUDEDIR} ${PC_PANGOLIN_INCLUDE_DIRS}
     PATH_SUFFIXES pangolin
   )
 
-find_library(Pangolin_LIBRARIES
-    NAMES pangolin libpangolin
-    PATHS ${PROJECT_SOURCE_DIR}/Thirdparty/Pangolin/lib
-    HINTS ${PC_PANGOLIN_LIBDIR} ${PC_PANGOLIN_LIBRARY_DIRS}
-  )
+#find_library(Pangolin_LIBRARIES
+#    NAMES pangolin libpangolin
+#    PATHS ${PROJECT_SOURCE_DIR}/Thirdparty/Pangolin/lib
+#    HINTS ${PC_PANGOLIN_LIBDIR} ${PC_PANGOLIN_LIBRARY_DIRS}
+#  )
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(PANGOLIN DEFAULT_MSG Pangolin_INCLUDE_DIRS Pangolin_LIBRARIES)
+#find_package_handle_standard_args(PANGOLIN DEFAULT_MSG Pangolin_INCLUDE_DIRS Pangolin_LIBRARIES)
+find_package_handle_standard_args(PANGOLIN DEFAULT_MSG Pangolin_INCLUDE_DIRS)
 
 mark_as_advanced(Pangolin_INCLUDE_DIRS)
 
