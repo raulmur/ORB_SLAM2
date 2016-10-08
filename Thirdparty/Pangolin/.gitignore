@@ -1,0 +1,6 @@
+.DS_Store
+build
+abuild
+ibuild
+debug
+CMakeLists.txt.user

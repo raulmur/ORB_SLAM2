@@ -26,6 +26,12 @@
 #include<thread>
 #include<opencv2/core/core.hpp>
 
+#ifdef __APPLE__
+#include <unistd.h>     // for 'usleep' and other basic funtions 
+#else
+#include <unistd-gcc.h>
+#endif
+
 #include "Tracking.h"
 #include "FrameDrawer.h"
 #include "MapDrawer.h"
