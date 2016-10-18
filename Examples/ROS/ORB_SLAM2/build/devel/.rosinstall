@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/chirag/vision/SLAM/src/ORB_SLAM2/Examples/ROS/ORB_SLAM2/build/devel/setup.sh
