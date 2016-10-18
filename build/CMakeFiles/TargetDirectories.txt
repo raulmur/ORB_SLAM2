@@ -1,7 +1,0 @@
-/home/chirag/vision/SLAM/src/ORB_SLAM2/build/CMakeFiles/edit_cache.dir
-/home/chirag/vision/SLAM/src/ORB_SLAM2/build/CMakeFiles/rebuild_cache.dir
-/home/chirag/vision/SLAM/src/ORB_SLAM2/build/CMakeFiles/ORB_SLAM2.dir
-/home/chirag/vision/SLAM/src/ORB_SLAM2/build/CMakeFiles/rgbd_tum.dir
-/home/chirag/vision/SLAM/src/ORB_SLAM2/build/CMakeFiles/stereo_kitti.dir
-/home/chirag/vision/SLAM/src/ORB_SLAM2/build/CMakeFiles/mono_kitti.dir
-/home/chirag/vision/SLAM/src/ORB_SLAM2/build/CMakeFiles/mono_tum.dir
