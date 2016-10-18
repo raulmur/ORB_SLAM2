@@ -139,6 +139,9 @@ protected:
 
     // Fix scale in the stereo/RGB-D case
     bool mbFixScale;
+
+
+    bool mnFullBAIdx;
 };
 
 } //namespace ORB_SLAM
