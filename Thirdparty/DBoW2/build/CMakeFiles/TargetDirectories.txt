@@ -1,3 +1,0 @@
-/home/chirag/vision/SLAM/src/ORB_SLAM2/Thirdparty/DBoW2/build/CMakeFiles/edit_cache.dir
-/home/chirag/vision/SLAM/src/ORB_SLAM2/Thirdparty/DBoW2/build/CMakeFiles/rebuild_cache.dir
-/home/chirag/vision/SLAM/src/ORB_SLAM2/Thirdparty/DBoW2/build/CMakeFiles/DBoW2.dir

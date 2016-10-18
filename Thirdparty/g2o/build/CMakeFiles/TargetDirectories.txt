@@ -1,3 +1,0 @@
-/home/chirag/vision/SLAM/src/ORB_SLAM2/Thirdparty/g2o/build/CMakeFiles/edit_cache.dir
-/home/chirag/vision/SLAM/src/ORB_SLAM2/Thirdparty/g2o/build/CMakeFiles/rebuild_cache.dir
-/home/chirag/vision/SLAM/src/ORB_SLAM2/Thirdparty/g2o/build/CMakeFiles/g2o.dir
