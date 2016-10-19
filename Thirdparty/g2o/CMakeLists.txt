@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.4)
 SET(CMAKE_LEGACY_CYGWIN_WIN32 0)
 
 PROJECT(g2o)
@@ -176,3 +176,4 @@ g2o/stuff/string_tools.cpp
 g2o/stuff/property.cpp       
 g2o/stuff/property.h       
 )
+target_compile_features(g2o PRIVATE cxx_range_for)

@@ -51,19 +51,19 @@ If you use ORB-SLAM2 in an academic work, please cite:
      }
 
 #2. Prerequisites
-We have tested the library in **Ubuntu 12.04** and **14.04**, but it should be easy to compile in other platforms. A powerful computer (e.g. i7) will ensure real-time performance and provide more stable and accurate results.
+We have tested the library in **Ubuntu 12.04** to **16.04** and **macOS 10.11**, but it should be easy to compile in other platforms. A powerful computer (e.g. i7) will ensure real-time performance and provide more stable and accurate results.
 
-## C++11 or C++0x Compiler
+## C++11 Compiler
 We use the new thread and chrono functionalities of C++11.
 
-## Pangolin
-We use [Pangolin](https://github.com/stevenlovegrove/Pangolin) for visualization and user interface. Dowload and install instructions can be found at: https://github.com/stevenlovegrove/Pangolin.
+## Pangolin (automatically downloaded)
+We use [Pangolin](https://github.com/stevenlovegrove/Pangolin) 0.4 for visualization and user interface. See project page at: https://github.com/stevenlovegrove/Pangolin.
 
-## OpenCV
-We use [OpenCV](http://opencv.org) to manipulate images and features. Dowload and install instructions can be found at: http://opencv.org. **Required at leat 2.4.3. Tested with OpenCV 2.4.11**.
+## OpenCV (automatically downloaded)
+We use [OpenCV](http://opencv.org) 2.4.13 to manipulate images and features. See project page at: http://opencv.org.
 
-## Eigen3
-Required by g2o (see below). Download and install instructions can be found at: http://eigen.tuxfamily.org. **Required at least 3.1.0**.
+## Eigen3 (automatically downloaded)
+Required by g2o (see below). We use version 3.2.9. See project page at: http://eigen.tuxfamily.org.
 
 ## BLAS and LAPACK
 [BLAS](http://www.netlib.org/blas) and [LAPACK](http://www.netlib.org/lapack) libraries are requiered by g2o (see below). On ubuntu:
@@ -71,6 +71,7 @@ Required by g2o (see below). Download and install instructions can be found at: 
 sudo apt-get install libblas-dev
 sudo apt-get install liblapack-dev
 ```
+On macOS, these libraries are installed by default (as part of the Accelerate framework).
 
 ## DBoW2 and g2o (Included in Thirdparty folder)
 We use modified versions of the [DBoW2](https://github.com/dorian3d/DBoW2) library to perform place recognition and [g2o](https://github.com/RainerKuemmerle/g2o) library to perform non-linear optimizations. Both modified libraries (which are BSD) are included in the *Thirdparty* folder.
@@ -82,17 +83,21 @@ We provide some examples to process the live input of a monocular, stereo or RGB
 
 Clone the repository:
 ```
-git clone https://github.com/raulmur/ORB_SLAM2.git ORB_SLAM2
+git clone https://github.com/fschopp/ORB_SLAM2.git ORB_SLAM2
 ```
+**Note: This is a fork from the original repository. The URL should be changed back to `https://github.com/raulmur/ORB_SLAM2.git` once the changes have been merged.**
 
-We provide a script `build.sh` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
+Please make sure you have installed all required dependencies (see section 2). The project can then be built in the standard way. For instance, to build in directory `build` using 4 CPU cores, execute:
 ```
-cd ORB_SLAM2
-chmod +x build.sh
-./build.sh
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+make -j4
 ```
 
 This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono_tum**, **mono_kitti**, **rgbd_tum**, **stereo_kitti**, **mono_euroc** and **stereo_euroc** in *Examples* folder.
+
+Hint: When using an IDE with CMake support (e.g., JetBrains CLion) or one of the CMake IDE generators (e.g., for Xcode), it may be useful to set the CMake flags `DO_SUPERBUILD=OFF` and `DEPENDENCIES_PATH=</path/to/dependencies>` where `/path/to/dependencies` is the dependencies directory of a previous command-line build.
 
 #4. Monocular Examples
 

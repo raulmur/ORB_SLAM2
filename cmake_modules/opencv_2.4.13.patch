@@ -1,0 +1,12 @@
+diff -Naur v2.4.13/CMakeLists.txt patch/CMakeLists.txt
+--- v2.4.13/CMakeLists.txt	2016-04-20 07:21:19.000000000 -0700
++++ patch/CMakeLists.txt	2016-10-05 15:33:04.000000000 -0700
+@@ -54,7 +54,7 @@
+
+ if (POLICY CMP0042)
+   # silence cmake 3.0+ warnings about MACOSX_RPATH
+-  cmake_policy(SET CMP0042 OLD)
++  cmake_policy(SET CMP0042 NEW)
+ endif()
+
+ # must go before the project command
