@@ -38,15 +38,15 @@ FrameDrawer::FrameDrawer(Map* pMap):mpMap(pMap)
 cv::Mat FrameDrawer::DrawFrame()
 {
     cv::Mat im;
-    vector<cv::KeyPoint> vIniKeys; // Initialization: KeyPoints in reference frame
-    vector<int> vMatches; // Initialization: correspondeces with reference keypoints
-    vector<cv::KeyPoint> vCurrentKeys; // KeyPoints in current frame
-    vector<bool> vbVO, vbMap; // Tracked MapPoints in current frame
+    std::vector<cv::KeyPoint> vIniKeys; // Initialization: KeyPoints in reference frame
+    std::vector<int> vMatches; // Initialization: correspondeces with reference keypoints
+    std::vector<cv::KeyPoint> vCurrentKeys; // KeyPoints in current frame
+    std::vector<bool> vbVO, vbMap; // Tracked MapPoints in current frame
     int state; // Tracking state
 
     //Copy variables within scoped mutex
     {
-        unique_lock<mutex> lock(mMutex);
+        std::unique_lock<std::mutex> lock(mMutex);
         state=mState;
         if(mState==Tracking::SYSTEM_NOT_READY)
             mState=Tracking::NO_IMAGES_YET;
@@ -127,7 +127,7 @@ cv::Mat FrameDrawer::DrawFrame()
 
 void FrameDrawer::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
 {
-    stringstream s;
+    std::stringstream s;
     if(nState==Tracking::NO_IMAGES_YET)
         s << " WAITING FOR IMAGES";
     else if(nState==Tracking::NOT_INITIALIZED)
@@ -165,12 +165,12 @@ void FrameDrawer::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
 
 void FrameDrawer::Update(Tracking *pTracker)
 {
-    unique_lock<mutex> lock(mMutex);
+    std::unique_lock<std::mutex> lock(mMutex);
     pTracker->mImGray.copyTo(mIm);
     mvCurrentKeys=pTracker->mCurrentFrame.mvKeys;
     N = mvCurrentKeys.size();
-    mvbVO = vector<bool>(N,false);
-    mvbMap = vector<bool>(N,false);
+    mvbVO = std::vector<bool>(N,false);
+    mvbMap = std::vector<bool>(N,false);
     mbOnlyTracking = pTracker->mbOnlyTracking;
 
 

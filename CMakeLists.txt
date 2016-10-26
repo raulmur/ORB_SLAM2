@@ -28,9 +28,10 @@ endif()
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
-find_package(OpenCV 2.4.3 REQUIRED)
+find_package(OpenCV 3.1.0 REQUIRED)
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
+find_package(DBoW2 REQUIRED)
 
 include_directories(
 ${PROJECT_SOURCE_DIR}
@@ -66,10 +67,14 @@ src/Viewer.cc
 target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
 ${EIGEN3_LIBS}
-${Pangolin_LIBRARIES}
-${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
-${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+${Pangolin_LIBS}
+${DBoW2_LIBS}
+${G2O_LIBS}
+-L/usr/local/lib
 )
+
+install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME} FILES_MATCHING PATTERN "*.h")
 
 # Build examples
 
@@ -77,30 +82,48 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
 
 add_executable(rgbd_tum
 Examples/RGB-D/rgbd_tum.cc)
-target_link_libraries(rgbd_tum ${PROJECT_NAME})
+target_link_libraries(rgbd_tum ${PROJECT_NAME} g2o_cli g2o_solver_dense g2o_types_sclam2d g2o_core g2o_solver_eigen g2o_types_sim3 g2o_csparse_extension g2o_solver_pcg
+g2o_types_slam2d_addons g2o_ext_freeglut_minimal g2o_solver_slam2d_linear g2o_types_slam2d g2o_interface 
+g2o_solver_structure_only g2o_types_slam3d_addons g2o_opengl_helper g2o_stuff g2o_types_slam3d g2o_parser g2o_types_data 
+g2o_viewer g2o_simulator g2o_types_icp g2o_solver_csparse g2o_types_sba pangolin)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Stereo)
 
 add_executable(stereo_kitti
 Examples/Stereo/stereo_kitti.cc)
-target_link_libraries(stereo_kitti ${PROJECT_NAME})
+target_link_libraries(stereo_kitti ${PROJECT_NAME} g2o_cli g2o_solver_dense g2o_types_sclam2d g2o_core g2o_solver_eigen g2o_types_sim3 g2o_csparse_extension g2o_solver_pcg 
+g2o_types_slam2d_addons g2o_ext_freeglut_minimal g2o_solver_slam2d_linear g2o_types_slam2d g2o_interface 
+g2o_solver_structure_only g2o_types_slam3d_addons g2o_opengl_helper g2o_stuff g2o_types_slam3d g2o_parser g2o_types_data 
+g2o_viewer g2o_simulator g2o_types_icp g2o_solver_csparse g2o_types_sba pangolin)
 
 add_executable(stereo_euroc
 Examples/Stereo/stereo_euroc.cc)
-target_link_libraries(stereo_euroc ${PROJECT_NAME})
+target_link_libraries(stereo_euroc ${PROJECT_NAME} g2o_cli g2o_solver_dense g2o_types_sclam2d g2o_core g2o_solver_eigen g2o_types_sim3 g2o_csparse_extension g2o_solver_pcg 
+g2o_types_slam2d_addons g2o_ext_freeglut_minimal g2o_solver_slam2d_linear g2o_types_slam2d g2o_interface 
+g2o_solver_structure_only g2o_types_slam3d_addons g2o_opengl_helper g2o_stuff g2o_types_slam3d g2o_parser g2o_types_data 
+g2o_viewer g2o_simulator g2o_types_icp g2o_solver_csparse g2o_types_sba pangolin)
 
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Monocular)
 
 add_executable(mono_tum
 Examples/Monocular/mono_tum.cc)
-target_link_libraries(mono_tum ${PROJECT_NAME})
+target_link_libraries(mono_tum ${PROJECT_NAME} g2o_cli g2o_solver_dense g2o_types_sclam2d g2o_core g2o_solver_eigen g2o_types_sim3 g2o_csparse_extension g2o_solver_pcg 
+g2o_types_slam2d_addons g2o_ext_freeglut_minimal g2o_solver_slam2d_linear g2o_types_slam2d g2o_interface 
+g2o_solver_structure_only g2o_types_slam3d_addons g2o_opengl_helper g2o_stuff g2o_types_slam3d g2o_parser g2o_types_data 
+g2o_viewer g2o_simulator g2o_types_icp g2o_solver_csparse g2o_types_sba pangolin)
 
 add_executable(mono_kitti
 Examples/Monocular/mono_kitti.cc)
-target_link_libraries(mono_kitti ${PROJECT_NAME})
+target_link_libraries(mono_kitti ${PROJECT_NAME} g2o_cli g2o_solver_dense g2o_types_sclam2d g2o_core g2o_solver_eigen g2o_types_sim3 g2o_csparse_extension g2o_solver_pcg 
+g2o_types_slam2d_addons g2o_ext_freeglut_minimal g2o_solver_slam2d_linear g2o_types_slam2d g2o_interface 
+g2o_solver_structure_only g2o_types_slam3d_addons g2o_opengl_helper g2o_stuff g2o_types_slam3d g2o_parser g2o_types_data 
+g2o_viewer g2o_simulator g2o_types_icp g2o_solver_csparse g2o_types_sba pangolin)
 
 add_executable(mono_euroc
 Examples/Monocular/mono_euroc.cc)
-target_link_libraries(mono_euroc ${PROJECT_NAME})
+target_link_libraries(mono_euroc ${PROJECT_NAME} g2o_cli g2o_solver_dense g2o_types_sclam2d g2o_core g2o_solver_eigen g2o_types_sim3 g2o_csparse_extension g2o_solver_pcg 
+g2o_types_slam2d_addons g2o_ext_freeglut_minimal g2o_solver_slam2d_linear g2o_types_slam2d g2o_interface 
+g2o_solver_structure_only g2o_types_slam3d_addons g2o_opengl_helper g2o_stuff g2o_types_slam3d g2o_parser g2o_types_data 
+g2o_viewer g2o_simulator g2o_types_icp g2o_solver_csparse g2o_types_sba pangolin)
 
