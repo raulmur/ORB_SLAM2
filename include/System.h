@@ -77,6 +77,11 @@ public:
     // Returns the camera pose (empty if tracking fails).
     cv::Mat TrackMonocular(const cv::Mat &im, const double &timestamp);
 
+    // Runs the viewer and enters the main event loop. This method should hence only be called once the main processing
+    // has started in a separate thread. For maximum portability, this method should only be called from the main
+    // thread.
+    void RunViewer();
+
     // This stops local mapping thread (map building) and performs only camera tracking.
     void ActivateLocalizationMode();
     // This resumes local mapping thread and performs SLAM again.
@@ -144,11 +149,10 @@ private:
     FrameDrawer* mpFrameDrawer;
     MapDrawer* mpMapDrawer;
 
-    // System threads: Local Mapping, Loop Closing, Viewer.
+    // System threads: Local Mapping, Loop Closing.
     // The Tracking thread "lives" in the main execution thread that creates the System object.
     std::thread* mptLocalMapping;
     std::thread* mptLoopClosing;
-    std::thread* mptViewer;
 
     // Reset flag
     std::mutex mMutexReset;

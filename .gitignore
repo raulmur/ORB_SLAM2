@@ -1,0 +1,10 @@
+# Ignore JetBrains project directory and iml files
+.idea/
+*.iml
+
+# Ignore build directories with common names
+build/
+target/
+
+# Meta data of macOS Finder.app
+.DS_Store
