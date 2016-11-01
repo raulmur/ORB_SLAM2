@@ -6,7 +6,7 @@
  * License: see the LICENSE.txt file
  *
  * Distance function has been modified 
- *
+ * Modified November 2016 By Bertrand Vandeportaele for conversion to and from array 8U
  */
 
  
@@ -186,6 +186,20 @@ void FORB::toMat8U(const std::vector<TDescriptor> &descriptors,
   
 }
 
+// --------------------------------------------------------------------------
+
+void FORB::toArray8U(const TDescriptor &descriptors, unsigned char * array)
+{
+    const unsigned char *d = descriptors.ptr<unsigned char>();
+    std::copy(d, d+FORB::L, array);
+}
+// --------------------------------------------------------------------------
+
+void FORB::fromArray8U(TDescriptor &descriptors, unsigned char * array)
+{
+    unsigned char *d = descriptors.ptr<unsigned char>();
+    std::copy(array, array+FORB::L, d);
+}
 // --------------------------------------------------------------------------
 
 } // namespace DBoW2
