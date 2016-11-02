@@ -65,6 +65,7 @@
 
 using namespace cv;
 using namespace std;
+using namespace ORB_SLAM2;
 
 namespace ORB_SLAM2
 {
