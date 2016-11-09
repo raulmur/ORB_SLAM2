@@ -62,6 +62,7 @@
 
 #include "ORBextractor.h"
 
+#define TABBED_COMPUTE 176
 
 using namespace cv;
 using namespace std;
@@ -146,6 +147,50 @@ static void computeOrbDescriptor(const KeyPoint& kpt,
     #undef GET_VALUE
 }
 
+
+//Binned implementation of the descriptor computation
+static void computeOrbDescriptorBinned(const KeyPoint& kpt, const Mat& img,
+		Point* pattern, uchar* desc) {
+
+	const uchar* center = &img.at<uchar>(cvRound(kpt.pt.y), cvRound(kpt.pt.x));
+	const int step = (int) img.step;
+
+#define GET_VALUE(idx) \
+        center[pattern[idx].y*step + \
+               pattern[idx].x]
+
+	for (int i = 0; i < 32; ++i, pattern += 16) {
+		int t0, t1, val;
+		t0 = GET_VALUE(0);
+		t1 = GET_VALUE(1);
+		val = t0 < t1;
+		t0 = GET_VALUE(2);
+		t1 = GET_VALUE(3);
+		val |= (t0 < t1) << 1;
+		t0 = GET_VALUE(4);
+		t1 = GET_VALUE(5);
+		val |= (t0 < t1) << 2;
+		t0 = GET_VALUE(6);
+		t1 = GET_VALUE(7);
+		val |= (t0 < t1) << 3;
+		t0 = GET_VALUE(8);
+		t1 = GET_VALUE(9);
+		val |= (t0 < t1) << 4;
+		t0 = GET_VALUE(10);
+		t1 = GET_VALUE(11);
+		val |= (t0 < t1) << 5;
+		t0 = GET_VALUE(12);
+		t1 = GET_VALUE(13);
+		val |= (t0 < t1) << 6;
+		t0 = GET_VALUE(14);
+		t1 = GET_VALUE(15);
+		val |= (t0 < t1) << 7;
+
+		desc[i] = (uchar) val;
+	}
+
+#undef GET_VALUE
+}
 
 static int bit_pattern_31_[256*4] =
 {
@@ -448,6 +493,24 @@ ORBextractor::ORBextractor(int _nfeatures, float _scaleFactor, int _nlevels,
     const int npoints = 512;
     const Point* pattern0 = (const Point*)bit_pattern_31_;
     std::copy(pattern0, pattern0 + npoints, std::back_inserter(pattern));
+
+    #ifdef TABBED_COMPUTE
+	pattern_binned.push_back(&pattern);
+	bin_angle = 360.0 / ((float) TABBED_COMPUTE);
+	for (int i = 1; i < TABBED_COMPUTE; i++) {
+		std::vector<cv::Point> * pattern_for_angle =
+				new std::vector<cv::Point>();
+		float deg_angle = i * bin_angle;
+		float rad_angle = deg_angle * (CV_PI) / 180.0;
+		float a = (float) cos(rad_angle), b = (float) sin(rad_angle);
+		for (int j = 0; j < 512; j++) {
+			pattern_for_angle->push_back(
+					cv::Point(cvRound(pattern0[j].x * b + pattern0[j].y * a),
+							cvRound(pattern0[j].x * a - pattern0[j].y * b)));
+		}
+		pattern_binned.push_back(pattern_for_angle);
+	}
+    #endif
 
     //This is for orientation
     // pre-compute the end of a row in a circular patch
@@ -1031,6 +1094,7 @@ void ORBextractor::ComputeKeyPointsOld(std::vector<std::vector<KeyPoint> > &allK
         computeOrientation(mvImagePyramid[level], allKeypoints[level], umax);
 }
 
+/*
 static void computeDescriptors(const Mat& image, vector<KeyPoint>& keypoints, Mat& descriptors,
                                const vector<Point>& pattern)
 {
@@ -1038,6 +1102,27 @@ static void computeDescriptors(const Mat& image, vector<KeyPoint>& keypoints, Ma
 
     for (size_t i = 0; i < keypoints.size(); i++)
         computeOrbDescriptor(keypoints[i], image, &pattern[0], descriptors.ptr((int)i));
+}
+*/
+
+
+void ORBextractor::ComputeDescriptors(const Mat& image,
+		vector<KeyPoint>& keypoints, Mat& descriptors) {
+	descriptors = Mat::zeros((int) keypoints.size(), 32, CV_8UC1);
+
+	for (size_t i = 0; i < keypoints.size(); i++) {
+#ifndef TABBED_COMPUTE
+		computeOrbDescriptor(keypoints[i], image, &pattern[0],
+				descriptors.ptr((int) i));
+#else
+		float kp_angle = keypoints[i].angle;
+		unsigned int angle_bin = kp_angle / bin_angle;
+		if(angle_bin >= pattern_binned.size())angle_bin = 0;
+		std::vector<cv::Point> bin = (*pattern_binned[angle_bin]);
+		computeOrbDescriptorBinned(keypoints[i], image, &(bin[0]),
+				descriptors.ptr((int) i));
+#endif
+	}
 }
 
 void ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPoint>& _keypoints,
@@ -1087,7 +1172,7 @@ void ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPo
 
         // Compute the descriptors
         Mat desc = descriptors.rowRange(offset, offset + nkeypointsLevel);
-        computeDescriptors(workingMat, keypoints, desc, pattern);
+        ComputeDescriptors(workingMat, keypoints, desc);
 
         offset += nkeypointsLevel;
 

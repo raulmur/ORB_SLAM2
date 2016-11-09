@@ -86,6 +86,11 @@ public:
 
 protected:
 
+	
+     
+
+    void ComputeDescriptors(const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints,
+			cv::Mat& descriptors);
     void ComputePyramid(cv::Mat image);
     void ComputeKeyPointsOctTree(std::vector<std::vector<cv::KeyPoint> >& allKeypoints);    
     std::vector<cv::KeyPoint> DistributeOctTree(const std::vector<cv::KeyPoint>& vToDistributeKeys, const int &minX,
@@ -103,6 +108,10 @@ protected:
     std::vector<int> mnFeaturesPerLevel;
 
     std::vector<int> umax;
+
+
+    std::vector<std::vector<cv::Point>*> pattern_binned;
+    float bin_angle;
 
     std::vector<float> mvScaleFactor;
     std::vector<float> mvInvScaleFactor;    
