@@ -62,7 +62,7 @@
 
 #include "ORBextractor.h"
 
-#define TABBED_COMPUTE 176
+#define TABBED_COMPUTE 32
 
 using namespace cv;
 using namespace std;
