@@ -129,7 +129,7 @@ static void bresenham_circle(unsigned int r, vector<cv::Point>& pts) {
 
 static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
 		const std::vector<cv::Point> & bresenham_circle,
-		unsigned int threshold) {
+		int threshold) {
 	float angle = -1.;
 	unsigned int * fast_circle = (unsigned int *) malloc(bresenham_circle.size() * sizeof(unsigned int)); //ternary vector for 4-radius bresenham circle
 	int * pix_circle =  (int *) malloc(bresenham_circle.size() * sizeof(unsigned int)); 
