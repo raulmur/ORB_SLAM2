@@ -63,6 +63,7 @@
 #include "ORBextractor.h"
 
 #define TABBED_COMPUTE 32
+#define FAST_ANGLE_RADIUS 7 
 
 using namespace cv;
 using namespace std;
@@ -73,6 +74,193 @@ namespace ORB_SLAM2
 const int PATCH_SIZE = 31;
 const int HALF_PATCH_SIZE = 15;
 const int EDGE_THRESHOLD = 19;
+
+
+
+static void bresenham_circle(unsigned int r, vector<cv::Point>& pts) {
+
+	int idx = 0;
+	unsigned int nb_pts = 0;
+	unsigned int pts_per_octant = 0;
+	int x = 0;
+	int y = r;
+	int err = 0;
+	while (x <= y) {
+		x += 1;
+		err += 1 + 2 * x;
+		if (2 * (err - y) + 1 > 0) {
+			y -= 1;
+			err += 1 - 2 * y;
+		}
+		nb_pts += 8;
+	}
+	x = 0;
+	y = r;
+	err = 0;
+	nb_pts -= 8;
+	pts.resize(nb_pts);
+	while (x <= y) {
+
+		pts[idx] = cv::Point(x, -(y - 1));
+
+		pts[nb_pts - idx] = cv::Point(-x, -(y - 1));
+
+		pts[(nb_pts / 4) - idx] = cv::Point((y - 1), -x);
+
+		pts[(nb_pts / 4) + idx] = cv::Point((y - 1), x);
+
+		pts[(nb_pts / 2) - idx] = cv::Point(x, (y - 1));
+
+		pts[(nb_pts / 2) + idx] = cv::Point(-x, (y - 1));
+
+		pts[3 * (nb_pts / 4) - idx] = cv::Point(-(y - 1), x);
+
+		pts[3 * (nb_pts / 4) + idx] = cv::Point(-(y - 1), -x);
+		idx++;
+		pts_per_octant += 1;
+		x += 1;
+		err += 1 + 2 * x;
+		if (2 * (err - y) + 1 > 0) {
+			y -= 1;
+			err += 1 - 2 * y;
+		}
+	}
+}
+
+static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
+		const std::vector<cv::Point> & bresenham_circle,
+		unsigned int threshold) {
+	float angle = -1.;
+	uint32_t brighter = 0, darker = 0;
+	int x, y, idx = 0;
+	const uchar* center = &image.at<uchar>(cvRound(pt.y), cvRound(pt.x));
+	uchar center_pixel = (*center);
+	unsigned int nb_pts = 0;
+	unsigned int brigther_corner = 0;
+	unsigned int darker_corner  = 0;  
+	unsigned int corner_start, corner_end ;	
+
+	//compute zone of circle and type of corner (brighter, darker) that need to be searched using FAST decision tree
+
+	//
+
+	int brighter_contig_start_index = -1, darker_contig_start_index = -1;
+	int brighter_contig_stop_index = -1, darker_contig_stop_index = -1;
+	int brighter_max_contig_start_index = -1,
+			darker_max_contig_start_index = -1;
+	int brighter_max_contig_stop_index = -1, darker_max_contig_stop_index = -1;
+
+	int brighter_contig_size = 0, darker_contig_size = 0;
+	int brighter_max_contig_size = 15, darker_max_contig_size = 15;
+
+	for (int i = 0; i < bresenham_circle.size(); i++) {
+		int pix_center_i = (int) center_pixel;
+		int pix_circle_i = ((int) image.at<uchar>(
+				cvRound(pt.y + bresenham_circle[i].y),
+				cvRound(pt.x + bresenham_circle[i].x)));
+
+		if (pix_circle_i <= (pix_center_i - threshold)) {
+			darker |= (1 << i);
+			if (darker_contig_start_index < 0) {
+				darker_contig_start_index = i;
+			}
+			darker_contig_stop_index = i;
+			darker_contig_size++;
+		} else {
+			if (darker_contig_size > darker_max_contig_size) {
+				darker_max_contig_size = darker_contig_size;
+				darker_max_contig_start_index = darker_contig_start_index;
+				darker_max_contig_stop_index = darker_contig_stop_index;
+			}
+			darker_contig_size = 0;
+			darker_contig_start_index = -1;
+			darker_contig_stop_index = -1;
+		}
+		if (pix_circle_i >= (pix_center_i + threshold)) {
+			brighter |= (1 << i);
+			if (brighter_contig_start_index < 0)
+				brighter_contig_start_index = i;
+			brighter_contig_stop_index = i;
+			brighter_contig_size++;
+		} else {
+			if (brighter_contig_size > brighter_max_contig_size) {
+				brighter_max_contig_size = brighter_contig_size;
+				brighter_max_contig_start_index = brighter_contig_start_index;
+				brighter_max_contig_stop_index = brighter_contig_stop_index;
+			}
+			brighter_contig_size = 0;
+			brighter_contig_start_index = -1;
+			brighter_contig_stop_index = -1;
+		}
+	}
+
+	/*std::cout << std::bitset<32>(brighter) << std::endl;
+	std::cout << std::bitset<32>(darker) << std::endl;*/
+	if (brighter_contig_stop_index == (bresenham_circle.size() - 1)
+			&& brighter_contig_start_index != 0) {
+		unsigned int i = 1;
+		 do{
+			brighter_contig_size++;
+			brighter_contig_stop_index++;
+			if (brighter_contig_size > brighter_max_contig_size) {
+				brighter_max_contig_size = brighter_contig_size;
+				brighter_max_contig_stop_index = brighter_contig_stop_index;
+				brighter_max_contig_start_index = brighter_contig_start_index;
+			}
+			i = (i << 1);
+		}while ((brighter & i) != 0);
+	}
+	if (darker_contig_stop_index == (bresenham_circle.size() - 1)
+			&& darker_contig_start_index != 0) {
+		unsigned int i = 1;
+		 do{
+			darker_contig_size++;
+			darker_contig_stop_index++;
+			if (darker_contig_size > darker_max_contig_size) {
+				darker_max_contig_size = darker_contig_size;
+				darker_max_contig_stop_index = darker_contig_stop_index;
+				darker_max_contig_start_index = darker_contig_start_index;
+			}
+			i = (i << 1);
+		}while ((darker & i) != 0);
+	}
+
+	if (darker == 0xFFFFFFFF)
+		darker_max_contig_size = 0;
+	if (brighter == 0xFFFFFFFF)
+		brighter_max_contig_size = 0;
+
+	if ((darker_max_contig_size > brighter_max_contig_size
+			&& darker != 0xFFFFFFFF)
+			|| brighter_max_contig_size >= bresenham_circle.size()) { //largest contiguity and not all ones
+		float bin = (darker_max_contig_stop_index
+				+ darker_max_contig_start_index) / 2.;
+		if (bin > bresenham_circle.size())
+			bin -= bresenham_circle.size();
+		angle = bin * (360. / bresenham_circle.size());
+	} else if ((brighter_max_contig_size > darker_max_contig_size
+			&& brighter != 0xFFFFFFFF)
+			|| darker_max_contig_size >= bresenham_circle.size()) { //largest contiguity and not all ones
+ 		float bin = (brighter_max_contig_stop_index
+				+ brighter_max_contig_start_index) / 2.;
+		if (bin > bresenham_circle.size())
+			bin -= bresenham_circle.size();
+		angle = bin * (360. / bresenham_circle.size());
+	}
+
+	//Now need to find contiguity zone and infer angle
+	//Can use decision tree to approximate search zone, then search
+	//need to add 90.0 to match angle computed through IC method
+	if (angle < 0.) {
+		return -1.;
+	} else {
+		angle -= 90.0;
+		if (angle < .0)
+			angle += 360.0;
+		return angle;
+	}
+}
+
 
 
 static float IC_Angle(const Mat& image, Point2f pt,  const vector<int> & u_max)
@@ -453,9 +641,9 @@ static int bit_pattern_31_[256*4] =
 };
 
 ORBextractor::ORBextractor(int _nfeatures, float _scaleFactor, int _nlevels,
-         int _iniThFAST, int _minThFAST):
+         int _iniThFAST, int _minThFAST, int _angleType):
     nfeatures(_nfeatures), scaleFactor(_scaleFactor), nlevels(_nlevels),
-    iniThFAST(_iniThFAST), minThFAST(_minThFAST)
+    iniThFAST(_iniThFAST), minThFAST(_minThFAST),angleType(_angleType) 
 {
     mvScaleFactor.resize(nlevels);
     mvLevelSigma2.resize(nlevels);
@@ -504,9 +692,13 @@ ORBextractor::ORBextractor(int _nfeatures, float _scaleFactor, int _nlevels,
 		float rad_angle = deg_angle * (CV_PI) / 180.0;
 		float a = (float) cos(rad_angle), b = (float) sin(rad_angle);
 		for (int j = 0; j < 512; j++) {
-			pattern_for_angle->push_back(
+			/*pattern_for_angle->push_back(
 					cv::Point(cvRound(pattern0[j].x * b + pattern0[j].y * a),
-							cvRound(pattern0[j].x * a - pattern0[j].y * b)));
+							cvRound(pattern0[j].x * a - pattern0[j].y * b)));*/
+
+			pattern_for_angle->push_back(
+					cv::Point(cvRound(pattern0[j].x * a - pattern0[j].y * b), cvRound(pattern0[j].x * b + pattern0[j].y * a)
+							));
 		}
 		pattern_binned.push_back(pattern_for_angle);
 	}
@@ -514,6 +706,9 @@ ORBextractor::ORBextractor(int _nfeatures, float _scaleFactor, int _nlevels,
 
     //This is for orientation
     // pre-compute the end of a row in a circular patch
+    if (angleType == FAST_ANGLE) {
+		bresenham_circle(FAST_ANGLE_RADIUS, bresenham_circle_points);
+    }
     umax.resize(HALF_PATCH_SIZE + 1);
 
     int v, v0, vmax = cvFloor(HALF_PATCH_SIZE * sqrt(2.f) / 2 + 1);
@@ -539,6 +734,21 @@ static void computeOrientation(const Mat& image, vector<KeyPoint>& keypoints, co
     {
         keypoint->angle = IC_Angle(image, keypoint->pt, umax);
     }
+}
+
+static void computeFastOrientation(const Mat& image,
+		vector<KeyPoint>& keypoints, const vector<cv::Point>& circle,
+		unsigned int thresh, unsigned int max_keypoints) {
+	vector<KeyPoint>::iterator keypoint ;
+	for ( keypoint = keypoints.begin() ; keypoint != keypoints.end() && max_keypoints != 0;) {
+		keypoint->angle = Fast_Angle(image, keypoint->pt, circle, thresh);
+		if(keypoint->angle < 0.){ //if angle lower than 0, cannot use corner, erase from list
+			keypoint = keypoints.erase(keypoint);
+		}else{
+			++keypoint ;	
+			max_keypoints -- ;	
+		}
+	}
 }
 
 void ExtractorNode::DivideNode(ExtractorNode &n1, ExtractorNode &n2, ExtractorNode &n3, ExtractorNode &n4)
@@ -910,9 +1120,17 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
         }
     }
 
-    // compute orientations
-    for (int level = 0; level < nlevels; ++level)
-        computeOrientation(mvImagePyramid[level], allKeypoints[level], umax);
+
+	if (angleType == IC_ANGLE) {
+		for (int level = 0; level < nlevels; ++level)
+			computeOrientation(mvImagePyramid[level], allKeypoints[level],
+					umax);
+	} else {
+		for (int level = 0; level < nlevels; ++level)
+			computeFastOrientation(mvImagePyramid[level], allKeypoints[level],
+					bresenham_circle_points, minThFAST, allKeypoints[level].size());
+	}
+
 }
 
 void ORBextractor::ComputeKeyPointsOld(std::vector<std::vector<KeyPoint> > &allKeypoints)
@@ -1082,16 +1300,28 @@ void ORBextractor::ComputeKeyPointsOld(std::vector<std::vector<KeyPoint> > &allK
             }
         }
 
-        if((int)keypoints.size()>nDesiredFeatures)
-        {
-            KeyPointsFilter::retainBest(keypoints,nDesiredFeatures);
-            keypoints.resize(nDesiredFeatures);
-        }
+	if (angleType == IC_ANGLE){
+ 	    if((int)keypoints.size()>nDesiredFeatures)
+            {
+              KeyPointsFilter::retainBest(keypoints,nDesiredFeatures);
+              keypoints.resize(nDesiredFeatures);
+            }
+	    computeOrientation(mvImagePyramid[level], keypoints, umax);
+	}else{
+		KeyPointsFilter::retainBest(keypoints,nDesiredFeatures);
+		computeFastOrientation(mvImagePyramid[level], keypoints, bresenham_circle_points, minThFAST, nDesiredFeatures);
+		keypoints.resize(nDesiredFeatures);
+	}
     }
 
     // and compute orientations
+/*if (angleType == IC_ANGLE) {
     for (int level = 0; level < nlevels; ++level)
         computeOrientation(mvImagePyramid[level], allKeypoints[level], umax);
+}else{
+	for (int level = 0; level < nlevels; ++level)
+        computeFastOrientation(mvImagePyramid[level], allKeypoints[level], bresenham_circle_points, minThFAST);
+}*/
 }
 
 /*
