@@ -63,7 +63,7 @@
 #include "ORBextractor.h"
 
 #define TABBED_COMPUTE 128
-#define FAST_ANGLE_RADIUS 7 
+#define FAST_ANGLE_RADIUS 4 
 
 using namespace cv;
 using namespace std;
@@ -131,134 +131,54 @@ static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
 		const std::vector<cv::Point> & bresenham_circle,
 		unsigned int threshold) {
 	float angle = -1.;
-	uint32_t brighter = 0, darker = 0;
-	int x, y, idx = 0;
-	const uchar* center = &image.at<uchar>(cvRound(pt.y), cvRound(pt.x));
-	uchar center_pixel = (*center);
-	unsigned int nb_pts = 0;
-	unsigned int brigther_corner = 0;
-	unsigned int darker_corner  = 0;  
-	unsigned int corner_start, corner_end ;	
-
-	//compute zone of circle and type of corner (brighter, darker) that need to be searched using FAST decision tree
-
-	//
-
-	int brighter_contig_start_index = -1, darker_contig_start_index = -1;
-	int brighter_contig_stop_index = -1, darker_contig_stop_index = -1;
-	int brighter_max_contig_start_index = -1,
-			darker_max_contig_start_index = -1;
-	int brighter_max_contig_stop_index = -1, darker_max_contig_stop_index = -1;
-
-	int brighter_contig_size = 0, darker_contig_size = 0;
-	int brighter_max_contig_size = 15, darker_max_contig_size = 15;
-
+	unsigned int * fast_circle = (unsigned int *) malloc(bresenham_circle.size() * sizeof(unsigned int)); //ternary vector for 4-radius bresenham circle
+	int * pix_circle =  (int *) malloc(bresenham_circle.size() * sizeof(unsigned int)); 
+	int idx;
+	int pix_circle_c = ((int) image.at<uchar>(cvRound(pt.y), cvRound(pt.x)));
 	for (int i = 0; i < bresenham_circle.size(); i++) {
-		int pix_center_i = (int) center_pixel;
-		int pix_circle_i = ((int) image.at<uchar>(
+		pix_circle[i] = ((int) image.at<uchar>(
 				cvRound(pt.y + bresenham_circle[i].y),
 				cvRound(pt.x + bresenham_circle[i].x)));
+		if (pix_circle_c < (pix_circle[i] - threshold))
+			fast_circle[i] = 1;
+		else if (pix_circle_c > (pix_circle[i] + threshold))
+			fast_circle[i] = 2;
+		else
+			fast_circle[i] = 0;
+	}
 
-		if (pix_circle_i <= (pix_center_i - threshold)) {
-			darker |= (1 << i);
-			if (darker_contig_start_index < 0) {
-				darker_contig_start_index = i;
-			}
-			darker_contig_stop_index = i;
-			darker_contig_size++;
-		} else {
-			if (darker_contig_size > darker_max_contig_size) {
-				darker_max_contig_size = darker_contig_size;
-				darker_max_contig_start_index = darker_contig_start_index;
-				darker_max_contig_stop_index = darker_contig_stop_index;
-			}
-			darker_contig_size = 0;
-			darker_contig_start_index = -1;
-			darker_contig_stop_index = -1;
-		}
-		if (pix_circle_i >= (pix_center_i + threshold)) {
-			brighter |= (1 << i);
-			if (brighter_contig_start_index < 0)
-				brighter_contig_start_index = i;
-			brighter_contig_stop_index = i;
-			brighter_contig_size++;
-		} else {
-			if (brighter_contig_size > brighter_max_contig_size) {
-				brighter_max_contig_size = brighter_contig_size;
-				brighter_max_contig_start_index = brighter_contig_start_index;
-				brighter_max_contig_stop_index = brighter_contig_stop_index;
-			}
-			brighter_contig_size = 0;
-			brighter_contig_start_index = -1;
-			brighter_contig_stop_index = -1;
+	unsigned int contig = 1;
+	unsigned int idxm;
+	unsigned int act_contig = 0, max_contig = 0;
+	unsigned int start_contig = 0, start_max;
+	for (int i = 1; (i < (bresenham_circle.size() + 1) || contig); i++) {
+		idx = (i < bresenham_circle.size()) ? i : (i - bresenham_circle.size());
+		idxm = ((idx - 1) >= 0) ? (idx - 1) : ((idx - 1) + bresenham_circle.size());
+		contig = (fast_circle[idx] == fast_circle[idxm]);
+		if (contig) {
+			if (act_contig == 1)
+				start_contig = idxm;
+			act_contig++;
+		} else
+			act_contig = 1;
+
+		if (act_contig > max_contig) {
+			max_contig = act_contig;
+			start_max = start_contig;
 		}
 	}
-
-	/*std::cout << std::bitset<32>(brighter) << std::endl;
-	std::cout << std::bitset<32>(darker) << std::endl;*/
-	if (brighter_contig_stop_index == (bresenham_circle.size() - 1)
-			&& brighter_contig_start_index != 0) {
-		unsigned int i = 1;
-		 do{
-			brighter_contig_size++;
-			brighter_contig_stop_index++;
-			if (brighter_contig_size > brighter_max_contig_size) {
-				brighter_max_contig_size = brighter_contig_size;
-				brighter_max_contig_stop_index = brighter_contig_stop_index;
-				brighter_max_contig_start_index = brighter_contig_start_index;
-			}
-			i = (i << 1);
-		}while ((brighter & i) != 0);
-	}
-	if (darker_contig_stop_index == (bresenham_circle.size() - 1)
-			&& darker_contig_start_index != 0) {
-		unsigned int i = 1;
-		 do{
-			darker_contig_size++;
-			darker_contig_stop_index++;
-			if (darker_contig_size > darker_max_contig_size) {
-				darker_max_contig_size = darker_contig_size;
-				darker_max_contig_stop_index = darker_contig_stop_index;
-				darker_max_contig_start_index = darker_contig_start_index;
-			}
-			i = (i << 1);
-		}while ((darker & i) != 0);
-	}
-
-	if (darker == 0xFFFFFFFF)
-		darker_max_contig_size = 0;
-	if (brighter == 0xFFFFFFFF)
-		brighter_max_contig_size = 0;
-
-	if ((darker_max_contig_size > brighter_max_contig_size
-			&& darker != 0xFFFFFFFF)
-			|| brighter_max_contig_size >= bresenham_circle.size()) { //largest contiguity and not all ones
-		float bin = (darker_max_contig_stop_index
-				+ darker_max_contig_start_index) / 2.;
-		if (bin > bresenham_circle.size())
-			bin -= bresenham_circle.size();
-		angle = bin * (360. / bresenham_circle.size());
-	} else if ((brighter_max_contig_size > darker_max_contig_size
-			&& brighter != 0xFFFFFFFF)
-			|| darker_max_contig_size >= bresenham_circle.size()) { //largest contiguity and not all ones
- 		float bin = (brighter_max_contig_stop_index
-				+ brighter_max_contig_start_index) / 2.;
-		if (bin > bresenham_circle.size())
-			bin -= bresenham_circle.size();
-		angle = bin * (360. / bresenham_circle.size());
-	}
-
-	//Now need to find contiguity zone and infer angle
-	//Can use decision tree to approximate search zone, then search
-	//need to add 90.0 to match angle computed through IC method
-	if (angle < 0.) {
-		return -1.;
-	} else {
-		angle -= 90.0;
-		if (angle < .0)
-			angle += 360.0;
-		return angle;
-	}
+	float c = start_max + (max_contig / 2);
+	angle = (c * (360. / bresenham_circle.size()));
+	angle -= 90.0;
+	/*if (fast_circle[start_max] == 2)
+		angle += 180.0;*/
+	if (angle > 360.)
+		c -= 360.0;
+	if (angle < 0.)
+		c += 360.0;
+	free(fast_circle);
+	free(pix_circle);
+	return angle;
 }
 
 
