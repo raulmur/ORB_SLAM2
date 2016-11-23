@@ -59,10 +59,11 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <vector>
+#include <iostream>
 
 #include "ORBextractor.h"
 
-#define TABBED_COMPUTE 128
+//#define TABBED_COMPUTE 128
 #define FAST_ANGLE_RADIUS 4 
 
 using namespace cv;
@@ -132,7 +133,7 @@ static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
 		int threshold) {
 	float angle = -1.;
 	unsigned int * fast_circle = (unsigned int *) malloc(bresenham_circle.size() * sizeof(unsigned int)); //ternary vector for 4-radius bresenham circle
-	int * pix_circle =  (int *) malloc(bresenham_circle.size() * sizeof(unsigned int)); 
+	int * pix_circle =  (int *) malloc(bresenham_circle.size() * sizeof(int));
 	int idx;
 	int pix_circle_c = ((int) image.at<uchar>(cvRound(pt.y), cvRound(pt.x)));
 	for (int i = 0; i < bresenham_circle.size(); i++) {
@@ -149,9 +150,9 @@ static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
 
 	unsigned int contig = 1;
 	unsigned int idxm;
-	unsigned int act_contig = 0, max_contig = 0;
-	unsigned int start_contig = 0, start_max;
-	for (int i = 1; (i < (bresenham_circle.size() + 1) || contig); i++) {
+	int act_contig = 1, max_contig = 0;
+	int start_contig = 0, start_max;
+ 	for (int i = 1; (i < (bresenham_circle.size() + 1) || contig); i++) {
 		idx = (i < bresenham_circle.size()) ? i : (i - bresenham_circle.size());
 		idxm = ((idx - 1) >= 0) ? (idx - 1) : ((idx - 1) + bresenham_circle.size());
 		contig = (fast_circle[idx] == fast_circle[idxm]);
@@ -167,15 +168,38 @@ static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
 			start_max = start_contig;
 		}
 	}
-	float c = start_max + (max_contig / 2);
+
+ 	int darker = (fast_circle[start_max] == 2);
+ 	float start_pix_base = start_max - ((((int) bresenham_circle.size()) - max_contig)/2.) ;
+ 	float start_pix = (start_pix_base < 0) ? (((int) bresenham_circle.size()) + start_pix_base) : start_pix_base ;
+	/*cout << "start pix base " << start_pix << endl ;
+	if(start_max == 0) exit(0) ;*/
+  	int pix_idx = round(start_pix) ;
+ 	float m0 = 0, m1 = 0.;
+ 	for(int i = 0 ; i < 16 ; i ++){
+ 		int idx = (pix_idx < bresenham_circle.size()) ? pix_idx : (pix_idx - (int) bresenham_circle.size());
+		//cout << "idx : "<< idx << endl  ; 		
+		if(!darker){
+ 			m0 += pix_circle[idx];
+ 			m1 += pix_circle[idx] * (i+1) ;
+ 		}else{
+ 			m0 += abs(pix_circle[idx] - 255);
+ 			m1 += abs(pix_circle[idx] - 255) * (i+1) ;
+ 		}
+ 		pix_idx ++ ;
+ 	}
+ 	float c = ((m1/m0) - 1.0) + round(start_pix) ; // refining through 1D intensity centroid
+
+	//float c = start_max + (max_contig / 2);
+	//float c = start_max + centroid;
 	angle = (c * (360. / bresenham_circle.size()));
 	angle -= 90.0;
-	/*if (fast_circle[start_max] == 2)
-		angle += 180.0;*/
+	if (fast_circle[start_max] == 2)
+		angle += 180.0;
 	if (angle > 360.)
-		c -= 360.0;
+		angle -= 360.0;
 	if (angle < 0.)
-		c += 360.0;
+		angle += 360.0;
 	free(fast_circle);
 	free(pix_circle);
 	return angle;
@@ -1266,8 +1290,9 @@ void ORBextractor::ComputeDescriptors(const Mat& image,
 				descriptors.ptr((int) i));
 #else
 		float kp_angle = keypoints[i].angle;
-		unsigned int angle_bin = kp_angle / bin_angle;
-		if(angle_bin >= pattern_binned.size())angle_bin = 0;
+		int angle_bin = kp_angle / bin_angle;
+		if(angle_bin >= pattern_binned.size()) angle_bin = 0;
+		if(angle_bin < 0) angle_bin = pattern_binned.size() + angle_bin ;
 		std::vector<cv::Point> bin = (*pattern_binned[angle_bin]);
 		computeOrbDescriptorBinned(keypoints[i], image, &(bin[0]),
 				descriptors.ptr((int) i));
