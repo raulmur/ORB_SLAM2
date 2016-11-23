@@ -30,7 +30,7 @@
 
 #include<mutex>
 #include<thread>
-
+#include <iostream>
 
 namespace ORB_SLAM2
 {
@@ -432,13 +432,16 @@ void LoopClosing::CorrectLoop()
     mpCurrentKF->UpdateConnections();
 
     // Retrive keyframes connected to the current keyframe and compute corrected Sim3 pose by propagation
-    mvpCurrentConnectedKFs = mpCurrentKF->GetVectorCovisibleKeyFrames();
+    mvpCurrentConnectedKFs = mpCurrentKF->GetVectorCovisibleKeyFrames()	;
     mvpCurrentConnectedKFs.push_back(mpCurrentKF);
 
     KeyFrameAndPose CorrectedSim3, NonCorrectedSim3;
+    //cout << mpCurrentKF << endl ;
+    //SEGFAULT CAN OCCUR HERE ! mpCurrentKF might not index within vector
     CorrectedSim3[mpCurrentKF]=mg2oScw;
+    //cout << "Start Pose inverse" << endl ;
     cv::Mat Twc = mpCurrentKF->GetPoseInverse();
-
+    //cout << "Pose inverse done" << endl ;
 
     {
         // Get Map Mutex

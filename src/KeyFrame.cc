@@ -320,8 +320,9 @@ void KeyFrame::UpdateConnections()
     }
 
     // This should not happen
-    if(KFcounter.empty())
-        return;
+    if(KFcounter.empty()){
+	return;
+    }
 
     //If the counter is greater than threshold add connection
     //In case no keyframe counter is over threshold add the one with maximum counter

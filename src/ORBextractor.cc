@@ -63,7 +63,7 @@
 
 #include "ORBextractor.h"
 
-//#define TABBED_COMPUTE 128
+#define TABBED_COMPUTE 128
 #define FAST_ANGLE_RADIUS 4 
 
 using namespace cv;
