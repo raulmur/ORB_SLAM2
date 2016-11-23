@@ -63,7 +63,7 @@
 
 #include "ORBextractor.h"
 
-#define TABBED_COMPUTE 128
+#define TABBED_COMPUTE 64
 #define FAST_ANGLE_RADIUS 4 
 
 using namespace cv;
@@ -136,7 +136,7 @@ static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
 	int * pix_circle =  (int *) malloc(bresenham_circle.size() * sizeof(int));
 	int idx;
 	int pix_circle_c = ((int) image.at<uchar>(cvRound(pt.y), cvRound(pt.x)));
-	for (int i = 0; i < bresenham_circle.size(); i++) {
+	for (unsigned int i = 0; i < bresenham_circle.size(); i++) {
 		pix_circle[i] = ((int) image.at<uchar>(
 				cvRound(pt.y + bresenham_circle[i].y),
 				cvRound(pt.x + bresenham_circle[i].x)));
@@ -151,8 +151,8 @@ static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
 	unsigned int contig = 1;
 	unsigned int idxm;
 	int act_contig = 1, max_contig = 0;
-	int start_contig = 0, start_max;
- 	for (int i = 1; (i < (bresenham_circle.size() + 1) || contig); i++) {
+	int start_contig = 0, start_max = 0;
+ 	for (unsigned int i = 1; (i < (bresenham_circle.size() + 1) || contig); i++) {
 		idx = (i < bresenham_circle.size()) ? i : (i - bresenham_circle.size());
 		idxm = ((idx - 1) >= 0) ? (idx - 1) : ((idx - 1) + bresenham_circle.size());
 		contig = (fast_circle[idx] == fast_circle[idxm]);
@@ -177,7 +177,7 @@ static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
   	int pix_idx = round(start_pix) ;
  	float m0 = 0, m1 = 0.;
  	for(int i = 0 ; i < 16 ; i ++){
- 		int idx = (pix_idx < bresenham_circle.size()) ? pix_idx : (pix_idx - (int) bresenham_circle.size());
+ 		int idx = (pix_idx < ((int) bresenham_circle.size())) ? pix_idx : (pix_idx - (int) bresenham_circle.size());
 		//cout << "idx : "<< idx << endl  ; 		
 		if(!darker){
  			m0 += pix_circle[idx];
@@ -189,9 +189,6 @@ static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
  		pix_idx ++ ;
  	}
  	float c = ((m1/m0) - 1.0) + round(start_pix) ; // refining through 1D intensity centroid
-
-	//float c = start_max + (max_contig / 2);
-	//float c = start_max + centroid;
 	angle = (c * (360. / bresenham_circle.size()));
 	angle -= 90.0;
 	if (fast_circle[start_max] == 2)
@@ -236,7 +233,7 @@ static float IC_Angle(const Mat& image, Point2f pt,  const vector<int> & u_max)
     return fastAtan2((float)m_01, (float)m_10);
 }
 
-
+#ifndef TABBED_COMPUTE
 const float factorPI = (float)(CV_PI/180.f);
 static void computeOrbDescriptor(const KeyPoint& kpt,
                                  const Mat& img, const Point* pattern,
@@ -278,8 +275,10 @@ static void computeOrbDescriptor(const KeyPoint& kpt,
 
     #undef GET_VALUE
 }
+#endif
 
 
+#ifdef TABBED_COMPUTE
 //Binned implementation of the descriptor computation
 static void computeOrbDescriptorBinned(const KeyPoint& kpt, const Mat& img,
 		Point* pattern, uchar* desc) {
@@ -323,6 +322,7 @@ static void computeOrbDescriptorBinned(const KeyPoint& kpt, const Mat& img,
 
 #undef GET_VALUE
 }
+#endif
 
 static int bit_pattern_31_[256*4] =
 {
@@ -1291,7 +1291,7 @@ void ORBextractor::ComputeDescriptors(const Mat& image,
 #else
 		float kp_angle = keypoints[i].angle;
 		int angle_bin = kp_angle / bin_angle;
-		if(angle_bin >= pattern_binned.size()) angle_bin = 0;
+		if(angle_bin >= ((int) pattern_binned.size())) angle_bin = 0;
 		if(angle_bin < 0) angle_bin = pattern_binned.size() + angle_bin ;
 		std::vector<cv::Point> bin = (*pattern_binned[angle_bin]);
 		computeOrbDescriptorBinned(keypoints[i], image, &(bin[0]),
