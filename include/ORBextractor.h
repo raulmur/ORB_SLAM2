@@ -47,9 +47,10 @@ class ORBextractor
 public:
     
     enum {HARRIS_SCORE=0, FAST_SCORE=1 };
+    enum {IC_ANGLE = 0, FAST_ANGLE = 1};
 
     ORBextractor(int nfeatures, float scaleFactor, int nlevels,
-                 int iniThFAST, int minThFAST);
+                 int iniThFAST, int minThFAST, int _angleType = IC_ANGLE);
 
     ~ORBextractor(){}
 
@@ -104,10 +105,12 @@ protected:
     int nlevels;
     int iniThFAST;
     int minThFAST;
+    int angleType ;
 
     std::vector<int> mnFeaturesPerLevel;
 
     std::vector<int> umax;
+    std::vector<cv::Point> bresenham_circle_points;
 
 
     std::vector<std::vector<cv::Point>*> pattern_binned;
