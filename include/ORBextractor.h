@@ -113,7 +113,7 @@ protected:
     std::vector<cv::Point> bresenham_circle_points;
 
 
-    std::vector<std::vector<cv::Point>*> pattern_binned;
+    std::vector<std::vector<cv::Point> > pattern_binned;
     float bin_angle;
 
     std::vector<float> mvScaleFactor;
