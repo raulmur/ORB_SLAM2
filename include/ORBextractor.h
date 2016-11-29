@@ -24,7 +24,9 @@
 #include <vector>
 #include <list>
 #include <opencv/cv.h>
+#include <array>
 
+#define TABBED_COMPUTE 64
 
 namespace ORB_SLAM2
 {
@@ -113,7 +115,7 @@ protected:
     std::vector<cv::Point> bresenham_circle_points;
 
 
-    std::vector<std::vector<cv::Point> > pattern_binned;
+    std::array<std::array<cv::Point, 512>, TABBED_COMPUTE> pattern_binned;
     float bin_angle;
 
     std::vector<float> mvScaleFactor;

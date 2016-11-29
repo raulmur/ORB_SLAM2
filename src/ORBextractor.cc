@@ -64,7 +64,6 @@
 
 #include "ORBextractor.h"
 
-#define TABBED_COMPUTE 64
 #define FAST_ANGLE_RADIUS 4 
 
 using namespace cv;
@@ -644,11 +643,8 @@ ORBextractor::ORBextractor(int _nfeatures, float _scaleFactor, int _nlevels,
     std::copy(pattern0, pattern0 + npoints, std::back_inserter(pattern));
 
     #ifdef TABBED_COMPUTE
-	pattern_binned.resize(TABBED_COMPUTE);
-	pattern_binned[0] = pattern ;
 	bin_angle = 360.0 / ((float) TABBED_COMPUTE);
-	for (int i = 1; i < TABBED_COMPUTE; i++) {
-		std::vector<cv::Point> pattern_for_angle(512);
+	for (int i = 0; i < TABBED_COMPUTE; i++) {
 		float deg_angle = i * bin_angle;
 		float rad_angle = deg_angle * (CV_PI) / 180.0;
 		float a = (float) cos(rad_angle), b = (float) sin(rad_angle);
@@ -657,11 +653,10 @@ ORBextractor::ORBextractor(int _nfeatures, float _scaleFactor, int _nlevels,
 					cv::Point(cvRound(pattern0[j].x * b + pattern0[j].y * a),
 							cvRound(pattern0[j].x * a - pattern0[j].y * b)));*/
 
-			pattern_for_angle[j] = 
+			pattern_binned[i][j] = 
 					cv::Point(cvRound(pattern0[j].x * a - pattern0[j].y * b), cvRound(pattern0[j].x * b + pattern0[j].y * a)
 							);
 		}
-		pattern_binned[i] = pattern_for_angle;
 	}
     #endif
 
@@ -1041,7 +1036,7 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
                     maxX = maxBorderX;
 
                 vector<cv::KeyPoint> vKeysCell;
-		//FAST only computed in a 30x30 window ... 
+		//FAST only computed in a 30x30 window ... why not computing full-frame and then distribute keypoints ? Maybe for better FAST threshold switch strategy
                 FAST(mvImagePyramid[level].rowRange(iniY,maxY).colRange(iniX,maxX),
                      vKeysCell,iniThFAST,true);
 
@@ -1074,6 +1069,7 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
 
         // Add border to coordinates and scale information
         const int nkps = keypoints.size();
+	
         for(int i=0; i<nkps ; i++)
         {
             keypoints[i].pt.x+=minBorderX;
@@ -1314,8 +1310,8 @@ void ORBextractor::ComputeDescriptors(const Mat& image,
 		int angle_bin = kp_angle / bin_angle;
 		if(angle_bin >= ((int) pattern_binned.size())) angle_bin = 0;
 		if(angle_bin < 0) angle_bin = pattern_binned.size() + angle_bin ;
-		std::vector<cv::Point> bin = pattern_binned[angle_bin];
-		computeOrbDescriptorBinned(keypoints[i], image, &(bin[0]),
+		//std::array<cv::Point> bin = pattern_binned[angle_bin];
+		computeOrbDescriptorBinned(keypoints[i], image, pattern_binned[angle_bin].data(),
 				descriptors.ptr((int) i));
 #endif
 	}
