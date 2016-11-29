@@ -64,8 +64,6 @@
 
 #include "ORBextractor.h"
 
-#define FAST_ANGLE_RADIUS 4 
-
 using namespace cv;
 using namespace std;
 
@@ -78,28 +76,16 @@ const int EDGE_THRESHOLD = 19;
 
 
 
-static void bresenham_circle(unsigned int r, vector<cv::Point>& pts) {
-
-	int idx = 0;
+static void bresenham_circle_4(array<cv::Point, 16>& pts) {
+	unsigned int r = 4 ;
+	int idx = 0;	
 	unsigned int nb_pts = 0;
 	unsigned int pts_per_octant = 0;
 	int x = 0;
 	int y = r;
 	int err = 0;
-	while (x <= y) {
-		x += 1;
-		err += 1 + 2 * x;
-		if (2 * (err - y) + 1 > 0) {
-			y -= 1;
-			err += 1 - 2 * y;
-		}
-		nb_pts += 8;
-	}
-	x = 0;
-	y = r;
 	err = 0;
-	nb_pts -= 8;
-	pts.resize(nb_pts);
+	nb_pts = pts.size() ; 
 	while (x <= y) {
 
 		pts[idx] = cv::Point(x, -(y - 1));
@@ -129,7 +115,7 @@ static void bresenham_circle(unsigned int r, vector<cv::Point>& pts) {
 }
 
 static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
-		const std::vector<cv::Point> & bresenham_circle,
+		const std::array<cv::Point, 16> & bresenham_circle,
 		int threshold) {
 	float angle = -1.;
 	unsigned int * fast_circle = (unsigned int *) malloc(bresenham_circle.size() * sizeof(unsigned int)); //ternary vector for 4-radius bresenham circle
@@ -663,7 +649,7 @@ ORBextractor::ORBextractor(int _nfeatures, float _scaleFactor, int _nlevels,
     //This is for orientation
     // pre-compute the end of a row in a circular patch
     if (angleType == FAST_ANGLE) {
-		bresenham_circle(FAST_ANGLE_RADIUS, bresenham_circle_points);
+		bresenham_circle_4(bresenham_circle_points);
     }
     umax.resize(HALF_PATCH_SIZE + 1);
 
@@ -693,17 +679,11 @@ static void computeOrientation(const Mat& image, vector<KeyPoint>& keypoints, co
 }
 
 static void computeFastOrientation(const Mat& image,
-		vector<KeyPoint>& keypoints, const vector<cv::Point>& circle,
+		vector<KeyPoint>& keypoints, const array<cv::Point, 16>& circle,
 		unsigned int thresh, unsigned int max_keypoints) {
-	vector<KeyPoint>::iterator keypoint ;
-	for ( keypoint = keypoints.begin() ; keypoint != keypoints.end() && max_keypoints != 0;) {
+	for (vector<KeyPoint>::iterator keypoint = keypoints.begin(),
+         keypointEnd = keypoints.end(); keypoint != keypointEnd; ++keypoint){
 		keypoint->angle = Fast_Angle(image, keypoint->pt, circle, thresh);
-		if(keypoint->angle < 0.){ //if angle lower than 0, cannot use corner, erase from list
-			keypoint = keypoints.erase(keypoint);
-		}else{
-			++keypoint ;	
-			max_keypoints -- ;	
-		}
 	}
 }
 

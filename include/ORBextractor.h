@@ -112,7 +112,7 @@ protected:
     std::vector<int> mnFeaturesPerLevel;
 
     std::vector<int> umax;
-    std::vector<cv::Point> bresenham_circle_points;
+    std::array<cv::Point, 16> bresenham_circle_points;
 
 
     std::array<std::array<cv::Point, 512>, TABBED_COMPUTE> pattern_binned;
