@@ -60,6 +60,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <vector>
 #include <iostream>
+#include<omp.h>
 
 #include "ORBextractor.h"
 
@@ -135,8 +136,13 @@ static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
 	unsigned int * fast_circle = (unsigned int *) malloc(bresenham_circle.size() * sizeof(unsigned int)); //ternary vector for 4-radius bresenham circle
 	int * pix_circle =  (int *) malloc(bresenham_circle.size() * sizeof(int));
 	int idx;
+	unsigned int i;
+	unsigned int contig = 1;
+	unsigned int idxm;
+	int act_contig = 1, max_contig = 0;
+	int start_contig = 0, start_max = 0;
 	int pix_circle_c = ((int) image.at<uchar>(cvRound(pt.y), cvRound(pt.x)));
-	for (unsigned int i = 0; i < bresenham_circle.size(); i++) {
+	for (i = 0; i < bresenham_circle.size(); i++) {
 		pix_circle[i] = ((int) image.at<uchar>(
 				cvRound(pt.y + bresenham_circle[i].y),
 				cvRound(pt.x + bresenham_circle[i].x)));
@@ -146,13 +152,26 @@ static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
 			fast_circle[i] = 2;
 		else
 			fast_circle[i] = 0;
+		//computing contiguity as we go
+		if(i > 0){
+			contig = (fast_circle[i] == fast_circle[i-1]);
+			if (contig) {
+				if (act_contig == 1)
+					start_contig = (i-1);
+				act_contig++;
+			} else
+				act_contig = 1;
+
+			if (act_contig > max_contig) {
+				max_contig = act_contig;
+				start_max = start_contig;
+			}
+		}
+		
 	}
 
-	unsigned int contig = 1;
-	unsigned int idxm;
-	int act_contig = 1, max_contig = 0;
-	int start_contig = 0, start_max = 0;
- 	for (unsigned int i = 1; (i < (bresenham_circle.size() + 1) || contig); i++) {
+	//finishing contig	
+ 	for (; (i < (bresenham_circle.size() + 1) || contig); i++) {
 		idx = (i < bresenham_circle.size()) ? i : (i - bresenham_circle.size());
 		idxm = ((idx - 1) >= 0) ? (idx - 1) : ((idx - 1) + bresenham_circle.size());
 		contig = (fast_circle[idx] == fast_circle[idxm]);
@@ -172,8 +191,6 @@ static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
  	int darker = (fast_circle[start_max] == 2);
  	float start_pix_base = start_max - ((((int) bresenham_circle.size()) - max_contig)/2.) ;
  	float start_pix = (start_pix_base < 0) ? (((int) bresenham_circle.size()) + start_pix_base) : start_pix_base ;
-	/*cout << "start pix base " << start_pix << endl ;
-	if(start_max == 0) exit(0) ;*/
   	int pix_idx = round(start_pix) ;
  	float m0 = 0, m1 = 0.;
  	for(int i = 0 ; i < 16 ; i ++){
@@ -188,10 +205,10 @@ static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
  		}
  		pix_idx ++ ;
  	}
- 	float c = ((m1/m0) - 1.0) + round(start_pix) ; // refining through 1D intensity centroid
+ 	float c = ((m1/m0) - 1.0) + start_pix ; // refining through 1D intensity centroid
 	angle = (c * (360. / bresenham_circle.size()));
 	angle -= 90.0;
-	if (fast_circle[start_max] == 2)
+	if (darker)
 		angle += 180.0;
 	if (angle > 360.)
 		angle -= 360.0;
@@ -627,11 +644,11 @@ ORBextractor::ORBextractor(int _nfeatures, float _scaleFactor, int _nlevels,
     std::copy(pattern0, pattern0 + npoints, std::back_inserter(pattern));
 
     #ifdef TABBED_COMPUTE
-	pattern_binned.push_back(&pattern);
+	pattern_binned.resize(TABBED_COMPUTE);
+	pattern_binned[0] = pattern ;
 	bin_angle = 360.0 / ((float) TABBED_COMPUTE);
 	for (int i = 1; i < TABBED_COMPUTE; i++) {
-		std::vector<cv::Point> * pattern_for_angle =
-				new std::vector<cv::Point>();
+		std::vector<cv::Point> pattern_for_angle(512);
 		float deg_angle = i * bin_angle;
 		float rad_angle = deg_angle * (CV_PI) / 180.0;
 		float a = (float) cos(rad_angle), b = (float) sin(rad_angle);
@@ -640,11 +657,11 @@ ORBextractor::ORBextractor(int _nfeatures, float _scaleFactor, int _nlevels,
 					cv::Point(cvRound(pattern0[j].x * b + pattern0[j].y * a),
 							cvRound(pattern0[j].x * a - pattern0[j].y * b)));*/
 
-			pattern_for_angle->push_back(
+			pattern_for_angle[j] = 
 					cv::Point(cvRound(pattern0[j].x * a - pattern0[j].y * b), cvRound(pattern0[j].x * b + pattern0[j].y * a)
-							));
+							);
 		}
-		pattern_binned.push_back(pattern_for_angle);
+		pattern_binned[i] = pattern_for_angle;
 	}
     #endif
 
@@ -985,6 +1002,7 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
 
     const float W = 30;
 
+
     for (int level = 0; level < nlevels; ++level)
     {
         const int minBorderX = EDGE_THRESHOLD-3;
@@ -1003,6 +1021,7 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
         const int wCell = ceil(width/nCols);
         const int hCell = ceil(height/nRows);
 
+	//#pragma omp parallel for
         for(int i=0; i<nRows; i++)
         {
             const float iniY =minBorderY+i*hCell;
@@ -1012,7 +1031,7 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
                 continue;
             if(maxY>maxBorderY)
                 maxY = maxBorderY;
-
+	
             for(int j=0; j<nCols; j++)
             {
                 const float iniX =minBorderX+j*wCell;
@@ -1023,6 +1042,7 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
                     maxX = maxBorderX;
 
                 vector<cv::KeyPoint> vKeysCell;
+		//FAST only computed in a 30x30 window ... 
                 FAST(mvImagePyramid[level].rowRange(iniY,maxY).colRange(iniX,maxX),
                      vKeysCell,iniThFAST,true);
 
@@ -1066,10 +1086,12 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
 
 
 	if (angleType == IC_ANGLE) {
+		#pragma omp parallel for
 		for (int level = 0; level < nlevels; ++level)
 			computeOrientation(mvImagePyramid[level], allKeypoints[level],
 					umax);
 	} else {
+		#pragma omp parallel for
 		for (int level = 0; level < nlevels; ++level)
 			computeFastOrientation(mvImagePyramid[level], allKeypoints[level],
 					bresenham_circle_points, minThFAST, allKeypoints[level].size());
@@ -1293,7 +1315,7 @@ void ORBextractor::ComputeDescriptors(const Mat& image,
 		int angle_bin = kp_angle / bin_angle;
 		if(angle_bin >= ((int) pattern_binned.size())) angle_bin = 0;
 		if(angle_bin < 0) angle_bin = pattern_binned.size() + angle_bin ;
-		std::vector<cv::Point> bin = (*pattern_binned[angle_bin]);
+		std::vector<cv::Point> bin = pattern_binned[angle_bin];
 		computeOrbDescriptorBinned(keypoints[i], image, &(bin[0]),
 				descriptors.ptr((int) i));
 #endif
@@ -1333,6 +1355,7 @@ void ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPo
     _keypoints.reserve(nkeypoints);
 
     int offset = 0;
+    //#pragma omp parallel for
     for (int level = 0; level < nlevels; ++level)
     {
         vector<KeyPoint>& keypoints = allKeypoints[level];
@@ -1378,6 +1401,7 @@ void ORBextractor::ComputePyramid(cv::Mat image)
         if( level != 0 )
         {
             resize(mvImagePyramid[level-1], mvImagePyramid[level], sz, 0, 0, INTER_LINEAR);
+	    /*resize(image, mvImagePyramid[level], sz, 0, 0, INTER_LINEAR);*/
 
             copyMakeBorder(mvImagePyramid[level], temp, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
                            BORDER_REFLECT_101+BORDER_ISOLATED);            
