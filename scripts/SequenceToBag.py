@@ -25,17 +25,16 @@ P = [629.0787353515625, 0.0, 296.5435491975986, 0.0, 0.0, 632.731201171875, 249.
 def GetImageFromFile(im_path, id ,rate = 10.):
 	im = cv2.imread(im_path,0)
 	bridge = CvBridge()
-	Img = bridge.cv2_to_imgmsg(im)
 	im_stamp =  id*(1/rate)
 	Stamp = rospy.rostime.Time.from_sec(im_stamp)
 	#Img = Image()
 	#Img.header.stamp = Stamp
 	#Img.width = im.shape[1]
 	#Img.height = im.shape[0]
-	#if len(im.shape) < 3:
-#		Img.encoding = "mono8" #needs to be changed to rgb8 for rgb images
-#	elif im.shape[2] == 3:
-#                Img.encoding = "rgb8"
+	if len(im.shape) < 3:
+		Img = bridge.cv2_to_imgmsg(im, 'mono8')
+	elif im.shape[2] == 3:
+                Img = bridge.cv2_to_imgmsg(im, 'bgr8')
 #	Img.step=Img.width #some nodes may complains ...
 	Img.header.frame_id = "camera"
 #	Img_data = list(im) #works for mono channels images (grayscale)
