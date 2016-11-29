@@ -1021,7 +1021,6 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
         const int wCell = ceil(width/nCols);
         const int hCell = ceil(height/nRows);
 
-	//#pragma omp parallel for
         for(int i=0; i<nRows; i++)
         {
             const float iniY =minBorderY+i*hCell;
