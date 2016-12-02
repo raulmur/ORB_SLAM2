@@ -22,6 +22,7 @@
 #define MAP_H
 
 #include "MapPoint.h"
+#include "Observer.h"
 #include "KeyFrame.h"
 #include <set>
 
@@ -35,7 +36,7 @@ namespace ORB_SLAM2
 class MapPoint;
 class KeyFrame;
 
-class Map
+class Map : public Subject
 {
 public:
     Map();

@@ -35,12 +35,14 @@ void Map::AddKeyFrame(KeyFrame *pKF)
     mspKeyFrames.insert(pKF);
     if(pKF->mnId>mnMaxKFid)
         mnMaxKFid=pKF->mnId;
+    update();// should have different updates for the different attributes that can be updated
 }
 
 void Map::AddMapPoint(MapPoint *pMP)
 {
     unique_lock<mutex> lock(mMutexMap);
     mspMapPoints.insert(pMP);
+    update();
 }
 
 void Map::EraseMapPoint(MapPoint *pMP)

@@ -1061,12 +1061,12 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
 
 
 	if (angleType == IC_ANGLE) {
-		#pragma omp parallel for
+		//#pragma omp parallel for
 		for (int level = 0; level < nlevels; ++level)
 			computeOrientation(mvImagePyramid[level], allKeypoints[level],
 					umax);
 	} else {
-		#pragma omp parallel for
+		//#pragma omp parallel for
 		for (int level = 0; level < nlevels; ++level)
 			computeFastOrientation(mvImagePyramid[level], allKeypoints[level],
 					bresenham_circle_points, minThFAST, allKeypoints[level].size());
@@ -1280,7 +1280,6 @@ static void computeDescriptors(const Mat& image, vector<KeyPoint>& keypoints, Ma
 void ORBextractor::ComputeDescriptors(const Mat& image,
 		vector<KeyPoint>& keypoints, Mat& descriptors) {
 	descriptors = Mat::zeros((int) keypoints.size(), 32, CV_8UC1);
-
 	for (size_t i = 0; i < keypoints.size(); i++) {
 #ifndef TABBED_COMPUTE
 		computeOrbDescriptor(keypoints[i], image, &pattern[0],
@@ -1290,7 +1289,6 @@ void ORBextractor::ComputeDescriptors(const Mat& image,
 		int angle_bin = kp_angle / bin_angle;
 		if(angle_bin >= ((int) pattern_binned.size())) angle_bin = 0;
 		if(angle_bin < 0) angle_bin = pattern_binned.size() + angle_bin ;
-		//std::array<cv::Point> bin = pattern_binned[angle_bin];
 		computeOrbDescriptorBinned(keypoints[i], image, pattern_binned[angle_bin].data(),
 				descriptors.ptr((int) i));
 #endif
@@ -1375,11 +1373,12 @@ void ORBextractor::ComputePyramid(cv::Mat image)
         // Compute the resized image
         if( level != 0 )
         {
+	    //pyrDown(mvImagePyramid[level-1], mvImagePyramid[level], sz, BORDER_DEFAULT ) ;
             resize(mvImagePyramid[level-1], mvImagePyramid[level], sz, 0, 0, INTER_LINEAR);
-	    /*resize(image, mvImagePyramid[level], sz, 0, 0, INTER_LINEAR);*/
+	    //resize(image, mvImagePyramid[level], sz, 0, 0, INTER_LINEAR);
 
             copyMakeBorder(mvImagePyramid[level], temp, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
-                           BORDER_REFLECT_101+BORDER_ISOLATED);            
+                           BORDER_REFLECT_101+BORDER_ISOLATED);        
         }
         else
         {
