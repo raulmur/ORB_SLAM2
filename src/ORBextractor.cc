@@ -683,7 +683,7 @@ static void computeFastOrientation(const Mat& image,
 		unsigned int thresh, unsigned int max_keypoints) {
 	for (vector<KeyPoint>::iterator keypoint = keypoints.begin(),
          keypointEnd = keypoints.end(); keypoint != keypointEnd; ++keypoint){
-		keypoint->angle = Fast_Angle(image, keypoint->pt, circle, thresh);
+		keypoint->angle = Fast_Angle(image, keypoint->pt, circle, ((int) keypoint->angle));
 	}
 }
 
@@ -1010,6 +1010,7 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
             {
                 const float iniX =minBorderX+j*wCell;
                 float maxX = iniX+wCell+6;
+		int fastThreshold = iniThFAST ;
                 if(iniX>=maxBorderX-6)
                     continue;
                 if(maxX>maxBorderX)
@@ -1024,6 +1025,7 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
                 {
                     FAST(mvImagePyramid[level].rowRange(iniY,maxY).colRange(iniX,maxX),
                          vKeysCell,minThFAST,true);
+		    fastThreshold = minThFAST;
                 }
 
                 if(!vKeysCell.empty())
@@ -1032,6 +1034,7 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
                     {
                         (*vit).pt.x+=j*wCell;
                         (*vit).pt.y+=i*hCell;
+			(*vit).angle = fastThreshold; //Angle is used to temporarly store fast threshold used to detect the keypoint. Will later be used in the angle computation
                         vToDistributeKeys.push_back(*vit);
                     }
                 }
