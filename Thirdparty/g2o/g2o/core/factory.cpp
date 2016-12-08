@@ -30,7 +30,7 @@
 #include "parameter.h"
 #include "cache.h"
 #include "optimizable_graph.h"
-#include "../stuff/color_macros.h"
+#include "stuff/color_macros.h"
 
 #include <iostream>
 #include <typeinfo>

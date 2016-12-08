@@ -31,7 +31,7 @@
 #include <cassert>
 #include <Eigen/Core>
 
-#include "../../config.h"
+#include "config.h"
 #include "matrix_operations.h"
 
 #include <unordered_map>
@@ -205,7 +205,7 @@ namespace g2o {
   /**
    * \brief Sparse matrix which uses blocks based on hash structures
    *
-   * This class is used to construct the pattern of a sparse block matrix 
+   * This class is used to construct the pattern of a sparse block matrix
    */
   template <class MatrixType>
   class SparseBlockMatrixHashMap

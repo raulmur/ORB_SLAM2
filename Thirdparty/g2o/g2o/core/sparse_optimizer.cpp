@@ -38,10 +38,10 @@
 #include "batch_stats.h"
 #include "hyper_graph_action.h"
 #include "robust_kernel.h"
-#include "../stuff/timeutil.h"
-#include "../stuff/macros.h"
-#include "../stuff/misc.h"
-#include "../../config.h"
+#include "stuff/timeutil.h"
+#include "stuff/macros.h"
+#include "stuff/misc.h"
+#include "config.h"
 
 namespace g2o{
   using namespace std;
@@ -119,10 +119,10 @@ namespace g2o{
 
     int maxDim=0;
     for (HyperGraph::VertexIDMap::iterator it=vertices().begin(); it!=vertices().end(); ++it){
-      OptimizableGraph::Vertex* v=static_cast<OptimizableGraph::Vertex*>(it->second); 
+      OptimizableGraph::Vertex* v=static_cast<OptimizableGraph::Vertex*>(it->second);
       maxDim=std::max(maxDim,v->dimension());
     }
-    
+
     OptimizableGraph::Vertex* rut=0;
     for (HyperGraph::VertexIDMap::iterator it=vertices().begin(); it!=vertices().end(); ++it){
       OptimizableGraph::Vertex* v=static_cast<OptimizableGraph::Vertex*>(it->second);
@@ -141,7 +141,7 @@ namespace g2o{
 
     int maxDim=0;
     for (HyperGraph::VertexIDMap::iterator it=vertices().begin(); it!=vertices().end(); ++it){
-      OptimizableGraph::Vertex* v=static_cast<OptimizableGraph::Vertex*>(it->second); 
+      OptimizableGraph::Vertex* v=static_cast<OptimizableGraph::Vertex*>(it->second);
       maxDim = std::max(maxDim,v->dimension());
     }
 
@@ -371,7 +371,7 @@ namespace g2o{
     _batchStatistics.clear();
     if (_computeBatchStatistics)
       _batchStatistics.resize(iterations);
-    
+
     OptimizationAlgorithm::SolverResult result = OptimizationAlgorithm::OK;
     for (int i=0; i<iterations && ! terminate() && ok; i++){
       preIteration(i);
@@ -383,7 +383,7 @@ namespace g2o{
         cstat.numEdges =  _activeEdges.size();
         cstat.numVertices = _activeVertices.size();
       }
-      
+
       double ts = get_monotonic_time();
       result = _algorithm->solve(i, online);
       ok = ( result == OptimizationAlgorithm::OK );
@@ -409,7 +409,7 @@ namespace g2o{
         _algorithm->printVerbose(cerr);
         cerr << endl;
       }
-      ++cjIterations; 
+      ++cjIterations;
       postIteration(i);
     }
     if (result == OptimizationAlgorithm::Fail) {
@@ -453,7 +453,7 @@ namespace g2o{
       OptimizableGraph::Edge* e = static_cast<OptimizableGraph::Edge*>(*it);
       if (!e->allVerticesFixed()) _activeEdges.push_back(e);
     }
-    
+
     // update the index mapping
     size_t next = _ivMap.size();
     for (HyperGraph::VertexSet::iterator it = vset.begin(); it != vset.end(); ++it) {
@@ -465,7 +465,7 @@ namespace g2o{
           newVertices.push_back(v);
           _activeVertices.push_back(v);
           next++;
-        } 
+        }
         else // not supported right now
           abort();
       }
@@ -530,9 +530,9 @@ namespace g2o{
     for (HyperGraph::VertexSet::iterator it = vlist.begin(); it != vlist.end(); ++it) {
       OptimizableGraph::Vertex* v = dynamic_cast<OptimizableGraph::Vertex*>(*it);
       if (v)
-	v->push();
-      else 
-	cerr << __FUNCTION__ << ": FATAL PUSH SET" << endl;
+    v->push();
+      else
+    cerr << __FUNCTION__ << ": FATAL PUSH SET" << endl;
     }
   }
 
@@ -541,9 +541,9 @@ namespace g2o{
     for (HyperGraph::VertexSet::iterator it = vlist.begin(); it != vlist.end(); ++it){
       OptimizableGraph::Vertex* v = dynamic_cast<OptimizableGraph::Vertex*> (*it);
       if (v)
-	v->pop();
-      else 
-	cerr << __FUNCTION__ << ": FATAL POP SET" << endl;
+    v->pop();
+      else
+    cerr << __FUNCTION__ << ": FATAL POP SET" << endl;
     }
   }
 

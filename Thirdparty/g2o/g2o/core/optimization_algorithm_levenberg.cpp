@@ -31,7 +31,7 @@
 
 #include <iostream>
 
-#include "../stuff/timeutil.h"
+#include "stuff/timeutil.h"
 
 #include "sparse_optimizer.h"
 #include "solver.h"
@@ -90,7 +90,7 @@ namespace g2o {
     }
 
     // core part of the Levenbarg algorithm
-    if (iteration == 0) {       
+    if (iteration == 0) {
       _currentLambda = computeLambdaInit();
       _ni = 2;
       _nBad = 0;

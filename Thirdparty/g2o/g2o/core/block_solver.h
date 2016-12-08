@@ -32,7 +32,7 @@
 #include "sparse_block_matrix.h"
 #include "sparse_block_matrix_diagonal.h"
 #include "openmp_mutex.h"
-#include "../../config.h"
+#include "config.h"
 
 namespace g2o {
   using namespace Eigen;
@@ -100,7 +100,7 @@ namespace g2o {
       static const int PoseDim = Traits::PoseDim;
       static const int LandmarkDim = Traits::LandmarkDim;
       typedef typename Traits::PoseMatrixType PoseMatrixType;
-      typedef typename Traits::LandmarkMatrixType LandmarkMatrixType; 
+      typedef typename Traits::LandmarkMatrixType LandmarkMatrixType;
       typedef typename Traits::PoseLandmarkMatrixType PoseLandmarkMatrixType;
       typedef typename Traits::PoseVectorType PoseVectorType;
       typedef typename Traits::LandmarkVectorType LandmarkVectorType;
@@ -142,7 +142,7 @@ namespace g2o {
       virtual void multiplyHessian(double* dest, const double* src) const { _Hpp->multiplySymmetricUpperTriangle(dest, src);}
 
     protected:
-      void resize(int* blockPoseIndices, int numPoseBlocks, 
+      void resize(int* blockPoseIndices, int numPoseBlocks,
           int* blockLandmarkIndices, int numLandmarkBlocks, int totalDim);
 
       void deallocate();
@@ -179,9 +179,9 @@ namespace g2o {
   //variable size solver
   typedef BlockSolver< BlockSolverTraits<Eigen::Dynamic, Eigen::Dynamic> > BlockSolverX;
   // solver for BA/3D SLAM
-  typedef BlockSolver< BlockSolverTraits<6, 3> > BlockSolver_6_3;  
+  typedef BlockSolver< BlockSolverTraits<6, 3> > BlockSolver_6_3;
   // solver fo BA with scale
-  typedef BlockSolver< BlockSolverTraits<7, 3> > BlockSolver_7_3;  
+  typedef BlockSolver< BlockSolverTraits<7, 3> > BlockSolver_7_3;
   // 2Dof landmarks 3Dof poses
   typedef BlockSolver< BlockSolverTraits<3, 2> > BlockSolver_3_2;
 

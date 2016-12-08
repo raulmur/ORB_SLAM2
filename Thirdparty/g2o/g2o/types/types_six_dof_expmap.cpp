@@ -26,8 +26,8 @@
 
 #include "types_six_dof_expmap.h"
 
-#include "../core/factory.h"
-#include "../stuff/macros.h"
+#include "core/factory.h"
+#include "stuff/macros.h"
 
 namespace g2o {
 

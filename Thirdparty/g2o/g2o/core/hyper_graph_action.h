@@ -28,7 +28,7 @@
 #define G2O_HYPER_GRAPH_ACTION_H
 
 #include "hyper_graph.h"
-#include "../stuff/property.h"
+#include "stuff/property.h"
 
 #include <typeinfo>
 #include <iosfwd>
@@ -75,7 +75,7 @@ namespace g2o {
         virtual ~Parameters();
       };
       typedef std::map<std::string, HyperGraphElementAction*> ActionMap;
-      //! an action should be instantiated with the typeid.name of the graph element 
+      //! an action should be instantiated with the typeid.name of the graph element
       //! on which it operates
       HyperGraphElementAction(const std::string& typeName_="");
 
@@ -145,7 +145,7 @@ namespace g2o {
       // registers a basic action in the pool. If necessary a container is created
       bool registerAction(HyperGraphElementAction* action);
       bool unregisterAction(HyperGraphElementAction* action);
-      
+
       inline HyperGraphElementAction::ActionMap& actionMap() {return _actionMap;}
     protected:
       HyperGraphActionLibrary();
@@ -200,7 +200,7 @@ namespace g2o {
             _action = new T();
             HyperGraphActionLibrary::instance()->registerAction(_action);
           }
-      
+
         ~RegisterActionProxy()
           {
 #ifdef G2O_DEBUG_ACTIONLIB

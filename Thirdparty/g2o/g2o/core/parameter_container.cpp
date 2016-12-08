@@ -31,9 +31,9 @@
 #include "factory.h"
 #include "parameter.h"
 
-#include "../stuff/macros.h"
-#include "../stuff/color_macros.h"
-#include "../stuff/string_tools.h"
+#include "stuff/macros.h"
+#include "stuff/color_macros.h"
+#include "stuff/string_tools.h"
 
 namespace g2o {
 
@@ -82,7 +82,7 @@ namespace g2o {
     erase(it);
     return p;
   }
-  
+
   bool ParameterContainer::write(std::ostream& os) const{
     Factory* factory = Factory::instance();
     for (const_iterator it=begin(); it!=end(); it++){
@@ -101,7 +101,7 @@ namespace g2o {
     Factory* factory = Factory::instance();
     HyperGraph::GraphElemBitset elemBitset;
     elemBitset[HyperGraph::HGET_PARAMETER] = 1;
-    
+
     while (1) {
       int bytesRead = readLine(is, currentLine);
       if (bytesRead == -1)
@@ -110,10 +110,10 @@ namespace g2o {
       if (bytesRead == 0 || token.size() == 0 || token[0] == '#')
         continue;
       if (_renamedTypesLookup && _renamedTypesLookup->size()>0){
-	map<string, string>::const_iterator foundIt = _renamedTypesLookup->find(token);
-	if (foundIt != _renamedTypesLookup->end()) {
-	  token = foundIt->second;
-	}
+    map<string, string>::const_iterator foundIt = _renamedTypesLookup->find(token);
+    if (foundIt != _renamedTypesLookup->end()) {
+      token = foundIt->second;
+    }
       }
 
       HyperGraph::HyperGraphElement* element = factory->construct(token, elemBitset);
@@ -135,8 +135,8 @@ namespace g2o {
         }
       }
     } // while read line
-    
+
     return true;
   }
-  
+
 } // end namespace

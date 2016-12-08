@@ -27,7 +27,7 @@
 #ifndef G2O_SBA_TYPES
 #define G2O_SBA_TYPES
 
-#include "../core/base_vertex.h"
+#include "core/base_vertex.h"
 
 #include <Eigen/Geometry>
 #include <iostream>
@@ -40,7 +40,7 @@ namespace g2o {
  class VertexSBAPointXYZ : public BaseVertex<3, Vector3d>
 {
   public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW    
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     VertexSBAPointXYZ();
     virtual bool read(std::istream& is);
     virtual bool write(std::ostream& os) const;

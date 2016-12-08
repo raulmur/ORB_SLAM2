@@ -31,7 +31,7 @@
 #include <utility>
 #include <iosfwd>
 
-#include "../stuff/property.h"
+#include "stuff/property.h"
 
 #include "hyper_graph.h"
 #include "sparse_block_matrix.h"
@@ -96,7 +96,7 @@ namespace g2o {
        * update the properties from a string, see PropertyMap::updateMapFromString()
        */
       bool updatePropertiesFromString(const std::string& propString);
-      
+
       /**
        * print the properties to a stream in a human readable fashion
        */

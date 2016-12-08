@@ -29,9 +29,9 @@
 #include <fstream>
 #include <iomanip>
 
-#include "../stuff/timeutil.h"
-#include "../stuff/macros.h"
-#include "../stuff/misc.h"
+#include "stuff/timeutil.h"
+#include "stuff/macros.h"
+#include "stuff/misc.h"
 
 namespace g2o {
 
@@ -62,7 +62,7 @@ BlockSolver<Traits>::BlockSolver(LinearSolverType* linearSolver) :
 }
 
 template <typename Traits>
-void BlockSolver<Traits>::resize(int* blockPoseIndices, int numPoseBlocks, 
+void BlockSolver<Traits>::resize(int* blockPoseIndices, int numPoseBlocks,
               int* blockLandmarkIndices, int numLandmarkBlocks,
               int s)
 {
@@ -236,8 +236,8 @@ bool BlockSolver<Traits>::buildStructure(bool zeroBlocks)
           if (zeroBlocks)
             m->setZero();
           e->mapHessianMemory(m->data(), viIdx, vjIdx, false);
-        } else { 
-          if (v1->marginalized()){ 
+        } else {
+          if (v1->marginalized()){
             PoseLandmarkMatrixType* m = _Hpl->block(v2->hessianIndex(),v1->hessianIndex()-_numPoses, true);
             if (zeroBlocks)
               m->setZero();
@@ -339,7 +339,7 @@ bool BlockSolver<Traits>::updateStructure(const std::vector<HyperGraph::Vertex*>
         if (! v1->marginalized() && !v2->marginalized()) {
           PoseMatrixType* m = _Hpp->block(ind1, ind2, true);
           e->mapHessianMemory(m->data(), viIdx, vjIdx, transposedBlock);
-        } else { 
+        } else {
           std::cerr << __PRETTY_FUNCTION__ << ": not supported" << std::endl;
         }
       }
@@ -420,7 +420,7 @@ bool BlockSolver<Traits>::solve(){
       for (; it_inner != landmarkColumn.end(); ++it_inner) {
         int i2 = it_inner->row;
         const PoseLandmarkMatrixType* Bj = it_inner->block;
-        assert(Bj); 
+        assert(Bj);
         while (targetColumnIt->row < i2 /*&& targetColumnIt != _HschurTransposedCCS->blockCols()[i1].end()*/)
           ++targetColumnIt;
         assert(targetColumnIt != _HschurTransposedCCS->blockCols()[i1].end() && targetColumnIt->row == i2 && "invalid iterator, something wrong with the matrix structure");

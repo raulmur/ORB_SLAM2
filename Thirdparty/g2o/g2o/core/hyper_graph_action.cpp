@@ -26,7 +26,7 @@
 
 #include "hyper_graph_action.h"
 #include "optimizable_graph.h"
-#include "../stuff/macros.h"
+#include "stuff/macros.h"
 
 
 #include <iostream>
@@ -74,12 +74,12 @@ namespace g2o {
   {
     return 0;
   }
-  
+
   HyperGraphElementAction* HyperGraphElementAction::operator()(const HyperGraph::HyperGraphElement* , HyperGraphElementAction::Parameters* )
   {
     return 0;
   }
-  
+
   HyperGraphElementAction::~HyperGraphElementAction()
   {
   }
@@ -137,7 +137,7 @@ namespace g2o {
     }
     return false;
   }
-  
+
   HyperGraphActionLibrary::HyperGraphActionLibrary()
   {
   }
@@ -162,7 +162,7 @@ namespace g2o {
       delete it->second;
     }
   }
-  
+
   HyperGraphElementAction* HyperGraphActionLibrary::actionByName(const std::string& name)
   {
     HyperGraphElementAction::ActionMap::iterator it=_actionMap.find(name);
@@ -191,7 +191,7 @@ namespace g2o {
     }
     return collection->registerAction(action);
   }
-  
+
   bool HyperGraphActionLibrary::unregisterAction(HyperGraphElementAction* action)
   {
     list<HyperGraphElementActionCollection*> collectionDeleteList;
@@ -226,7 +226,7 @@ namespace g2o {
   DrawAction::Parameters::Parameters(){
   }
 
-  DrawAction::DrawAction(const std::string& typeName_) 
+  DrawAction::DrawAction(const std::string& typeName_)
     : HyperGraphElementAction(typeName_)
   {
     _name="draw";
@@ -252,13 +252,13 @@ namespace g2o {
 
   void applyAction(HyperGraph* graph, HyperGraphElementAction* action, HyperGraphElementAction::Parameters* params, const std::string& typeName)
   {
-    for (HyperGraph::VertexIDMap::iterator it=graph->vertices().begin(); 
+    for (HyperGraph::VertexIDMap::iterator it=graph->vertices().begin();
         it!=graph->vertices().end(); ++it){
       if ( typeName.empty() || typeid(*it->second).name()==typeName){
         (*action)(it->second, params);
       }
     }
-    for (HyperGraph::EdgeSet::iterator it=graph->edges().begin(); 
+    for (HyperGraph::EdgeSet::iterator it=graph->edges().begin();
         it!=graph->edges().end(); ++it){
       if ( typeName.empty() || typeid(**it).name()==typeName)
         (*action)(*it, params);
