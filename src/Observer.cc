@@ -3,15 +3,6 @@
 namespace ORB_SLAM2{
 
 
-Observer::Observer(Subject *mod) {
-        model = mod;
-        model->attach(this);
-    } 
-
-void Observer::setSubject(Subject *mod){
-	model = mod;
-        model->attach(this);
-}
 
 void Subject::attach(Observer *obs) {
 	views.push_back(obs);

@@ -61,6 +61,7 @@
 #include <vector>
 #include <iostream>
 #include<omp.h>
+#include <thread>
 
 #include "ORBextractor.h"
 
@@ -154,9 +155,8 @@ static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
 		}
 		
 	}
-
 	//finishing contig	
- 	for (; (i < (bresenham_circle.size() + 1) || contig); i++) {
+ 	for (; (i < (bresenham_circle.size() + 1) || contig) && (max_contig < bresenham_circle.size()); i++) {
 		idx = (i < bresenham_circle.size()) ? i : (i - bresenham_circle.size());
 		idxm = ((idx - 1) >= 0) ? (idx - 1) : ((idx - 1) + bresenham_circle.size());
 		contig = (fast_circle[idx] == fast_circle[idxm]);
@@ -172,7 +172,6 @@ static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
 			start_max = start_contig;
 		}
 	}
-
  	int darker = (fast_circle[start_max] == 2);
  	float start_pix_base = start_max - ((((int) bresenham_circle.size()) - max_contig)/2.) ;
  	float start_pix = (start_pix_base < 0) ? (((int) bresenham_circle.size()) + start_pix_base) : start_pix_base ;
@@ -190,7 +189,7 @@ static float Fast_Angle(const cv::Mat& image, cv::Point2f pt,
  		}
  		pix_idx ++ ;
  	}
- 	float c = ((m1/m0) - 1.0) + start_pix ; // refining through 1D intensity centroid
+ 	float c = ((m1/m0) - 0.5) + start_pix ; // refining through 1D intensity centroid
 	angle = (c * (360. / bresenham_circle.size()));
 	angle -= 90.0;
 	if (darker)
@@ -238,7 +237,7 @@ static float IC_Angle(const Mat& image, Point2f pt,  const vector<int> & u_max)
 #ifndef TABBED_COMPUTE
 const float factorPI = (float)(CV_PI/180.f);
 static void computeOrbDescriptor(const KeyPoint& kpt,
-                                 const Mat& img, const Point* pattern,
+                                 const Mat& img, const std::array<Point, 512> pattern,
                                  uchar* desc)
 {
     float angle = (float)kpt.angle*factorPI;
@@ -248,13 +247,14 @@ static void computeOrbDescriptor(const KeyPoint& kpt,
     const int step = (int)img.step;
 
     #define GET_VALUE(idx) \
-        center[cvRound(pattern[idx].x*b + pattern[idx].y*a)*step + \
-               cvRound(pattern[idx].x*a - pattern[idx].y*b)]
+        center[cvRound(pattern[(i*16)+idx].x*b + pattern[(i*16)+idx].y*a)*step + \
+               cvRound(pattern[(i*16)+idx].x*a - pattern[(i*16)+idx].y*b)]
 
 
-    for (int i = 0; i < 32; ++i, pattern += 16)
+    for (int i = 0; i < 32; ++i )
     {
         int t0, t1, val;
+	int index = ;
         t0 = GET_VALUE(0); t1 = GET_VALUE(1);
         val = t0 < t1;
         t0 = GET_VALUE(2); t1 = GET_VALUE(3);
@@ -283,16 +283,16 @@ static void computeOrbDescriptor(const KeyPoint& kpt,
 #ifdef TABBED_COMPUTE
 //Binned implementation of the descriptor computation
 static void computeOrbDescriptorBinned(const KeyPoint& kpt, const Mat& img,
-		Point* pattern, uchar* desc) {
+		std::array<Point, 512> pattern, uchar* desc) {
 
 	const uchar* center = &img.at<uchar>(cvRound(kpt.pt.y), cvRound(kpt.pt.x));
 	const int step = (int) img.step;
 
 #define GET_VALUE(idx) \
-        center[pattern[idx].y*step + \
-               pattern[idx].x]
+        center[pattern[(i*16)+idx].y*step + \
+               pattern[(i*16)+idx].x]
 
-	for (int i = 0; i < 32; ++i, pattern += 16) {
+	for (int i = 0; i < 32; ++i) {
 		int t0, t1, val;
 		t0 = GET_VALUE(0);
 		t1 = GET_VALUE(1);
@@ -626,22 +626,22 @@ ORBextractor::ORBextractor(int _nfeatures, float _scaleFactor, int _nlevels,
 
     const int npoints = 512;
     const Point* pattern0 = (const Point*)bit_pattern_31_;
-    std::copy(pattern0, pattern0 + npoints, std::back_inserter(pattern));
+    for(int i = 0 ; i < 512 ; i ++){
+	pattern[i]= pattern0[i]; 
+    	
+    }
+    //std::copy(pattern0, pattern0 + npoints, std::back_inserter(pattern));
 
     #ifdef TABBED_COMPUTE
 	bin_angle = 360.0 / ((float) TABBED_COMPUTE);
 	for (int i = 0; i < TABBED_COMPUTE; i++) {
-		float deg_angle = i * bin_angle;
-		float rad_angle = deg_angle * (CV_PI) / 180.0;
-		float a = (float) cos(rad_angle), b = (float) sin(rad_angle);
+		double deg_angle = i * bin_angle;
+		double rad_angle = deg_angle * (CV_PI) / 180.0;
+		double a = (double) cos(rad_angle), b = (double) sin(rad_angle);
 		for (int j = 0; j < 512; j++) {
-			/*pattern_for_angle->push_back(
-					cv::Point(cvRound(pattern0[j].x * b + pattern0[j].y * a),
-							cvRound(pattern0[j].x * a - pattern0[j].y * b)));*/
-
-			pattern_binned[i][j] = 
-					cv::Point(cvRound(pattern0[j].x * a - pattern0[j].y * b), cvRound(pattern0[j].x * b + pattern0[j].y * a)
-							);
+			double x = pattern0[j].x * a - pattern0[j].y * b ;
+			double y = pattern0[j].x * b + pattern0[j].y * a ;
+			pattern_binned[i][j] = cv::Point(cvRound(x), cvRound(y));
 		}
 	}
     #endif
@@ -1077,6 +1077,125 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
 
 }
 
+
+void ORBextractor::ComputeKeyPointsOctTreeNew(vector<vector<KeyPoint> >& allKeypoints)
+{
+    allKeypoints.resize(nlevels);
+
+    const float W = 30;
+
+
+    for (int level = 0; level < nlevels; ++level)
+    {
+        const int minBorderX = EDGE_THRESHOLD-3;
+        const int minBorderY = minBorderX;
+        const int maxBorderX = mvImagePyramid[level].cols-EDGE_THRESHOLD+3;
+        const int maxBorderY = mvImagePyramid[level].rows-EDGE_THRESHOLD+3;
+
+        vector<cv::KeyPoint> vToDistributeKeys;
+        vToDistributeKeys.reserve(nfeatures*10);
+
+        const float width = (maxBorderX-minBorderX);
+        const float height = (maxBorderY-minBorderY);
+
+        const int nCols = width/W;
+        const int nRows = height/W;
+        const int wCell = ceil(width/nCols);
+        const int hCell = ceil(height/nRows);
+#ifdef IMAGE_STRIPES
+	if(level < 8){
+		const int stripe_0_end = (mvImagePyramid[level].rows/2) + 3 ;	
+		const int stripe_0_start = minBorderY  ;
+		const int stripe_1_end = maxBorderY;	
+		const int stripe_1_start = (mvImagePyramid[level].rows/2) - 3 ;
+		vector<cv::KeyPoint> vKeysStripe0;
+		vector<cv::KeyPoint> vKeysStripe1;
+		#pragma omp parallel sections
+		{
+			#pragma omp section
+    			{ 
+			FAST(mvImagePyramid[level].rowRange(stripe_0_start,stripe_0_end).colRange(minBorderX,maxBorderX),
+                     		vKeysStripe0,iniThFAST,true);
+			}
+			#pragma omp section
+    			{
+			FAST(mvImagePyramid[level].rowRange(stripe_1_start,stripe_1_end).colRange(minBorderX,maxBorderX),
+                     		vKeysStripe1,iniThFAST,true);
+			}	
+		}
+		if(!vKeysStripe0.empty()){
+			for(vector<cv::KeyPoint>::iterator vit=vKeysStripe0.begin(); vit!=vKeysStripe0.end();vit++)
+            		{
+				(*vit).angle = iniThFAST;
+				vToDistributeKeys.push_back((*vit));
+            		}
+		}
+		if(!vKeysStripe1.empty()){
+			for(vector<cv::KeyPoint>::iterator vit=vKeysStripe1.begin(); vit!=vKeysStripe1.end();vit++)
+            		{
+				(*vit).angle = iniThFAST;
+				(*vit).pt.y += stripe_1_start;
+				vToDistributeKeys.push_back((*vit));
+            		}
+		}
+	}
+	else{
+		FAST(mvImagePyramid[level].rowRange(minBorderY,maxBorderY).colRange(minBorderX,maxBorderX),
+                     vToDistributeKeys,iniThFAST,true);
+		if(!vToDistributeKeys.empty())
+        	{
+            		for(vector<cv::KeyPoint>::iterator vit=vToDistributeKeys.begin(); vit!=vToDistributeKeys.end();vit++)
+            		{
+				(*vit).angle = iniThFAST;
+            		}
+       		}
+	}
+#else
+	FAST(mvImagePyramid[level].rowRange(minBorderY,maxBorderY).colRange(minBorderX,maxBorderX),
+                     vToDistributeKeys,iniThFAST,true);
+		if(!vToDistributeKeys.empty())
+        	{
+            		for(vector<cv::KeyPoint>::iterator vit=vToDistributeKeys.begin(); vit!=vToDistributeKeys.end();vit++)
+            		{
+				(*vit).angle = iniThFAST;
+            		}
+       		}
+#endif
+	//Image could be splitted in to two or more stripes to have multiple FAST running in parallel on one image
+	
+        vector<KeyPoint> & keypoints = allKeypoints[level];
+        keypoints.reserve(nfeatures);
+
+        keypoints = DistributeOctTree(vToDistributeKeys, minBorderX, maxBorderX,
+                                      minBorderY, maxBorderY,mnFeaturesPerLevel[level], level);
+
+        const int scaledPatchSize = PATCH_SIZE*mvScaleFactor[level];
+        // Add border to coordinates and scale information
+        const int nkps = keypoints.size();
+        for(int i=0; i<nkps ; i++)
+        {
+            keypoints[i].pt.x+=minBorderX;
+            keypoints[i].pt.y+=minBorderY;
+            keypoints[i].octave=level;
+            keypoints[i].size = scaledPatchSize;
+        }
+    }
+
+
+	if (angleType == IC_ANGLE) {
+		//#pragma omp parallel for
+		for (int level = 0; level < nlevels; ++level)
+			computeOrientation(mvImagePyramid[level], allKeypoints[level],
+					umax);
+	} else {
+		//#pragma omp parallel for
+		for (int level = 0; level < nlevels; ++level)
+			computeFastOrientation(mvImagePyramid[level], allKeypoints[level],
+					bresenham_circle_points, minThFAST, allKeypoints[level].size());
+	}
+
+}
+
 void ORBextractor::ComputeKeyPointsOld(std::vector<std::vector<KeyPoint> > &allKeypoints)
 {
     allKeypoints.resize(nlevels);
@@ -1285,14 +1404,15 @@ void ORBextractor::ComputeDescriptors(const Mat& image,
 	descriptors = Mat::zeros((int) keypoints.size(), 32, CV_8UC1);
 	for (size_t i = 0; i < keypoints.size(); i++) {
 #ifndef TABBED_COMPUTE
-		computeOrbDescriptor(keypoints[i], image, &pattern[0],
+		computeOrbDescriptor(keypoints[i], image, pattern,
 				descriptors.ptr((int) i));
 #else
 		float kp_angle = keypoints[i].angle;
-		int angle_bin = kp_angle / bin_angle;
+		float angle_bin_f = kp_angle / bin_angle;
+		int angle_bin = round(angle_bin_f);
 		if(angle_bin >= ((int) pattern_binned.size())) angle_bin = 0;
-		if(angle_bin < 0) angle_bin = pattern_binned.size() + angle_bin ;
-		computeOrbDescriptorBinned(keypoints[i], image, pattern_binned[angle_bin].data(),
+		if(angle_bin < 0) angle_bin = ((int) pattern_binned.size()) + angle_bin ;
+		computeOrbDescriptorBinned(keypoints[i], image, pattern_binned[angle_bin],
 				descriptors.ptr((int) i));
 #endif
 	}
@@ -1311,7 +1431,7 @@ void ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPo
     ComputePyramid(image);
 
     vector < vector<KeyPoint> > allKeypoints;
-    ComputeKeyPointsOctTree(allKeypoints);
+    ComputeKeyPointsOctTreeNew(allKeypoints);
     //ComputeKeyPointsOld(allKeypoints);
 
     Mat descriptors;
@@ -1365,31 +1485,28 @@ void ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPo
 
 void ORBextractor::ComputePyramid(cv::Mat image)
 {
-    for (int level = 0; level < nlevels; ++level)
+ 
+  for (int level = 0; level < nlevels; ++level)
     {
         float scale = mvInvScaleFactor[level];
         Size sz(cvRound((float)image.cols*scale), cvRound((float)image.rows*scale));
         Size wholeSize(sz.width + EDGE_THRESHOLD*2, sz.height + EDGE_THRESHOLD*2);
-        Mat temp(wholeSize, image.type()), masktemp;
-        mvImagePyramid[level] = temp(Rect(EDGE_THRESHOLD, EDGE_THRESHOLD, sz.width, sz.height));
+        Mat temp(wholeSize, image.type()), masktemp; // allocate image of size plus borders for level, 
+        mvImagePyramid[level] = temp(Rect(EDGE_THRESHOLD, EDGE_THRESHOLD, sz.width, sz.height));// pyarami level is ROI on image + borders
 
         // Compute the resized image
         if( level != 0 )
         {
-	    //pyrDown(mvImagePyramid[level-1], mvImagePyramid[level], sz, BORDER_DEFAULT ) ;
-            resize(mvImagePyramid[level-1], mvImagePyramid[level], sz, 0, 0, INTER_LINEAR);
-	    //resize(image, mvImagePyramid[level], sz, 0, 0, INTER_LINEAR);
-
+            resize(mvImagePyramid[level-1], mvImagePyramid[level], sz, 0, 0, INTER_LINEAR); 
             copyMakeBorder(mvImagePyramid[level], temp, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
                            BORDER_REFLECT_101+BORDER_ISOLATED);        
         }
         else
-        {
+        { //for the first level, the input image is copied with borders added
             copyMakeBorder(image, temp, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
                            BORDER_REFLECT_101);            
         }
     }
-
 }
 
 } //namespace ORB_SLAM
