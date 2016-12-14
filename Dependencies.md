@@ -36,12 +36,6 @@ BSD license.
 * **Eigen3**.
 For versions greater than 3.1.1 is MPL2, earlier versions are LGPLv3.
 
-* **BLAS** (required by g2o).
-[Freely-available software](http://www.netlib.org/blas/#_licensing).
-
-* **LAPACK**(required by g2o).
-BSD license. 
-
 * **ROS (Optional, only if you build Examples/ROS)**.
 BSD license. In the manifest.xml the only declared package dependencies are roscpp, tf, sensor_msgs, image_transport, cv_bridge, which are all BSD licensed.
 
