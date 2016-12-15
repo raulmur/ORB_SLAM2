@@ -26,7 +26,7 @@
 #include <opencv/cv.h>
 #include <array>
 
-#define TABBED_COMPUTE 128
+#define TABBED_COMPUTE 64
 
 namespace ORB_SLAM2
 {

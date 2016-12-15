@@ -16,8 +16,8 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}
 endif()
 
 
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall -O3")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O3")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 
 #To deactivate optimizations for debugging purposes
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -march=native -pipe -p -pg -g3 -Wall -W -D_REENTRANT -coverage -fprofile-arcs -ftest-coverage -Wextra -g")
@@ -75,6 +75,7 @@ src/KeyFrameDatabase.cc
 src/Sim3Solver.cc
 src/Initializer.cc
 src/Viewer.cc
+src/Observer.cc
 )
 
 target_link_libraries(${PROJECT_NAME}
