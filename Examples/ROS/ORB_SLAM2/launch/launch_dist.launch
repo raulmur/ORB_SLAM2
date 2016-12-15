@@ -1,0 +1,6 @@
+<launch>
+  <arg name="bag_path"/>
+  <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0 0 0 1.58 1.58   initial_pose map 100" />
+  <node name="rviz_orbslam2" pkg="rviz" type="rviz" args="-d $(find orb_slam2)/launch/orbslam2.rviz"/>
+  <node pkg="rosbag" type="play" name="player" output="screen" args="--clock $(arg bag_path)"/>
+</launch>
