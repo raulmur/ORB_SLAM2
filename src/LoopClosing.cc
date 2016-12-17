@@ -583,7 +583,7 @@ void LoopClosing::CorrectLoop()
     mpLocalMapper->Release();    
 
     cout << "Loop Closed!" << endl;
-
+    mpMap->update();
     mLastLoopKFid = mpCurrentKF->mnId;   
 }
 

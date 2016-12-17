@@ -736,6 +736,8 @@ void Tracking::CreateInitialMapMonocular()
     mpMap->mvpKeyFrameOrigins.push_back(pKFini);
 
     mState=OK;
+    //new map created, update the map to advert observers
+    mpMap->update();
 }
 
 void Tracking::CheckReplacedInLastFrame()
