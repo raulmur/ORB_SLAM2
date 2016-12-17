@@ -50,6 +50,7 @@ public:
     std::vector<KeyFrame*> GetAllKeyFrames();
     std::vector<MapPoint*> GetAllMapPoints();
     std::vector<MapPoint*> GetReferenceMapPoints();
+    KeyFrame* GetLastKeyFrame();
 
     long unsigned int MapPointsInMap();
     long unsigned  KeyFramesInMap();
@@ -68,7 +69,7 @@ public:
 protected:
     std::set<MapPoint*> mspMapPoints;
     std::set<KeyFrame*> mspKeyFrames;
-
+    KeyFrame* lastKeyFrame;
     std::vector<MapPoint*> mvpReferenceMapPoints;
 
     long unsigned int mnMaxKFid;
