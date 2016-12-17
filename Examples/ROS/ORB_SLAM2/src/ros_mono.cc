@@ -49,10 +49,19 @@ class ImageGrabber : public ORB_SLAM2::Observer
 public:
     ros::Publisher pose_publisher ;
     ros::Publisher map_publisher ;
+    ros::Publisher keyframe_publisher ;
     std::thread * map_publisher_thread = NULL ;
+
+    ImageGrabber():mpSLAM(){
+    }
 
     ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){
 	pSLAM->addMapObserver(this);
+    }
+
+    void setSlam(ORB_SLAM2::System* pSLAM){
+    	mpSLAM = pSLAM ;
+    	pSLAM->addMapObserver(this);
     }
 
     void GrabImage(const sensor_msgs::ImageConstPtr& msg);
@@ -103,11 +112,13 @@ int main(int argc, char **argv)
     ROS_INFO("Launching orb_slam2 mono with %s %s ", voc_path.c_str(), config_path.c_str());
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM2::System SLAM(voc_path.c_str(),config_path.c_str(),ORB_SLAM2::System::MONOCULAR,false);
-    ImageGrabber igb(&SLAM);
-
-    ros::Subscriber sub = nodeHandler.subscribe("/camera/image_raw", 1, &ImageGrabber::GrabImage,&igb);
+    ImageGrabber igb;
     igb.pose_publisher = nodeHandler.advertise<geometry_msgs::PoseStamped>("/camera/pose", 100);
     igb.map_publisher = nodeHandler.advertise<sensor_msgs::PointCloud>("/camera/map", 100);
+    igb.keyframe_publisher = nodeHandler.advertise<sensor_msgs::Image>("/camera/keyframe", 100
+    igb.setSlam(&SLAM);
+
+    ros::Subscriber sub = nodeHandler.subscribe("/camera/image_raw", 1, &ImageGrabber::GrabImage,&igb);
     ros::ServiceServer service = nodeHandler.advertiseService("reset", &ImageGrabber::ResetSlam, &igb);
 
     ros::spin();
