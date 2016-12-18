@@ -22,6 +22,7 @@
 #define MAP_H
 
 #include "MapPoint.h"
+#include "Observer.h"
 #include "KeyFrame.h"
 #include <set>
 
@@ -35,7 +36,7 @@ namespace ORB_SLAM2
 class MapPoint;
 class KeyFrame;
 
-class Map
+class Map : public Subject
 {
 public:
     Map();
@@ -49,6 +50,7 @@ public:
     std::vector<KeyFrame*> GetAllKeyFrames();
     std::vector<MapPoint*> GetAllMapPoints();
     std::vector<MapPoint*> GetReferenceMapPoints();
+    KeyFrame* GetLastKeyFrame();
 
     long unsigned int MapPointsInMap();
     long unsigned  KeyFramesInMap();
@@ -67,7 +69,7 @@ public:
 protected:
     std::set<MapPoint*> mspMapPoints;
     std::set<KeyFrame*> mspKeyFrames;
-
+    KeyFrame* lastKeyFrame;
     std::vector<MapPoint*> mvpReferenceMapPoints;
 
     long unsigned int mnMaxKFid;

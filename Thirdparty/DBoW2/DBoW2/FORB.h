@@ -4,7 +4,7 @@
  * Author: Dorian Galvez-Lopez
  * Description: functions for ORB descriptors
  * License: see the LICENSE.txt file
- *
+ * Modified November 2016 By Bertrand Vandeportaele for conversion to and from array 8U
  */
 
 #ifndef __D_T_F_ORB__
@@ -71,6 +71,19 @@ public:
   static void toMat8U(const std::vector<TDescriptor> &descriptors,
     cv::Mat &mat);
 
+  /**
+   * Fills an array with the values from a descriptor
+   * @param descriptors descriptor
+   * @param array (out) unsigned char * to store the values of the descriptor
+   */
+  static void toArray8U(const TDescriptor &descriptors, unsigned char * array);
+
+  /**
+   * Fills an descriptor with the values from an array
+   * @param descriptors (out) descriptor
+   * @param array (in) unsigned char * containing the values of the descriptor
+   */
+  static void fromArray8U(TDescriptor &descriptors, unsigned char * array);
 };
 
 } // namespace DBoW2

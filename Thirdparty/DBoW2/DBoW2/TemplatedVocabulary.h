@@ -3,6 +3,8 @@
  * Added functions: Save and Load from text files without using cv::FileStorage.
  * Date: August 2015
  * Raúl Mur-Artal
+ * Modified November 2016 By Bertrand Vandeportaele
+ * Added functions: Save and Load from binary files, faster and smaller size
  */
 
 /**
@@ -245,6 +247,21 @@ public:
    * @param filename
    */
   void saveToTextFile(const std::string &filename) const;  
+
+  /**
+   * Loads the vocabulary from a binary file
+   * @param filename
+   */
+  bool loadFromBinFile(const std::string &filename);
+
+
+  /**
+   * Saves the vocabulary into a binary file
+   * @param filename
+   */
+  void saveToBinFile(const std::string &filename) const;
+
+
 
   /**
    * Saves the vocabulary into a file
@@ -1431,8 +1448,7 @@ void TemplatedVocabulary<TDescriptor,F>::saveToTextFile(const std::string &filen
     fstream f;
     f.open(filename.c_str(),ios_base::out);
     f << m_k << " " << m_L << " " << " " << m_scoring << " " << m_weighting << endl;
-
-    for(size_t i=1; i<m_nodes.size();i++)
+    for(size_t i=1; i<m_nodes.size()-1;i++) //changed by B. Vandeportaele from for(size_t i=1; i<m_nodes.size();i++) because the generated file was too long
     {
         const Node& node = m_nodes[i];
 
@@ -1445,6 +1461,111 @@ void TemplatedVocabulary<TDescriptor,F>::saveToTextFile(const std::string &filen
         f << F::toString(node.descriptor) << " " << (double)node.weight << endl;
     }
 
+    f.close();
+}
+
+// --------------------------------------------------------------------------
+
+//TODO: the file is never closed?
+template<class TDescriptor, class F>
+bool TemplatedVocabulary<TDescriptor,F>::loadFromBinFile(const std::string &filename)
+{
+    ifstream f;
+    f.open(filename.c_str());
+
+    if(f.eof())
+        return false;
+
+    m_words.clear();
+    m_nodes.clear();
+
+    f.read((char*)&m_k,sizeof(m_k));
+    f.read((char*)&m_L,sizeof(m_L));
+    int n1, n2;
+    f.read((char*)&n1,sizeof(n1));
+    f.read((char*)&n2,sizeof(n2));
+
+    if(m_k<0 || m_k>20 || m_L<1 || m_L>10 || n1<0 || n1>5 || n2<0 || n2>3)
+    {
+        std::cerr << "Vocabulary loading failure: This is not a correct Binary file!" << endl;
+        return false;
+    }
+
+    m_scoring = (ScoringType)n1;
+    m_weighting = (WeightingType)n2;
+    createScoringObject();
+
+    // nodes
+    int expected_nodes =
+            (int)((pow((double)m_k, (double)m_L + 1) - 1)/(m_k - 1));
+    m_nodes.reserve(expected_nodes);
+    m_words.reserve(pow((double)m_k, (double)m_L + 1));
+    m_nodes.resize(1);
+    m_nodes[0].id = 0;
+   // while(!f.eof())
+    while((!f.eof()) && ( m_nodes.size()<(unsigned int)expected_nodes) )
+    {
+        int nid = m_nodes.size();
+        m_nodes.resize(m_nodes.size()+1);
+        m_nodes[nid].id = nid;
+        int pid ;
+        f.read((char*)&pid,sizeof(pid));
+        m_nodes[nid].parent = pid;
+        m_nodes[pid].children.push_back(nid);
+        int nIsLeaf;
+        unsigned char nIsLeafuc;
+        f.read((char*)&nIsLeafuc,sizeof(nIsLeafuc));
+        nIsLeaf=nIsLeafuc;
+        unsigned char array[F::L]; // the number of element is stored in F::L
+        f.read((char*)array,(long)F::L);
+        m_nodes[nid].descriptor.create(1, F::L, CV_8U);
+        F::fromArray8U(m_nodes[nid].descriptor,(unsigned char *)array);
+        f.read((char*)&m_nodes[nid].weight,sizeof(m_nodes[nid].weight));
+        if(nIsLeaf>0)
+        {
+            int wid = m_words.size();
+            m_words.resize(wid+1);
+            m_nodes[nid].word_id = wid;
+            m_words[wid] = &m_nodes[nid];
+        }
+        else
+        {
+            m_nodes[nid].children.reserve(m_k);
+        }
+    }
+
+    return true;
+
+}
+// --------------------------------------------------------------------------
+
+template<class TDescriptor, class F>
+void TemplatedVocabulary<TDescriptor,F>::saveToBinFile(const std::string &filename) const
+{
+    fstream f;
+    f.open(filename.c_str(),ios_base::out);
+    f.write((const char*)&m_k,sizeof(m_k));
+    f.write((const char*)&m_L,sizeof(m_L));
+    f.write((const char*)&m_scoring,sizeof(m_scoring));
+    f.write((const char*)&m_weighting,sizeof(m_weighting));
+    unsigned int nbiter=m_nodes.size();
+    // nbiter=2; //for test
+    unsigned char one=1;
+    unsigned char zero=0;
+    //    unsigned char tab[10]={1,2,4,6,10,100,200,201,202,255};  f.write((const char*)tab,10); //for test
+    for(size_t i=1; i<nbiter-1;i++)
+    {
+        const Node& node = m_nodes[i];
+        f.write((const char*)& node.parent ,sizeof( node.parent ));
+        if(node.isLeaf())
+            f.write((const char*)& one ,sizeof( one ));
+        else
+            f.write((const char*)& zero ,sizeof( zero ));
+        unsigned char array[F::L]; // the number of elements is stored in F::L
+        F::toArray8U(node.descriptor,(unsigned char *)array);
+        f.write((char*)array,(long)F::L);
+        f.write((const char*)& node.weight ,sizeof( node.weight ));
+    }
     f.close();
 }
 

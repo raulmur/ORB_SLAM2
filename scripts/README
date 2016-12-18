@@ -1,0 +1,1 @@
+Sequence to ba is a utility to convert a folder of images to a ROS bag. Usage is : python2 SequenceToBag.py <input_directory> <image_rate> <bag_name>.bag

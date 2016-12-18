@@ -222,3 +222,14 @@ This is the default mode. The system runs in parallal three threads: Tracking, L
 ### Localization Mode
 This mode can be used when you have a good map of your working area. In this mode the Local Mapping and Loop Closing are deactivated. The system localizes the camera in the map (which is no longer updated), using relocalization if needed. 
 
+###Note for Raspberry-pi compilation 
+Bug in Pangolin compilation. Need to add #include "assert.h" to the file reported with error on assert
+Modify all CMake files for ORBSLAM and third-parties to have -mtune=cortex-a53 instead of -march=native (gcc 4.9 bug with ARM architectures)
+Add 1G of SWAP to avoid running out of memory at compile time
+	sudo dd if=/dev/zero of=/swap0 bs=1M count=1024
+	sudo mkswap /swap0
+	sudo sh -c 'echo "/swap0 swap swap" >> /etc/fstab' 
+	sudo swapon -a
+you can disable swap after compilation
+	sudo swapoff -a
+

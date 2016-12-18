@@ -104,7 +104,7 @@ void LocalMapping::Run()
 
         if(CheckFinish())
             break;
-
+        mpMap->update();
         usleep(3000);
     }
 

@@ -16,8 +16,10 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
+*
+* Modified November 2016 By Bertrand Vandeportaele
+* Added functions: Save and Load Vocabulary using binary files, faster and smaller size
 */
-
 
 
 #include "System.h"
@@ -61,14 +63,57 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //Load ORB Vocabulary
     cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
 
+/*
+    if (0){         //to check that the file are correctly read and saved in text and binary formats
+        mpVocabulary = new ORBVocabulary();
+        bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
+        if(!bVocLoad)
+        {
+            cerr << "Wrong path to vocabulary. " << endl;
+            cerr << "Falied to open at: " << strVocFile << endl;
+            exit(-1);
+        }
+        else
+        {
+            mpVocabulary->saveToTextFile(strVocFile+"1");
+            mpVocabulary->saveToBinFile(strVocFile+".bin");
+            ORBVocabulary* mpVocabulary2 = new ORBVocabulary();
+            bool bVocLoad2 = mpVocabulary2->loadFromBinFile(strVocFile+".bin");
+
+            ORBVocabulary* mpVocabulary3 = new ORBVocabulary();
+            bool bVocLoad = mpVocabulary3->loadFromBinFile(strVocFile+".bin");
+            if(!bVocLoad)
+            {
+                cerr << "Wrong path to vocabulary. " << endl;
+                cerr << "Falied to open at: " << strVocFile << endl;
+                exit(-1);
+            }
+            else
+            {
+                mpVocabulary3->saveToTextFile(strVocFile+"2");
+            }
+        }
+    }
+*/
     mpVocabulary = new ORBVocabulary();
-    bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
+    //try to load from the binary file
+    bool bVocLoad = mpVocabulary->loadFromBinFile(strVocFile+".bin");
     if(!bVocLoad)
     {
-        cerr << "Wrong path to vocabulary. " << endl;
-        cerr << "Falied to open at: " << strVocFile << endl;
-        exit(-1);
+        cerr << "Cannot find binary file for vocabulary. " << endl;
+        cerr << "Falied to open at: " << strVocFile+".bin" << endl;
+        cerr << "Trying to open the text file. " << endl;
+        bool bVocLoad2 = mpVocabulary->loadFromTextFile(strVocFile);
+        if(!bVocLoad2)
+        {
+            cerr << "Wrong path to vocabulary. " << endl;
+            cerr << "Falied to open at: " << strVocFile << endl;
+            exit(-1);
+        }
+        cerr << "Saving the vocabulary to binary for the next time to " << strVocFile+".bin" << endl;
+        mpVocabulary->saveToBinFile(strVocFile+".bin");
     }
+
     cout << "Vocabulary loaded!" << endl << endl;
 
     //Create KeyFrame Database
@@ -78,8 +123,13 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpMap = new Map();
 
     //Create Drawers. These are used by the Viewer
-    mpFrameDrawer = new FrameDrawer(mpMap);
-    mpMapDrawer = new MapDrawer(mpMap, strSettingsFile);
+    if(bUseViewer){
+    	mpFrameDrawer = new FrameDrawer(mpMap);
+    	mpMapDrawer = new MapDrawer(mpMap, strSettingsFile);
+    }else{
+    	mpFrameDrawer = NULL ;
+    	mpMapDrawer = NULL ;
+    }
 
     //Initialize the Tracking thread
     //(it will live in the main thread of execution, the one that called this constructor)
@@ -96,11 +146,10 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     //Initialize the Viewer thread and launch
     mpViewer = new Viewer(this, mpFrameDrawer,mpMapDrawer,mpTracker,strSettingsFile);
-    if(bUseViewer)
-        mptViewer = new thread(&Viewer::Run, mpViewer);
-
-    mpTracker->SetViewer(mpViewer);
-
+    if(bUseViewer){
+        	mptViewer = new thread(&Viewer::Run, mpViewer);
+        	mpTracker->SetViewer(mpViewer);
+    }
     //Set pointers between threads
     mpTracker->SetLocalMapper(mpLocalMapper);
     mpTracker->SetLoopClosing(mpLoopCloser);
@@ -110,6 +159,10 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     mpLoopCloser->SetTracker(mpTracker);
     mpLoopCloser->SetLocalMapper(mpLocalMapper);
+}
+
+void System::addMapObserver(Observer * obs){
+	obs->setSubject(this->mpMap);
 }
 
 cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp)

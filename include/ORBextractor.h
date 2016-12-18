@@ -24,7 +24,9 @@
 #include <vector>
 #include <list>
 #include <opencv/cv.h>
+#include <array>
 
+#define TABBED_COMPUTE 128
 
 namespace ORB_SLAM2
 {
@@ -47,9 +49,10 @@ class ORBextractor
 public:
     
     enum {HARRIS_SCORE=0, FAST_SCORE=1 };
+    enum {IC_ANGLE = 0, FAST_ANGLE = 1};
 
     ORBextractor(int nfeatures, float scaleFactor, int nlevels,
-                 int iniThFAST, int minThFAST);
+                 int iniThFAST, int minThFAST, int _angleType = IC_ANGLE);
 
     ~ORBextractor(){}
 
@@ -86,23 +89,36 @@ public:
 
 protected:
 
+	
+     
+
+    void ComputeDescriptors(const cv::Mat& image, std::vector<cv::KeyPoint>& keypoints,
+			cv::Mat& descriptors);
     void ComputePyramid(cv::Mat image);
-    void ComputeKeyPointsOctTree(std::vector<std::vector<cv::KeyPoint> >& allKeypoints);    
+    void ComputeKeyPointsOctTree(std::vector<std::vector<cv::KeyPoint> >& allKeypoints);
+    void ComputeKeyPointsOctTreeNew(std::vector<std::vector<cv::KeyPoint> >& allKeypoints);    
     std::vector<cv::KeyPoint> DistributeOctTree(const std::vector<cv::KeyPoint>& vToDistributeKeys, const int &minX,
                                            const int &maxX, const int &minY, const int &maxY, const int &nFeatures, const int &level);
 
     void ComputeKeyPointsOld(std::vector<std::vector<cv::KeyPoint> >& allKeypoints);
-    std::vector<cv::Point> pattern;
+    std::array<cv::Point, 512> pattern;
 
     int nfeatures;
     double scaleFactor;
     int nlevels;
     int iniThFAST;
     int minThFAST;
+    int angleType ;
 
     std::vector<int> mnFeaturesPerLevel;
 
     std::vector<int> umax;
+    std::array<cv::Point, 16> bresenham_circle_points;
+
+#ifdef TABBED_COMPUTE
+    std::array<std::array<cv::Point, 512>, TABBED_COMPUTE> pattern_binned;
+    float bin_angle;
+#endif
 
     std::vector<float> mvScaleFactor;
     std::vector<float> mvInvScaleFactor;    

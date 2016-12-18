@@ -29,6 +29,8 @@
 
 #include<stdint-gcc.h>
 
+#define FAST_HAMMING
+
 using namespace std;
 
 namespace ORB_SLAM2
@@ -1654,9 +1656,14 @@ int ORBmatcher::DescriptorDistance(const cv::Mat &a, const cv::Mat &b)
     for(int i=0; i<8; i++, pa++, pb++)
     {
         unsigned  int v = *pa ^ *pb;
-        v = v - ((v >> 1) & 0x55555555);
+	dist += (__builtin_popcount(v)); 
+#ifdef FAST_HAMMING
+	if(dist > TH_HIGH) return dist ;
+#endif
+       /* v = v - ((v >> 1) & 0x55555555);
         v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
-        dist += (((v + (v >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
+        dist += (((v + (v >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;*/
+
     }
 
     return dist;
