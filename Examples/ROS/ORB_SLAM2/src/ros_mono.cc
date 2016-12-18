@@ -51,11 +51,14 @@ public:
     ros::Publisher map_publisher ;
     ros::Publisher keyframe_publisher ;
     std::thread * map_publisher_thread = NULL ;
+    std::string topic_id ;
+    ORB_SLAM2::System* mpSLAM;
 
-    ImageGrabber():mpSLAM(){
+
+    ImageGrabber(std::string topic):topic_id(topic), mpSLAM(){
     }
 
-    ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){
+    ImageGrabber(ORB_SLAM2::System* pSLAM, std::string topic):mpSLAM(pSLAM), topic_id(topic){
 	pSLAM->addMapObserver(this);
     }
 
@@ -64,14 +67,13 @@ public:
     	pSLAM->addMapObserver(this);
     }
 
+
     void GrabImage(const sensor_msgs::ImageConstPtr& msg);
     bool ResetSlam(std_srvs::Empty::Request  &req, std_srvs::Empty::Response &res ){
     	mpSLAM->Reset();
 	return true ;
     }
     void MapUpdated(ORB_SLAM2::Map * map);
-
-    ORB_SLAM2::System* mpSLAM;
 
     virtual void update(){
 	ORB_SLAM2::Map * sub = (ORB_SLAM2::Map *) this->getSubject();	
@@ -93,8 +95,9 @@ int main(int argc, char **argv)
 
     std::string map_topic_name ;
     std::string origin_frame_name = "initial_pose" ;
-    std::string image_topic_name = "/camera/image_raw" ;
-
+    std::string image_topic_name ;
+    std::string publish_topic_id ;
+    std::string publish_topic_path ;
 
     if(nodeHandler.getParam("voc_path", voc_path)){
    	ROS_INFO("Got 'voc_path' : %s",  voc_path.c_str());
@@ -108,17 +111,21 @@ int main(int argc, char **argv)
         ros::shutdown();
         return 1;
     }
+    nodeHandler.param<std::string>("image_topic", image_topic_name, "/camera/image_raw");
+    nodeHandler.param<std::string>("publish_topic", publish_topic_id, "camera");
+    publish_topic_path = "/"+publish_topic_id+"/";
 
     ROS_INFO("Launching orb_slam2 mono with %s %s ", voc_path.c_str(), config_path.c_str());
+    ROS_INFO("Image grabbed from : %s, publishing on id : %s ", image_topic_name.c_str(), publish_topic_id.c_str());
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM2::System SLAM(voc_path.c_str(),config_path.c_str(),ORB_SLAM2::System::MONOCULAR,false);
-    ImageGrabber igb;
-    igb.pose_publisher = nodeHandler.advertise<geometry_msgs::PoseStamped>("/camera/pose", 100);
-    igb.map_publisher = nodeHandler.advertise<sensor_msgs::PointCloud>("/camera/map", 100);
-    igb.keyframe_publisher = nodeHandler.advertise<sensor_msgs::Image>("/camera/keyframe", 100
+    ImageGrabber igb(publish_topic_id);
+    igb.pose_publisher = nodeHandler.advertise<geometry_msgs::PoseStamped>(publish_topic_path+"pose", 100);
+    igb.map_publisher = nodeHandler.advertise<sensor_msgs::PointCloud>(publish_topic_path+"map", 100);
+    igb.keyframe_publisher = nodeHandler.advertise<sensor_msgs::Image>(publish_topic_path+"keyframe", 100);
     igb.setSlam(&SLAM);
 
-    ros::Subscriber sub = nodeHandler.subscribe("/camera/image_raw", 1, &ImageGrabber::GrabImage,&igb);
+    ros::Subscriber sub = nodeHandler.subscribe(image_topic_name, 1, &ImageGrabber::GrabImage,&igb);
     ros::ServiceServer service = nodeHandler.advertiseService("reset", &ImageGrabber::ResetSlam, &igb);
 
     ros::spin();
@@ -157,7 +164,7 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
     	tf::Vector3 V(tcw.at<float>(0), tcw.at<float>(1), tcw.at<float>(2));
     	tf::Transform tfTcw(M,V);
     	static tf::TransformBroadcaster mTfBr;
-    	mTfBr.sendTransform(tf::StampedTransform(tfTcw,ros::Time::now(), "camera", "initial_pose"));
+    	mTfBr.sendTransform(tf::StampedTransform(tfTcw,ros::Time::now(), topic_id, "initial_pose"));
 	vector<float> q = ORB_SLAM2::Converter::toQuaternion(Rcw);
 	geometry_msgs::PoseStamped pose_stamped;
         pose_stamped.header.frame_id = "initial_pose"; //need to have reference frame to be passed as an argument
