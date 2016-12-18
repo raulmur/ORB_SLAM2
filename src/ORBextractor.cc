@@ -1359,8 +1359,8 @@ void ORBextractor::operator()(InputArray _image, InputArray _mask,
 	ComputePyramid(image);
 
 	vector<vector<KeyPoint> > allKeypoints;
-	//ComputeKeyPointsOctTreeNew(allKeypoints);
-	ComputeKeyPointsOld(allKeypoints);
+	ComputeKeyPointsOctTreeNew(allKeypoints);
+	//ComputeKeyPointsOld(allKeypoints);
 
 	Mat descriptors;
 
