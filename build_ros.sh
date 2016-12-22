@@ -1,4 +1,4 @@
-echo "Configuring and building Thirdparty/DBoW2 ..."
+echo "Building ROS nodes"
 
 cd Examples/ROS/ORB_SLAM2
 mkdir build
