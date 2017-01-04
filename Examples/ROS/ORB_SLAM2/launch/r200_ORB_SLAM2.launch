@@ -1,0 +1,23 @@
+<!-- Sample launch file for using RealSense R200 camera with default configurations -->
+<launch>
+  <arg name="camera"       default="camera" />
+  <arg name="camera_type"  default="R200" /> <!-- Type of camera -->
+  <arg name="serial_no"    default="" />
+  <arg name="usb_port_id"  default="" /> <!-- USB "Bus#-Port#" -->
+  <arg name="manager"      value="$(arg camera)_nodelet_manager" />
+
+  <group ns="$(arg camera)">
+    <node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen"/>
+    <remap from="/camera/color/image_raw" to="/camera/image_raw"/>
+    <include file="$(find realsense_camera)/launch/includes/nodelet.launch.xml">
+      <arg name="manager"      value="$(arg manager)" />
+      <arg name="camera"       value="$(arg camera)" />
+      <arg name="camera_type"  value="$(arg camera_type)" />
+      <arg name="serial_no"    value="$(arg serial_no)" />
+      <arg name="usb_port_id"  value="$(arg usb_port_id)" />
+    </include>
+  </group>
+
+<node name="Mono" pkg="ORB_SLAM2" type="Mono" output="screen" args="/home/chirag/vision/SLAM/src/ORB_SLAM2/Vocabulary/ORBvoc.txt /home/chirag/vision/SLAM/src/ORB_SLAM2/Data/RealSense.yaml">
+</node>
+</launch>
