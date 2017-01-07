@@ -45,7 +45,7 @@ namespace ORB_SLAM2
 
 Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(false), mbVO(false), mpORBVocabulary(pVoc),
-    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys),
+    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0)
 {
     // Load camera parameters from settings file
@@ -1503,11 +1503,14 @@ bool Tracking::Relocalization()
 
 void Tracking::Reset()
 {
-    mpViewer->RequestStop();
 
     cout << "System Reseting" << endl;
-    while(!mpViewer->isStopped())
-        usleep(3000);
+    if(mpViewer)
+    {
+        mpViewer->RequestStop();
+        while(!mpViewer->isStopped())
+            usleep(3000);
+    }
 
     // Reset Local Mapping
     cout << "Reseting Local Mapper...";
@@ -1542,7 +1545,8 @@ void Tracking::Reset()
     mlFrameTimes.clear();
     mlbLost.clear();
 
-    mpViewer->Release();
+    if(mpViewer)
+        mpViewer->Release();
 }
 
 void Tracking::ChangeCalibration(const string &strSettingPath)
