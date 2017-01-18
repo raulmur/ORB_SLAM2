@@ -31,8 +31,14 @@
 
 #include"../../../include/System.h"
 
+#include<ros/ros.h>
+#include "tf/transform_datatypes.h"
+#include <tf/transform_broadcaster.h>
+#include <DenseInput.h>
 using namespace std;
-
+cv::Mat pose;
+ros::Publisher pose_pub; 
+ros::Publisher pub_dense;
 class ImageGrabber
 {
 public:
@@ -62,7 +68,8 @@ int main(int argc, char **argv)
 
     ros::NodeHandle nodeHandler;
     ros::Subscriber sub = nodeHandler.subscribe("/camera/image_raw", 1, &ImageGrabber::GrabImage,&igb);
-
+    pose_pub = nodeHandler.advertise<geometry_msgs::PoseStamped>("/camera_pose",1);
+    pub_dense = nodeHandler.advertise<svo_msgs::DenseInput>("/ORB/DenseInput",1);
     ros::spin();
 
     // Stop all threads
@@ -90,7 +97,90 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         return;
     }
 
-    mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec());
+    pose = mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec());
+    if (pose.empty())
+        return;
+    //std::cout<<pose<<std::endl;
+    /* global left handed coordinate system */
+        static cv::Mat pose_prev = cv::Mat::eye(4,4, CV_32F);
+        static cv::Mat world_lh = cv::Mat::eye(4,4, CV_32F);
+        // matrix to flip signs of sinus in rotation matrix, not sure why we need to do that
+        static const cv::Mat flipSign = (cv::Mat_<float>(4,4) <<   1,-1,-1, 1,
+                                                               -1, 1,-1, 1,
+                                                               -1,-1, 1, 1,
+                                                                1, 1, 1, 1);
+    cv::Mat translation =  (pose * pose_prev.inv()).mul(flipSign);
+        world_lh = world_lh * translation;
+        pose_prev = pose.clone();
+    /* transform into global right handed coordinate system, publish in ROS*/
+    tf::Matrix3x3 cameraRotation_rh(  - world_lh.at<float>(0,0),   world_lh.at<float>(0,1),   world_lh.at<float>(0,2),
+                                  - world_lh.at<float>(1,0),   world_lh.at<float>(1,1),   world_lh.at<float>(1,2),
+                                    world_lh.at<float>(2,0), - world_lh.at<float>(2,1), - world_lh.at<float>(2,2));
+
+    tf::Vector3 cameraTranslation_rh( world_lh.at<float>(0,3),world_lh.at<float>(1,3), - world_lh.at<float>(2,3) );
+
+        //rotate 270deg about x and 270deg about x to get ENU: x forward, y left, z up
+        const tf::Matrix3x3 rotation270degXZ(   0, 1, 0,
+                                            0, 0, 1,
+                                    1, 0, 0);
+        static tf::TransformBroadcaster br;
+    tf::Matrix3x3 globalRotation_rh = cameraRotation_rh * rotation270degXZ;
+        tf::Vector3 globalTranslation_rh = cameraTranslation_rh * rotation270degXZ;
+        tf::Transform transform = tf::Transform(globalRotation_rh, globalTranslation_rh);
+        br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "camera_link", "camera_pose"));
+        geometry_msgs::PoseStamped _pose;
+        _pose.pose.position.x = transform.getOrigin().x();
+        _pose.pose.position.y = transform.getOrigin().y();
+        _pose.pose.position.z = transform.getOrigin().z();
+        _pose.pose.orientation.x = transform.getRotation().x();
+        _pose.pose.orientation.y = transform.getRotation().y();
+        _pose.pose.orientation.z = transform.getRotation().z();
+        _pose.pose.orientation.w = transform.getRotation().w();
+      
+        _pose.header.stamp = ros::Time::now();
+        _pose.header.frame_id = "camera_link";
+        pose_pub.publish(_pose);
+    //     ROS_INFO("REACHED 1");
+    double min_z = std::numeric_limits<double>::max();  
+    double max_z = std::numeric_limits<double>::min();  
+    mpSLAM->mpTracker->mCurrentFrame.getSceneDepth(mpSLAM->mpTracker->mCurrentFrame,max_z,min_z);
+    //ROS_INFO("REACHED 2");
+    //ROS_INFO("Max: %f Min: %f",max_z,min_z);
+
+    svo_msgs::DenseInput msg_dense;
+    msg_dense.header.stamp = ros::Time::now();
+    msg_dense.header.frame_id = "world";
+
+    cv_bridge::CvImage img_msg;  
+    img_msg.header.stamp=msg_dense.header.stamp;  
+    img_msg.header.frame_id="camera";  
+    img_msg.image=cv_ptr->image;  
+  
+    img_msg.encoding = sensor_msgs::image_encodings::MONO8;  
+    msg_dense.image = *img_msg.toImageMsg();
+
+    msg_dense.min_depth = (float)min_z;
+    msg_dense.max_depth = (float)max_z;
+
+
+    cv::Mat  TWC=mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();  
+    cv::Mat RWC=TWC.rowRange(0,3).colRange(0,3);  
+    cv::Mat tWC=TWC.rowRange(0,3).col(3);
+    Eigen::Matrix<double,3,3> M;
+
+    M << RWC.at<float>(0,0), RWC.at<float>(0,1), RWC.at<float>(0,2),
+         RWC.at<float>(1,0), RWC.at<float>(1,1), RWC.at<float>(1,2),
+         RWC.at<float>(2,0), RWC.at<float>(2,1), RWC.at<float>(2,2);
+    Eigen::Quaterniond q(M);
+    msg_dense.pose.position.x = tWC.at<float>(0,0);  
+    msg_dense.pose.position.y = tWC.at<float>(1,0);  
+    msg_dense.pose.position.z = tWC.at<float>(2,0);  
+    msg_dense.pose.orientation.x = q.x();
+    msg_dense.pose.orientation.y = q.y();
+    msg_dense.pose.orientation.z = q.z();
+    msg_dense.pose.orientation.w = q.w();
+    pub_dense.publish(msg_dense); 
+
 }
 
 

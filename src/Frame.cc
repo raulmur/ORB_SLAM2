@@ -22,7 +22,6 @@
 #include "Converter.h"
 #include "ORBmatcher.h"
 #include <thread>
-
 namespace ORB_SLAM2
 {
 
@@ -677,6 +676,42 @@ cv::Mat Frame::UnprojectStereo(const int &i)
     }
     else
         return cv::Mat();
+}
+
+bool Frame::getSceneDepth(Frame& frame, double& depth_max, double& depth_min)
+{
+  vector<double> depth_vec;
+  depth_vec.reserve(frame.mvpMapPoints.size());
+  depth_min = std::numeric_limits<double>::max();
+  for(auto it=frame.mvpMapPoints.begin(), ite=frame.mvpMapPoints.end(); it!=ite; ++it)
+  {
+    if((*it)!= NULL)
+    {
+      
+      cv::Mat mpPosHg = cv::Mat::ones(4,1,CV_32F);
+      cv::Mat mpPos = (*it)->GetWorldPos();
+      mpPosHg.at<double>(0) = mpPos.at<double>(0);
+      mpPosHg.at<double>(1) = mpPos.at<double>(1);
+      mpPosHg.at<double>(2) = mpPos.at<double>(2);
+      cv::Mat v3Temp = frame.mTcw*mpPosHg;
+      const double z = v3Temp.at<float>(2)/v3Temp.at<float>(3);
+      depth_vec.push_back(z);
+      // std::cout << "Mat: " << v3Temp << std::endl;
+      // std::cout << "at: " << v3Temp.at<float>(2) << std::endl;
+      // std::cout << "Z: " << z << std::endl;
+      depth_min = fmin(z, depth_min);
+      depth_max = fmax(z, depth_max);
+    }
+  }
+  if(depth_vec.empty())
+  {
+    //SLAM_WARN_STREAM("Cannot set scene depth. Frame has no point-observations!");
+    return false;
+  }
+  // std::cout << "Min: " << depth_min << std::endl;
+  // // depth_max = *std::max_element(depth_vec.begin(),depth_vec.end());
+  // std::cout << "Max: " << depth_max << std::endl;
+  return true;
 }
 
 } //namespace ORB_SLAM
