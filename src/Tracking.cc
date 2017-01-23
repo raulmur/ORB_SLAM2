@@ -700,6 +700,7 @@ bool Tracking::TrackReferenceKeyFrame() {
 	int nmatches = matcher.SearchByBoW(mpReferenceKF, mCurrentFrame,
 			vpMapPointMatches);
 
+	//15 seems arbitrary (since PnP requires 8-points)
 	if (nmatches < 15)
 		return false;
 
@@ -850,7 +851,7 @@ bool Tracking::TrackWithMotionModel() {
 bool Tracking::TrackLocalMap() {
 	// We have an estimation of the camera pose and some map points tracked in the frame.
 	// We retrieve the local map and try to find matches to points in the local map.
-
+	//What if the local Map is still processing a KeyFrame ?
 	UpdateLocalMap();
 
 	SearchLocalPoints();
@@ -892,16 +893,20 @@ bool Tracking::NeedNewKeyFrame() {
 		return false;
 
 	// If Local Mapping is freezed by a Loop Closure do not insert keyframes
-	if (mpLocalMapper->isStopped() || mpLocalMapper->stopRequested())
+	if (mpLocalMapper->isStopped() || mpLocalMapper->stopRequested()){
+		cout << "Failed to add keyframe" << endl ;
 		return false;
+	}
+
 
 	const int nKFs = mpMap->KeyFramesInMap();
 
 	// Do not insert keyframes if not enough frames have passed from last relocalisation
 	if (mCurrentFrame.mnId < mnLastRelocFrameId + mMaxFrames
-			&& nKFs > mMaxFrames)
+			&& nKFs > mMaxFrames){
+		cout << "Failed to add keyframe" << endl ;
 		return false;
-
+	}
 	// Tracked MapPoints in the reference keyframe
 	int nMinObs = 3;
 	if (nKFs <= 2)
@@ -969,8 +974,10 @@ bool Tracking::NeedNewKeyFrame() {
 }
 
 void Tracking::CreateNewKeyFrame() {
-	if (!mpLocalMapper->SetNotStop(true))
+	if (!mpLocalMapper->SetNotStop(true)){
+		cout << "Failed to add keyframe" << endl ;
 		return;
+	}
 
 	KeyFrame* pKF = new KeyFrame(mCurrentFrame, mpMap, mpKeyFrameDB);
 
