@@ -164,11 +164,11 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
     	tf::Vector3 V(tcw.at<float>(0), tcw.at<float>(1), tcw.at<float>(2));
     	tf::Transform tfTcw(M,V);
     	static tf::TransformBroadcaster mTfBr;
-    	mTfBr.sendTransform(tf::StampedTransform(tfTcw,cv_ptr->header.stamp, topic_id, "initial_pose"));
+    	mTfBr.sendTransform(tf::StampedTransform(tfTcw, ros::Time::now(), topic_id, "initial_pose"));
 	vector<float> q = ORB_SLAM2::Converter::toQuaternion(Rcw);
 	geometry_msgs::PoseStamped pose_stamped;
         pose_stamped.header.frame_id = "initial_pose"; //need to have reference frame to be passed as an argument
-        pose_stamped.header.stamp = cv_ptr->header.stamp ;
+        pose_stamped.header.stamp = ros::Time::now();
 
         pose_stamped.pose.orientation.x = q[0];
         pose_stamped.pose.orientation.y = q[1];
@@ -184,7 +184,6 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
 
 //Should be called outside the scope of ORB_SLAM2
 void ImageGrabber::MapUpdated(ORB_SLAM2::Map * map){
-	//ROS_INFO("Received map update !!!");
 	//TODO: implement new keypoints retrieval and publish a point cloud
 	sensor_msgs::PointCloud pcl_map;
 	pcl_map.header.frame_id = "initial_pose"; //need to have reference frame to be passed as an argument
