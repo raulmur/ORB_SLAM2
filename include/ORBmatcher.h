@@ -31,6 +31,9 @@
 #include"Frame.h"
 
 
+#define FAST_HAMMING
+
+
 namespace ORB_SLAM2
 {
 

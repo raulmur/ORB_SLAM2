@@ -24,6 +24,7 @@
 
 #include<string>
 #include<thread>
+#include <unistd.h>
 #include<opencv2/core/core.hpp>
 
 #include "Tracking.h"
@@ -114,6 +115,10 @@ public:
     // TODO: Save/Load functions
     // SaveMap(const string &filename);
     // LoadMap(const string &filename);
+
+    Tracking * getTracker(){
+	return mpTracker ;
+    }
 
 private:
 
