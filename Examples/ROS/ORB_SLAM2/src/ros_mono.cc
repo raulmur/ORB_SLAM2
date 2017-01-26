@@ -58,7 +58,7 @@ public:
     ImageGrabber(std::string topic):topic_id(topic), mpSLAM(){
     }
 
-    ImageGrabber(ORB_SLAM2::System* pSLAM, std::string topic):mpSLAM(pSLAM), topic_id(topic){
+    ImageGrabber(ORB_SLAM2::System* pSLAM, std::string topic):topic_id(topic), mpSLAM(pSLAM){
 	pSLAM->addMapObserver(this);
     }
 
@@ -74,6 +74,7 @@ public:
 	return true ;
     }
     void MapUpdated(ORB_SLAM2::Map * map);
+    void DrawKeypoints(cv::Mat & im) ;
 
     virtual void update(){
 	ORB_SLAM2::Map * sub = (ORB_SLAM2::Map *) this->getSubject();	
@@ -141,6 +142,69 @@ int main(int argc, char **argv)
     return 0;
 }
 
+
+
+void ImageGrabber::DrawKeypoints(cv::Mat & im){
+    vector<cv::KeyPoint> vCurrentKeys; // KeyPoints in current frame
+    vector<bool> vbVO, vbMap; // Tracked MapPoints in current frame
+    ORB_SLAM2::Tracking * pTracker = mpSLAM->getTracker();
+    vCurrentKeys=pTracker->mCurrentFrame.mvKeys;
+    unsigned int N = vCurrentKeys.size();
+vbVO.resize(N);
+vbMap.resize(N);
+    if(im.channels()<3) //this should be always true
+        cvtColor(im,im,CV_GRAY2BGR);
+	
+
+
+
+    if(pTracker->mState ==ORB_SLAM2::Tracking::OK) //TRACKING
+    {
+	for(unsigned int i=0;i<N;i++)
+	{
+		ORB_SLAM2::MapPoint* pMP = pTracker->mCurrentFrame.mvpMapPoints[i];
+		vbMap[i] = false ;
+		vbVO[i]=false;
+		if(pMP)
+		{
+			if(!pTracker->mCurrentFrame.mvbOutlier[i])
+			{
+			    if(pMP->Observations()>0)
+				vbMap[i]=true;
+			    else
+				vbVO[i]=true;
+			}
+		}
+	}
+        const float r = 5;
+        for(unsigned int i=0;i<N;i++)
+        {
+                if(vbVO[i] || vbMap[i])
+            {
+                cv::Point2f pt1,pt2;
+                pt1.x=vCurrentKeys[i].pt.x-r;
+                pt1.y=vCurrentKeys[i].pt.y-r;
+                pt2.x=vCurrentKeys[i].pt.x+r;
+                pt2.y=vCurrentKeys[i].pt.y+r;
+
+                // This is a match to a MapPoint in the map
+                if(vbMap[i])
+                {
+                    cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
+                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
+                }
+                else // This is match to a "visual odometry" MapPoint created in the last frame
+                {
+                    cv::rectangle(im,pt1,pt2,cv::Scalar(255,0,0));
+                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(255,0,0),-1);
+                }
+            }
+        }
+    }
+
+}
+
+
 void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
 {
     // Copy the ros image message to cv::Mat.
@@ -155,6 +219,8 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         return;
     }
     cv::Mat mTcw = mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec()); // cam to world expressed in world frame ?
+    cv::Mat overlayed = cv_ptr->image.clone();
+    DrawKeypoints(overlayed);
     if(!mTcw.empty()){
 	cv::Mat Rcw = mTcw.rowRange(0,3).colRange(0,3); //world to cam expressed in world frame ?
    	cv::Mat tcw = mTcw.rowRange(0,3).col(3); //world to cam expressed in world frame ?
@@ -180,6 +246,14 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         pose_stamped.pose.position.z = mTcw.at<float>(2, 3);
 	this->pose_publisher.publish(pose_stamped);
     }
+
+	cv_bridge::CvImage out_msg;
+	out_msg.header   = cv_ptr->header; // Same timestamp and tf frame as input image
+	out_msg.encoding = sensor_msgs::image_encodings::BGR8; // Or whatever
+	out_msg.image    = overlayed; // Your cv::Mat
+
+	keyframe_publisher.publish(out_msg.toImageMsg());
+
 }
 
 //Should be called outside the scope of ORB_SLAM2
