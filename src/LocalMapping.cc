@@ -103,48 +103,6 @@ void LocalMapping::Run() {
 	SetFinish();
 }
 
-void LocalMapping::RunOnce() {
-
-	mbFinished = false;
-
-	// Tracking will see that Local Mapping is busy
-	SetAcceptKeyFrames(false);
-
-	// Check if there are keyframes in the queue
-	if (CheckNewKeyFrames()) {
-		// BoW conversion and insertion in Map
-		ProcessNewKeyFrame();
-
-		// Check recent MapPoints
-		MapPointCulling();
-
-		// Triangulate new MapPoints
-		CreateNewMapPoints();
-
-		if (!CheckNewKeyFrames()) {
-			// Find more matches in neighbor keyframes and fuse point duplications
-			SearchInNeighbors();
-		}
-
-		mbAbortBA = false;
-
-		if (!CheckNewKeyFrames() && !stopRequested()) {
-			// Local BA
-			if (mpMap->KeyFramesInMap() > 2)
-				Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame, &mbAbortBA,
-						mpMap);
-
-			// Check redundant local Keyframes
-			KeyFrameCulling();
-		}
-
-		mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
-	}
-	ResetIfRequested();
-	// Tracking will see that Local Mapping is busy
-	SetAcceptKeyFrames(true);
-	mpMap->update();
-}
 
 void LocalMapping::InsertKeyFrame(KeyFrame *pKF) {
 	unique_lock<mutex> lock(mMutexNewKFs);
