@@ -46,6 +46,7 @@ ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/../../../
 ${PROJECT_SOURCE_DIR}/../../../include
 ${Pangolin_INCLUDE_DIRS}
+${EIGEN3_INCLUDE_DIR}
 )
 
 set(LIBS 
