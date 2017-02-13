@@ -86,21 +86,21 @@ int main(int argc, char **argv)
 void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
 {
     // Copy the ros image message to cv::Mat.
-	cv_bridge::CvImageConstPtr cv_ptr;
-	try
-	{
-		cv_ptr = cv_bridge::toCvShare(msg);
-	}
-	catch (cv_bridge::Exception& e)
-	{
-		ROS_ERROR("cv_bridge exception: %s", e.what());
-		return;
-	}
+    cv_bridge::CvImageConstPtr cv_ptr;
+    try
+    {
+        cv_ptr = cv_bridge::toCvShare(msg,sensor_msgs::image_encodings::MONO8);
+    }
+    catch (cv_bridge::Exception& e)
+    {
+        ROS_ERROR("cv_bridge exception: %s", e.what());
+        return;
+    }
 
-	cv::Mat pose = mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec());
-	if (pose.empty())
-		return;
-	//std::cout<<pose<<std::endl;
+    cv::Mat pose = mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec());
+    if (pose.empty())
+        return;
+    //std::cout<<pose<<std::endl;
 
     /* global left handed coordinate system */
 	// static cv::Mat pose_prev = cv::Mat::eye(4,4, CV_32F);
