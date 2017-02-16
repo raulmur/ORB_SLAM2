@@ -39,6 +39,10 @@ using namespace std;
 
 ros::Publisher pose_pub; 
 ros::Publisher pub_dense;
+double old_max;
+double old_min;
+bool init = false;
+
 class ImageGrabber
 {
 public:
@@ -86,20 +90,20 @@ int main(int argc, char **argv)
 void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
 {
     // Copy the ros image message to cv::Mat.
-    cv_bridge::CvImageConstPtr cv_ptr;
-    try
-    {
-        cv_ptr = cv_bridge::toCvShare(msg,sensor_msgs::image_encodings::MONO8);
-    }
-    catch (cv_bridge::Exception& e)
-    {
-        ROS_ERROR("cv_bridge exception: %s", e.what());
-        return;
-    }
+	cv_bridge::CvImageConstPtr cv_ptr;
+	try
+	{
+		cv_ptr = cv_bridge::toCvShare(msg,sensor_msgs::image_encodings::MONO8);
+	}
+	catch (cv_bridge::Exception& e)
+	{
+		ROS_ERROR("cv_bridge exception: %s", e.what());
+		return;
+	}
 
-    cv::Mat pose = mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec());
-    if (pose.empty())
-        return;
+	cv::Mat pose = mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec());
+	if (pose.empty())
+		return;
     //std::cout<<pose<<std::endl;
 
     /* global left handed coordinate system */
@@ -153,29 +157,8 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
 	// _pose.header.frame_id = "camera_link";
 	// pose_pub.publish(_pose);
     //     ROS_INFO("REACHED 1");
-	double min_z = std::numeric_limits<double>::max();  
-	double max_z = std::numeric_limits<double>::min();  
-	mpSLAM->mpTracker->mCurrentFrame.getSceneDepth(mpSLAM->mpTracker->mCurrentFrame,max_z,min_z);
-    //ROS_INFO("REACHED 2");
-    //ROS_INFO("Max: %f Min: %f",max_z,min_z);
-
-	svo_msgs::DenseInput msg_dense;
-	msg_dense.header.stamp = ros::Time::now();
-	msg_dense.header.frame_id = "world";
-
-	cv_bridge::CvImage img_msg;  
-	img_msg.header.stamp=msg_dense.header.stamp;  
-	img_msg.header.frame_id="camera";  
-	img_msg.image=cv_ptr->image;  
-
-	img_msg.encoding = sensor_msgs::image_encodings::MONO8;  
-	msg_dense.image = *img_msg.toImageMsg();
-
-	msg_dense.min_depth = (float)min_z;
-	msg_dense.max_depth = (float)max_z;
-
-
-	cv::Mat  TWC=mpSLAM->mpTracker->mCurrentFrame.mTcw;  
+	
+	cv::Mat  TWC=mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();  
 	cv::Mat RWC= TWC.rowRange(0,3).colRange(0,3);  
 	cv::Mat tWC= TWC.rowRange(0,3).col(3);
 
@@ -185,14 +168,6 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
 	tf::Vector3 V(tWC.at<float>(0), tWC.at<float>(1), tWC.at<float>(2));
 	tf::Quaternion q;
 	M.getRotation(q);
-	msg_dense.pose.position.x = tWC.at<float>(0,0);  
-	msg_dense.pose.position.y = tWC.at<float>(1,0);  
-	msg_dense.pose.position.z = tWC.at<float>(2,0);  
-	msg_dense.pose.orientation.x = q.x();
-	msg_dense.pose.orientation.y = q.y();
-	msg_dense.pose.orientation.z = q.z();
-	msg_dense.pose.orientation.w = q.w();
-	pub_dense.publish(msg_dense); 
 
 	static tf::TransformBroadcaster br;
 	tf::Transform transform = tf::Transform(M, V);
@@ -210,6 +185,46 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
 	_pose.header.stamp = ros::Time::now();
 	_pose.header.frame_id = "init_link";
 	pose_pub.publish(_pose);
+
+	double min_z = std::numeric_limits<double>::max();  
+	double max_z = std::numeric_limits<double>::min();  
+	bool flag = mpSLAM->mpTracker->mCurrentFrame.getSceneDepth(mpSLAM->mpTracker->mCurrentFrame,max_z,min_z);
+    //ROS_INFO("REACHED 2");
+    //ROS_INFO("Max: %f Min: %f",max_z,min_z);
+	if(flag)
+	{
+		old_min = min_z;
+		old_max = max_z;
+		init = true;
+
+	}
+	if(init)
+	{
+		svo_msgs::DenseInput msg_dense;
+		msg_dense.header.stamp = ros::Time::now();
+		msg_dense.header.frame_id = "world";
+
+		cv_bridge::CvImage img_msg;  
+		img_msg.header.stamp=msg_dense.header.stamp;  
+		img_msg.header.frame_id="camera";  
+		img_msg.image=cv_ptr->image;  
+
+		img_msg.encoding = sensor_msgs::image_encodings::MONO8;  
+		msg_dense.image = *img_msg.toImageMsg();
+		
+		msg_dense.min_depth = (float)old_min;
+		msg_dense.max_depth = (float)old_max;
+
+		msg_dense.pose.position.x = tWC.at<float>(0,0);  
+		msg_dense.pose.position.y = tWC.at<float>(1,0);  
+		msg_dense.pose.position.z = tWC.at<float>(2,0);  
+		msg_dense.pose.orientation.x = q.x();
+		msg_dense.pose.orientation.y = q.y();
+		msg_dense.pose.orientation.z = q.z();
+		msg_dense.pose.orientation.w = q.w();
+		pub_dense.publish(msg_dense); 
+
+	}
 
 }
 
