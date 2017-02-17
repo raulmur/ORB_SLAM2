@@ -696,16 +696,17 @@ namespace ORB_SLAM2
                         mpPosHg.at<double>(1) = mpPos.at<double>(1);
                         mpPosHg.at<double>(2) = mpPos.at<double>(2);
                         cv::Mat v3Temp = mpPosHg;
+                        //std::cout << "Mat: " << mpPos.at<float>(0) << " " << mpPos.at<float>(1) << " " << mpPos.at<float>(2) << std::endl;
                         const double z = v3Temp.at<float>(2);
                         if (z > 0)
                         {
                             depth_vec.push_back(z);
                             //std::cout << "Mat: " << mpPos << std::endl;
                             // std::cout << "at: " << v3Temp.at<float>(2) << std::endl;
-                            std::cout << "Z: " << z << std::endl;
+                            //std::cout << "Z: " << z << std::endl;
                             depth_min = fmin(z, depth_min);
                             //depth_min = fmax(0, depth_min);
-                            //depth_max = fmax(z, depth_max);
+                            depth_max = fmax(z, depth_max);
                         }
                     }
 
@@ -713,8 +714,8 @@ namespace ORB_SLAM2
                     {
                         return false;
                     }
-                    std::nth_element(depth_vec.begin(), depth_vec.begin() + depth_vec.size()/2, depth_vec.end());
-                    depth_max = depth_vec[depth_vec.size()/2];
+                    // std::nth_element(depth_vec.begin(), depth_vec.begin() + depth_vec.size()/2, depth_vec.end());
+                    // depth_max = depth_vec[depth_vec.size()/2];
                 }
                 return true;
             }
