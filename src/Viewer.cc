@@ -26,8 +26,8 @@
 namespace ORB_SLAM2
 {
 
-Viewer::Viewer(System* pSystem, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, const string &strSettingPath):
-    mpSystem(pSystem), mpFrameDrawer(pFrameDrawer),mpMapDrawer(pMapDrawer), mpTracker(pTracking),
+Viewer::Viewer(System* pSystem, FrameDrawer *pFrameDrawer,FrameDrawer *pFrameDrawer_1, MapDrawer *pMapDrawer, Tracking *pTracking,Tracking *pTracking_1, const string &strSettingPath):
+    mpSystem(pSystem), mpFrameDrawer(pFrameDrawer),mpFrameDrawer_1(pFrameDrawer_1),mpMapDrawer(pMapDrawer), mpTracker(pTracking),mpTracker_1(pTracking_1),
     mbFinishRequested(false), mbFinished(true), mbStopped(true), mbStopRequested(false)
 {
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
@@ -88,6 +88,7 @@ void Viewer::Run()
     Twc.SetIdentity();
 
     cv::namedWindow("ORB-SLAM2: Current Frame");
+    cv::namedWindow("ORB-SLAM2: Current Frame 1");
 
     bool bFollow = true;
     bool bLocalizationMode = false;
@@ -135,7 +136,9 @@ void Viewer::Run()
         pangolin::FinishFrame();
 
         cv::Mat im = mpFrameDrawer->DrawFrame();
+        cv::Mat im_1 = mpFrameDrawer_1->DrawFrame();
         cv::imshow("ORB-SLAM2: Current Frame",im);
+        cv::imshow("ORB-SLAM2: Current Frame 1",im_1);
         cv::waitKey(mT);
 
         if(menuReset)

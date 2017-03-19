@@ -31,6 +31,8 @@
 #include <message_filters/sync_policies/approximate_time.h>
 
 #include<opencv2/core/core.hpp>
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 #include"../../../include/System.h"
 
@@ -58,7 +60,7 @@ int main(int argc, char **argv)
         cerr << endl << "Usage: rosrun ORB_SLAM2 Stereo path_to_vocabulary path_to_settings do_rectify" << endl;
         ros::shutdown();
         return 1;
-    }    
+    }
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
@@ -69,7 +71,7 @@ int main(int argc, char **argv)
 	ss >> boolalpha >> igb.do_rectify;
 
     if(igb.do_rectify)
-    {      
+    {
         // Load settings related to stereo calibration
         cv::FileStorage fsSettings(argv[2], cv::FileStorage::READ);
         if(!fsSettings.isOpened())
@@ -164,9 +166,10 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     }
     else
     {
-        mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
+        cv::Mat imLeft, imRight;
+        cv::resize(cv_ptrLeft->image, imLeft, cv::Size(672, 376), (0, 0), (0, 0), cv::INTER_LINEAR);
+        cv::resize(cv_ptrRight->image, imRight, cv::Size(672, 376), (0, 0), (0, 0), cv::INTER_LINEAR);
+        mpSLAM->TrackStereo(imLeft,imRight,cv_ptrLeft->header.stamp.toSec());
     }
 
 }
-
-

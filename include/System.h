@@ -122,6 +122,18 @@ public:
     std::vector<MapPoint*> GetTrackedMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
+
+    //--------------------------------------------------------------------------
+    // Tracker. It receives a frame and computes the associated camera pose.
+    // It also decides when to insert a new keyframe, create some new MapPoints and
+    // performs relocalization if tracking fails.
+    Tracking* mpTracker;
+    Tracking* mpTracker_1;
+
+
+
+    //--------------------------------------------------------------------------
+
 private:
 
     // Input sensor
@@ -136,10 +148,6 @@ private:
     // Map structure that stores the pointers to all KeyFrames and MapPoints.
     Map* mpMap;
 
-    // Tracker. It receives a frame and computes the associated camera pose.
-    // It also decides when to insert a new keyframe, create some new MapPoints and
-    // performs relocalization if tracking fails.
-    Tracking* mpTracker;
 
     // Local Mapper. It manages the local map and performs local bundle adjustment.
     LocalMapping* mpLocalMapper;
