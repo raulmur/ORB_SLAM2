@@ -477,7 +477,8 @@ void LocalMapping::SearchInNeighbors()
             vpTargetKFs.push_back(pKFi2);
         }
     }
-
+    sort(vpTargetKFs.begin(), vpTargetKFs.end());
+    vpTargetKFs.erase(unique(vpTargetKFs.begin(), vpTargetKFs.end()), vpTargetKFs.end());
 
     // Search matches by projection from current KF in target KFs
     ORBmatcher matcher;
