@@ -9,10 +9,10 @@ swig_output_dir=$orbslampy_root/src
 cmake_args=4
 
 # run swig
-swig -Wall -python -c++ -debug-classes $swig_files
+# swig -Wall -python -I/usr/local/include/ -c++ -debug-classes $swig_files
 
 # need to copy files to theyre respective places
-mv $swig_interface_root/orbslampy_wrap.cxx $swig_output_dir
+# mv $swig_interface_root/orbslampy_wrap.cxx $swig_output_dir
 
 # create devel directory
 mkdir -p devel/cmake/modules
@@ -32,5 +32,3 @@ cd build
 cmake .. # $cmake_args
 make
 cd ..
-
-mv $swig_interface_root/orbslampy.py devel/lib/
