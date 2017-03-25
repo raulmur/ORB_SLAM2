@@ -1,0 +1,10 @@
+# build directory
+build/
+
+# devel directory
+devel/
+
+# libraries
+*.lib
+*.so
+
