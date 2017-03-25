@@ -8,3 +8,5 @@ devel/
 *.lib
 *.so
 
+# ORBvoc vocab file
+ORBvoc.txt
