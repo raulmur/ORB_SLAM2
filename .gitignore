@@ -10,3 +10,11 @@ devel/
 
 # ORBvoc vocab file
 ORBvoc.txt
+
+# IDE files
+.idea/
+*.iml
+
+# Java build files
+target/
+*.class
