@@ -17,7 +17,7 @@ list( APPEND CMAKE_MODULE_PATH ${CMAKE_GLOBAL_ROOT}/modules )
 add_definitions("-w")
 
 function(set_vars_and_add_subdirectory SRC_ROOT PROJECT_NAME)
-    message( "BUILDING PROJECT: ${PROJECT_NAME}" )
+    #message( "BUILDING PROJECT: ${PROJECT_NAME}" )
     make_directory( ${GLOBAL_BIN_ROOT}/${PROJECT_NAME} )
     set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${GLOBAL_BIN_ROOT}/${PROJECT_NAME} )
     add_subdirectory( ${SRC_ROOT} )
