@@ -5,7 +5,7 @@
 #include "_orbslampy/support_functions.h"
 #include "_orbslampy/orbslammer.h"
 
-OrbSlammer::OrbSlammer(char* vocabFilePath, char* settingsFilePath,
+OrbSlammer::OrbSlammer(const std::string& vocabFilePath, const std::string& settingsFilePath,
                        SensorType sensor, bool useViewer) : _is_running(true),
     _slam_system(vocabFilePath, settingsFilePath, get_raw_sensor_type(sensor), useViewer)
 {
@@ -80,12 +80,21 @@ int OrbSlammer::GetTrackingState()
     return this->_slam_system.GetTrackingState();
 }
 
-std::vector<ORB_SLAM2::MapPoint*> OrbSlammer::GetTrackedMapPoints()
+std::vector<cv::Mat> OrbSlammer::GetMostRecentPointCloud()
 {
-    return this->_slam_system.GetTrackedMapPoints();
+    std::vector<cv::Mat> point_cloud;
+    return point_cloud;
+    //return PyVector<cv::Mat>(point_cloud);
 }
 
-std::vector<cv::KeyPoint> OrbSlammer::GetTrackedKeyPointsUn()
+PyVector<ORB_SLAM2::MapPoint*> OrbSlammer::GetTrackedMapPoints()
 {
-    return this->_slam_system.GetTrackedKeyPointsUn();
+    std::vector<ORB_SLAM2::MapPoint*> v = this->_slam_system.GetTrackedMapPoints();
+    return PyVector<ORB_SLAM2::MapPoint*>(v);
+}
+
+PyVector<cv::KeyPoint> OrbSlammer::GetTrackedKeyPointsUn()
+{
+    std::vector<cv::KeyPoint> v = this->_slam_system.GetTrackedKeyPointsUn();
+    return PyVector<cv::KeyPoint>(v);
 }
