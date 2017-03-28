@@ -8,6 +8,7 @@
 #include <ORB_SLAM2/System.h> // ORB_SLAM2 header
 
 // C++ PROJECT INCLUDES
+#include "_orbslampy/pyvector.h"
 
 enum SensorType
 {
@@ -19,8 +20,8 @@ enum SensorType
 class OrbSlammer
 {
 public:
-    OrbSlammer(char* vocabFilePath, char* settingsFilePath,
-               SensorType sensor, bool useViewer=true);
+    OrbSlammer(const std::string& vocabFilePath, const std::string& settingsFilePath,
+               SensorType sensor, bool useViewer=false);
 
     virtual ~OrbSlammer();
 
@@ -48,9 +49,11 @@ public:
 
     int GetTrackingState();
 
-    std::vector<ORB_SLAM2::MapPoint*> GetTrackedMapPoints();
+    std::vector<cv::Mat> GetMostRecentPointCloud();
 
-    std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
+    PyVector<ORB_SLAM2::MapPoint*> GetTrackedMapPoints();
+
+    PyVector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
 private:
 

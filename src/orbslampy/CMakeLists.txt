@@ -63,7 +63,7 @@ foreach(_include_directory IN LISTS _include_directories)
 endforeach()
 
 macro( SWIG_BUILD name SRCS PRIV_HDRS PUB_HDRS)
-    execute_process(COMMAND "${SWIG_EXECUTABLE}" "-python" "-c++"
+    execute_process(COMMAND "${SWIG_EXECUTABLE}" "-python" "-c++" "-debug-classes"
         ${CMAKE_SWIG_FLAGS} "-MM" "${CMAKE_CURRENT_SOURCE_DIR}/swig/${name}.i"
         OUTPUT_VARIABLE ${name}_DEPENDENCIES)
 
