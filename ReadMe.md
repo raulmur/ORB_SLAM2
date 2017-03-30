@@ -12,3 +12,5 @@ Please read the ReadMe in /src/ORB_SLAM2 for additional dependencies imposed by 
 To build orbslampy, in this directory, open a shell and type "./build.bash"
 The binaries will be in the devel/ directory
 
+Something to note is that c++ std::vectors retain their member function names in Python.
+So, calling len(<...>) will have to be replaced with <...>.size() and so forth.
