@@ -51,14 +51,13 @@ public:
 
     std::vector<cv::Mat> GetMostRecentPointCloud();
 
-    PyVector<ORB_SLAM2::MapPoint*> GetTrackedMapPoints();
-
-    PyVector<cv::KeyPoint> GetTrackedKeyPointsUn();
+    std::vector<cv::Mat> GetWorldPointCloud();
 
 private:
 
     bool                _is_running;
     ORB_SLAM2::System   _slam_system;
+    unsigned int        _num_tracked_points;
 
 };
 
