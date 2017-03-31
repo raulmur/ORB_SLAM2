@@ -29,6 +29,8 @@ global_parameters = None
 global_connection = None
 global_channel = None
 global_subscriber_queue_name = "filtered_camera_data"
+global_point_cloud_name = "point_cloud"
+global_pose_name = "pose"
 
 
 def on_connected(connection):
@@ -36,9 +38,11 @@ def on_connected(connection):
 
 
 def on_channel_open(new_channel):
-    global global_channel
+    global global_channel, global_subscriber_queue_name, global_point_cloud_name,\
+           global_pose_name
     global_channel = new_channel
-    global_channel.exchange_declare(exchange="point_cloud", type="fanout")
+    global_channel.exchange_declare(exchange=global_point_cloud_name, type="fanout")
+    global_channel.exchange_declare(exchange=global_pose_name, type="fanout")
     global_channel.queue_declare(queue=global_subscriber_queue_name, durable=True,
                                  exclusive=False, auto_delete=False, callback=on_queue_declared)
 
@@ -78,14 +82,14 @@ def perform_orbslam_with_message(message_body):
     if global_orbslammer_type == orbslampy.STEREO
         image_left = None
         image_right = None
-        global_orbslammer.TrackStereo(image_left, image_right, timestamp)
+        return global_orbslammer.TrackStereo(image_left, image_right, timestamp)
     elif global_orbslammer_type == orbslampy.MONOCULAR:
         image = None
-        global_orbslammer.TrackMonocular(image, timestamp)
+        return global_orbslammer.TrackMonocular(image, timestamp)
     elif global_orbslammer_type == orbslampy.RGBD:
         image = None
         depth_map = None
-        global_orbslammer.TrackRGBD(image, depth_map, timestamp)
+        return global_orbslammer.TrackRGBD(image, depth_map, timestamp)
     else:
         print("unknown orbslampy type: %s" % global_orbslammer_type)
         sys.exit(1)
@@ -106,13 +110,21 @@ def convert_point_cloud_to_message(point_cloud):
     return
 
 
-def slam_callback(ch, method, properties, body):
-    perform_orbslam_with_message(body)
+def convert_pose_to_message(pose):
+    # convert a matrix to a pose message and return bytes
+    pass
 
-    global global_orbslammer, global_channel
+
+def slam_callback(ch, method, properties, body):
+    current_pose = perform_orbslam_with_message(body)
+
+    global global_orbslammer, global_channel, global_point_cloud_name,\
+           global_pose_name
+    global_channel.basic_publish(exchange=global_pose_name, routing_key="",
+                                 body=convert_pose_to_message(current_pose))
     point_cloud = global_orbslammer.GetMostRecentPointCloud()
     if (point_cloud.size() > 0):
-        global_channel.basic_publish(exchange="PointCloud", routing_key="",
+        global_channel.basic_publish(exchange=global_point_cloud_name, routing_key="",
                                      body=convert_point_cloud_to_message(point_cloud))
 
 
