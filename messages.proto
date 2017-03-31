@@ -1,0 +1,221 @@
+syntax = "proto2";
+
+package com.cwrubotix.glennifer;
+
+/**
+ * Message types from the schemas document
+ *
+ * Each comment before the message specifies what AMQP queue topics the message is used for.
+ */
+
+// Used inside other messages only
+message UnixTime {
+	required uint64 time_int = 1;
+	required float time_frac = 2;
+}
+
+// sensor.locomotion.front_left.wheel_rpm
+// sensor.locomotion.front_right.wheel_rpm
+// sensor.locomotion.back_left.wheel_rpm
+// sensor.locomotion.back_right.wheel_rpm
+// sensor.excavation.bucket_conveyor_rpm
+message RpmUpdate {
+	required float rpm = 1;
+	required UnixTime timestamp = 2;
+}
+
+// sensor.excavation.bucket_conveyor_translation_displacement
+message DisplacementUpdate {
+	required float displacement = 1;
+	required UnixTime timestamp = 2;
+}
+
+// sensor.locomotion.front_left.wheel_pod_pos
+// sensor.locomotion.front_right.wheel_pod_pos
+// sensor.locomotion.back_left.wheel_pod_pos
+// sensor.locomotion.back_right.wheel_pod_pos
+// sensor.excavation.arm_pos
+// sensor.deposition.dump_pos
+message PositionUpdate {
+	required float position = 1;
+	required UnixTime timestamp = 2;
+}
+
+// sensor.locomotion.front_left.wheel_pod_limit_extended
+// sensor.locomotion.front_right.wheel_pod_limit_extended
+// sensor.locomotion.back_left.wheel_pod_limit_extended
+// sensor.locomotion.back_right.wheel_pod_limit_extended
+// sensor.locomotion.front_left.wheel_pod_limit_retracted
+// sensor.locomotion.front_right.wheel_pod_limit_retracted
+// sensor.locomotion.back_left.wheel_pod_limit_retracted
+// sensor.locomotion.back_right.wheel_pod_limit_retracted
+// sensor.excavation.arm_limit_extended
+// sensor.excavation.arm_limit_retracted
+// sensor.excavation.bucket_conveyor_translation_limit_extended
+// sensor.excavation.bucket_conveyor_translation_limit_retracted
+// sensor.deposition.dump_limit_extended
+// sensor.deposition.dump_limit_retracted
+message LimitUpdate {
+	required bool pressed = 1;
+	required UnixTime timestamp = 2;
+}
+
+message ImuUpdate {
+	required float orientation = 1;
+	required UnixTime timestamp = 2;
+}
+
+// sensor.deposition.load.front_left
+// sensor.deposition.load.front_right
+// sensor.deposition.load.back_left
+// sensor.deposition.load.back_right
+message LoadUpdate {
+	required float load = 1;
+	required UnixTime timestamp = 2;
+}
+
+message Fault {
+	required uint32 fault_code = 1;
+	required UnixTime timestamp = 2;
+	repeated uint32 params = 3;
+}
+
+message Adjustment {
+	optional Fault source_fault = 1;
+	required uint32 adjustment_code = 2;
+	required UnixTime timestamp = 3;
+	repeated uint32 params = 4;
+}
+
+// motorcontrol.locomotion.front_left.wheel_rpm
+// motorcontrol.locomotion.front_right.wheel_rpm
+// motorcontrol.locomotion.back_left.wheel_rpm
+// motorcontrol.locomotion.back_right.wheel_rpm
+// motorcontrol.excavation.bucket_conveyor_rpm
+// motorcontrol.deposition.conveyor_rpm
+message SpeedContolCommand {
+	required float rpm = 1;
+	required float timeout = 2;
+}
+
+// motorcontrol.locomotion.front_left.wheel_pod_pos
+// motorcontrol.locomotion.front_right.wheel_pod_pos
+// motorcontrol.locomotion.back_left.wheel_pod_pos
+// motorcontrol.locomotion.back_right.wheel_pod_pos
+// motorcontrol.excavation.arm_pos
+// motorcontrol.excavation.conveyor_translation_displacement
+// motorcontrol.deposition.dump_pos
+message PositionContolCommand {
+	required float position = 1;
+	required float timeout = 2;
+}
+
+// subsyscommand.locomotion.straight
+message LocomotionControlCommandStraight {
+	required float speed = 1;
+	required float timeout = 2;
+}
+
+// subsyscommand.locomotion.strafe
+message LocomotionControlCommandStrafe {
+	required float speed = 1;
+	required float timeout = 2;
+}
+
+// subsyscommand.locomotion.turn
+message LocomotionControlCommandTurn {
+	required float speed = 1;
+	required float timeout = 2;
+}
+
+// subsyscommand.locomotion.configure
+message LocomotionControlCommandConfigure {
+	enum Configuration {
+		STRAIGHT_CONFIG = 1;
+		STRAFE_CONFIG = 2;
+		TURN_CONFIG = 3;
+	}
+	required Configuration target = 1;
+	required float power = 2;
+	required float timeout = 3;
+}
+
+// subsyscommand.excavation.position_arm
+message ExcavationControlCommandPositionArm {
+	optional float position = 1;
+	optional float power = 2;
+	required float timeout = 3;
+}
+
+// subsyscommand.excavation.position_translation
+message ExcavationControlCommandPositionTranslation {
+	optional float position = 1;
+	optional float power = 2;
+	required float timeout = 3;
+}
+
+// subsyscommand.excavation.move_bucket_conveyor
+message ExcavationControlCommandMoveBucketConveyor {
+	optional float speed = 1;
+	required float timeout = 2;
+}
+
+// subsyscommand.deposition.position_dump
+message DepositionControlCommandPositionDump {
+	optional float position = 1;
+	optional float power = 2;
+	required float timeout = 3;
+}
+
+// subsyscommand.deposition.move_conveyor
+message DepositionControlCommandMoveConveyor {
+	optional float speed = 1;
+	required float timeout = 2;
+}
+
+// state.locomotion.subscribe
+message LocomotionStateSubscribe {
+	required string replyKey = 1;
+	required float interval = 2;
+	optional UnixTime startTime = 3;
+}
+
+message LocomotionState {
+	enum Configuration {
+		INTERMEDIATE_CONFIG = 0;
+		STRAIGHT_CONFIG = 1;
+		STRAFE_CONFIG = 2;
+		TURN_CONFIG = 3;
+	}
+	required Configuration config = 1;
+	required float speed = 2;
+	required UnixTime timestamp = 3;
+}
+
+// state.excavation.subscribe
+message ExcavationStateSubscribe {
+	required string replyKey = 1;
+	required float interval = 2;
+	optional UnixTime startTime = 3;
+}
+
+message ExcavationState { }
+
+// state.deposition.subscribe
+message DepositionStateSubscribe {
+	required string replyKey = 1;
+	required float interval = 2;
+	optional UnixTime startTime = 3;
+}
+
+message DepositionState { }
+
+// pointcloudupdate
+message PointCloud {
+    message Point {
+	    required float x = 1;
+		required float y = 2;
+		required float z = 3;
+	}
+    repeated Point points = 1;
+}
