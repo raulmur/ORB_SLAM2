@@ -219,3 +219,13 @@ message PointCloud {
 	}
     repeated Point points = 1;
 }
+
+// pose update
+message Pose {
+    required float x = 1;
+    required float y = 2;
+    required float z = 3;
+    required float yaw = 1;
+    required float pitch = 2;
+    required float roll = 3;
+}
