@@ -20,6 +20,8 @@ mkdir -p devel/include
 mkdir -p devel/lib
 mkdir -p devel/bin
 
+protoc -I=. --python_out=./devel ./messages.proto
+
 # create build directory
 mkdir build
 cd build

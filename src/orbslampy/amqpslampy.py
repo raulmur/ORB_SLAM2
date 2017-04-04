@@ -1,4 +1,6 @@
 # SYSTEM IMPORTS
+import cv2
+import numpy
 import os
 import pika
 import sys
@@ -13,6 +15,7 @@ if orbslampy_dir not in sys.path:
 
 # PYTHON PROJECT IMPORTS
 import orbslampy
+from messages_pb2 import *
 
 
 """
@@ -31,6 +34,10 @@ global_channel = None
 global_subscriber_queue_name = "filtered_camera_data"
 global_point_cloud_name = "point_cloud"
 global_pose_name = "pose"
+global_pose_f_name = "poses.txt"
+global_pose_fp = None
+global_point_cloud_f_name = "point_clouds.txt"
+global_point_cloud_fp = None
 
 
 def on_connected(connection):
@@ -75,65 +82,87 @@ def parse_cmd_line(commandLine):
     return (parsed_cmd_methods, parsed_cmd_values)
 
 
+def convert_protobuf_matrix_to_cv(protobuf_matrix):
+    return orbslampy.Mat.from_array(numpy.array(protobuf_matrix.data, dtype="float")
+                                         .reshape(protobuf_matrix.rows, protobuf_matrix.cols))
+
+
 def perform_orbslam_with_message(message_body):
     # this needs to call orbslam with the message depending on the type of camera used
-    timestamp = None
+    parsed_msg = None
     global global_orbslammer_type, global_orbslammer
-    if global_orbslammer_type == orbslampy.STEREO
-        image_left = None
-        image_right = None
-        return global_orbslammer.TrackStereo(image_left, image_right, timestamp)
+    if global_orbslammer_type == orbslampy.STEREO:
+        parsed_msg = StereoCameraFeed()
+        parsed_msg.ParseFromString(message_body)
+        image_left = convert_protobuf_matrix_to_cv(parsed_msg.image_left)
+        image_right = convert_protobuf_matrix_to_cv(parsed_msg.image_right)
+        return global_orbslammer.TrackStereo(image_left, image_right, parsed_msg.timestamp)
     elif global_orbslammer_type == orbslampy.MONOCULAR:
-        image = None
-        return global_orbslammer.TrackMonocular(image, timestamp)
+        parsed_msg = MonocularCameraFeed()
+        parsed_msg.ParseFromString(message_body)
+        image = convert_protobuf_matrix_to_cv(parsed_msg.image)
+        return global_orbslammer.TrackMonocular(image, parsed_msg.timestamp)
     elif global_orbslammer_type == orbslampy.RGBD:
-        image = None
-        depth_map = None
-        return global_orbslammer.TrackRGBD(image, depth_map, timestamp)
+        parsed_msg = RGBDCameraFeed()
+        parsed_msg.ParseFromString(message_body)
+        image = convert_protobuf_matrix_to_cv(parsed_msg.image)
+        depth_map = convert_protobuf_matrix_to_cv(parsed_msg.depth_map)
+        return global_orbslammer.TrackRGBD(image, depth_map, parsed_msg.timestamp)
     else:
         print("unknown orbslampy type: %s" % global_orbslammer_type)
         sys.exit(1)
 
 
 def convert_point_cloud_to_message(point_cloud):
-    converted_point_cloud = list()
-    x = None
-    y = None
-    z = None
+    point_cloud_msg = PointCloud()
+    point = None
     # this will convert each element of the point_cloud to message format
     for i in range(point_cloud.size()):
         # convert it to a point
-        x = point_cloud[i][0]
-        y = point_cloud[i][1]
-        z = point_cloud[i][2]
-        converted_point_cloud.append(Point(x, y, z))
-    return
+        point = PointCloud.Point()
+        point.x = point_cloud[i][0]
+        point.y = point_cloud[i][1]
+        point.z = point_cloud[i][2]
+        point_cloud_msg.points.append(point)
+    return point_cloud_msg.SerializeToString()
 
 
 def convert_pose_to_message(pose):
     # convert a matrix to a pose message and return bytes
-    pass
+    pose_msg = Pose()
+    pose_msg.x = 0.0
+    pose_msg.y = 0.0
+    pose_msg.z = 0.0
+    pose_msg.yaw = 0.0
+    pose_msg.pitch = 0.0
+    pose_msg.roll = 0.0
+    return pose_msg.SerializeToString()
 
 
 def slam_callback(ch, method, properties, body):
-    current_pose = perform_orbslam_with_message(body)
-
     global global_orbslammer, global_channel, global_point_cloud_name,\
            global_pose_name
-    global_channel.basic_publish(exchange=global_pose_name, routing_key="",
-                                 body=convert_pose_to_message(current_pose))
+    current_pose = perform_orbslam_with_message(body)
     point_cloud = global_orbslammer.GetMostRecentPointCloud()
+
+    global global_pose_fp, global_point_cloud_fp
+    global_pose_fp.write(str(current_pose) + "\n")
+    # global_channel.basic_publish(exchange=global_pose_name, routing_key="",
+    #                              body=convert_pose_to_message(current_pose))
     if (point_cloud.size() > 0):
-        global_channel.basic_publish(exchange=global_point_cloud_name, routing_key="",
-                                     body=convert_point_cloud_to_message(point_cloud))
+        global_point_cloud_fp.write("<\n")
+        for i in range(point_cloud.size()):
+            global_point_cloud_fp.write("\t" + str(point_cloud[i]) + "\n")
+        global_point_cloud_fp.write(">\n")
+        # global_channel.basic_publish(exchange=global_point_cloud_name, routing_key="",
+        #                              body=convert_point_cloud_to_message(point_cloud))
 
 
 if __name__ == "__main__":
-    vocab_path = None
-    settings_path = None
+    orbslam_path = os.path.join(".", "..", "src", "ORB_SLAM2")
+    vocab_path = os.path.abspath(os.path.join(orbslam_path, "Vocabulary", "ORBVoc.txt"))
     orbslam_type = None
     with_viewer = False
-
 
     methods, vals = parse_cmd_line(sys.argv[1:])
     if vals["camera_type"] == "stereo":
@@ -148,6 +177,12 @@ if __name__ == "__main__":
     if "with_viewer" in vals:
         with_viewer = bool(vals["with_viewer"])
 
+    #settings_path = os.path.abspath(os.path.join(orbslam_path, "..", "orbslampy", "config", "camera_params_")) + vals["camera_type"] + ".yaml"
+    settings_path = os.path.join(orbslam_path, "Examples", "Stereo", "EuRoC.yaml")
+
+    print("vocab_path: %s" % vocab_path)
+    print("settings_path: %s" % settings_path)
+
     global global_orbslammer_type, global_orbslammer, global_parameters, global_connection,\
            global_channel
     global_orbslammer_type = orbslam_type
@@ -156,6 +191,10 @@ if __name__ == "__main__":
     global_parameters = pika.connection.URLParameters('amqp://guest:guest@localhost:5672/%2F')
     connection = pika.SelectConnection(parameters=global_parameters,
                                        on_open_callback=on_connected)
+
+    global global_pose_f_name, global_pose_fp, global_point_cloud_f_name, global_point_cloud_fp
+    global_pose_fp = open(global_pose_f_name, "w")
+    global_point_cloud_fp = open(global_point_cloud_f_name, "w")
 
     try:
         global_connection.ioloop.start()

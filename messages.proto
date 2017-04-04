@@ -225,7 +225,30 @@ message Pose {
     required float x = 1;
     required float y = 2;
     required float z = 3;
-    required float yaw = 1;
-    required float pitch = 2;
-    required float roll = 3;
+    required float yaw = 4;
+    required float pitch = 5;
+    required float roll = 6;
+}
+
+message Matrix {
+    repeated float data = 1;
+    required uint64 rows = 2;
+    required uint64 cols = 3;
+}
+
+message StereoCameraFeed {
+    required Matrix image_left = 1;
+    required Matrix image_right = 2;
+    required float timestamp = 3;
+}
+
+message MonocularCameraFeed {
+    required Matrix image = 1;
+    required float timestamp = 2;
+}
+
+message RGBDCameraFeed {
+    required Matrix image = 1;
+    required Matrix depth_map = 2;
+    required float timestamp = 3;
 }
