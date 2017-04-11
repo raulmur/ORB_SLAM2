@@ -24,7 +24,8 @@
 #include<fstream>
 #include<chrono>
 
-#include<ros/ros.h>
+#include <ros/ros.h>
+#include <signal.h>
 #include <cv_bridge/cv_bridge.h>
 
 #include<opencv2/core/core.hpp>
@@ -32,6 +33,8 @@
 #include"../../../include/System.h"
 
 using namespace std;
+
+ORB_SLAM2::System *SLAM;
 
 class ImageGrabber
 {
@@ -42,6 +45,21 @@ public:
 
     ORB_SLAM2::System* mpSLAM;
 };
+
+void SlamShutdown(int sig)
+{
+
+    // Stop all threads
+    SLAM->Shutdown();
+
+    // Save camera trajectory
+    SLAM->SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+
+    // Delete SLAM system
+    delete SLAM;
+
+    ros::shutdown();
+}
 
 int main(int argc, char **argv)
 {
@@ -56,22 +74,17 @@ int main(int argc, char **argv)
     }    
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
+    // ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
+    SLAM = new ORB_SLAM2::System(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
 
-    ImageGrabber igb(&SLAM);
+    ImageGrabber igb(SLAM);
 
     ros::NodeHandle nodeHandler;
     ros::Subscriber sub = nodeHandler.subscribe("/camera/image_raw", 1, &ImageGrabber::GrabImage,&igb);
 
+    signal(SIGINT, SlamShutdown);
+
     ros::spin();
-
-    // Stop all threads
-    SLAM.Shutdown();
-
-    // Save camera trajectory
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
-
-    ros::shutdown();
 
     return 0;
 }
