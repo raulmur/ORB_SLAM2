@@ -30,39 +30,32 @@
 
 using namespace std;
 
-void LoadImages(const string &strAssociationFilename, vector<string> &vstrImageFilenamesRGB,
-                vector<string> &vstrImageFilenamesD, vector<double> &vTimestamps);
+void LoadImages(const string &strImagePath, const string &strPathTimes,
+                vector<string> &vstrImages, vector<double> &vTimeStamps);
 
 int main(int argc, char **argv)
 {
     if(argc != 5)
     {
-        cerr << endl << "Usage: ./rgbd_tum path_to_vocabulary path_to_settings path_to_sequence path_to_association" << endl;
+        cerr << endl << "Usage: ./mono_tum path_to_vocabulary path_to_settings path_to_image_folder path_to_times_file" << endl;
         return 1;
     }
 
     // Retrieve paths to images
-    vector<string> vstrImageFilenamesRGB;
-    vector<string> vstrImageFilenamesD;
+    vector<string> vstrImageFilenames;
     vector<double> vTimestamps;
-    string strAssociationFilename = string(argv[4]);
-    LoadImages(strAssociationFilename, vstrImageFilenamesRGB, vstrImageFilenamesD, vTimestamps);
+    LoadImages(string(argv[3]), string(argv[4]), vstrImageFilenames, vTimestamps);
 
-    // Check consistency in the number of images and depthmaps
-    int nImages = vstrImageFilenamesRGB.size();
-    if(vstrImageFilenamesRGB.empty())
+    int nImages = vstrImageFilenames.size();
+
+    if(nImages<=0)
     {
-        cerr << endl << "No images found in provided path." << endl;
-        return 1;
-    }
-    else if(vstrImageFilenamesD.size()!=vstrImageFilenamesRGB.size())
-    {
-        cerr << endl << "Different number of images for rgb and depth." << endl;
+        cerr << "ERROR: Failed to load images" << endl;
         return 1;
     }
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD,true);
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
@@ -73,18 +66,17 @@ int main(int argc, char **argv)
     cout << "Images in the sequence: " << nImages << endl << endl;
 
     // Main loop
-    cv::Mat imRGB, imD;
+    cv::Mat im;
     for(int ni=0; ni<nImages; ni++)
     {
-        // Read image and depthmap from file
-        imRGB = cv::imread(string(argv[3])+"/"+vstrImageFilenamesRGB[ni],CV_LOAD_IMAGE_UNCHANGED);
-        imD = cv::imread(string(argv[3])+"/"+vstrImageFilenamesD[ni],CV_LOAD_IMAGE_UNCHANGED);
+        // Read image from file
+        im = cv::imread(vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
         double tframe = vTimestamps[ni];
 
-        if(imRGB.empty())
+        if(im.empty())
         {
             cerr << endl << "Failed to load image at: "
-                 << string(argv[3]) << "/" << vstrImageFilenamesRGB[ni] << endl;
+                 <<  vstrImageFilenames[ni] << endl;
             return 1;
         }
 
@@ -95,7 +87,7 @@ int main(int argc, char **argv)
 #endif
 
         // Pass the image to the SLAM system
-        SLAM.TrackRGBD(imRGB,imD,tframe);
+        SLAM.TrackMonocular(im,tframe);
 
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
@@ -133,34 +125,30 @@ int main(int argc, char **argv)
     cout << "mean tracking time: " << totaltime/nImages << endl;
 
     // Save camera trajectory
-    SLAM.SaveTrajectoryTUM("CameraTrajectory.txt");
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");   
+    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
 
     return 0;
 }
 
-void LoadImages(const string &strAssociationFilename, vector<string> &vstrImageFilenamesRGB,
-                vector<string> &vstrImageFilenamesD, vector<double> &vTimestamps)
+void LoadImages(const string &strImagePath, const string &strPathTimes,
+                vector<string> &vstrImages, vector<double> &vTimeStamps)
 {
-    ifstream fAssociation;
-    fAssociation.open(strAssociationFilename.c_str());
-    while(!fAssociation.eof())
+    ifstream fTimes;
+    fTimes.open(strPathTimes.c_str());
+    vTimeStamps.reserve(5000);
+    vstrImages.reserve(5000);
+    while(!fTimes.eof())
     {
         string s;
-        getline(fAssociation,s);
+        getline(fTimes,s);
         if(!s.empty())
         {
             stringstream ss;
             ss << s;
+            vstrImages.push_back(strImagePath + "/" + ss.str() + ".png");
             double t;
-            string sRGB, sD;
             ss >> t;
-            vTimestamps.push_back(t);
-            ss >> sRGB;
-            vstrImageFilenamesRGB.push_back(sRGB);
-            ss >> t;
-            ss >> sD;
-            vstrImageFilenamesD.push_back(sD);
+            vTimeStamps.push_back(t/1e9);
 
         }
     }

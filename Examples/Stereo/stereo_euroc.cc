@@ -31,22 +31,72 @@
 
 using namespace std;
 
-void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
-                vector<string> &vstrImageRight, vector<double> &vTimestamps);
+void LoadImages(const string &strPathLeft, const string &strPathRight, const string &strPathTimes,
+                vector<string> &vstrImageLeft, vector<string> &vstrImageRight, vector<double> &vTimeStamps);
 
 int main(int argc, char **argv)
 {
-    if(argc != 4)
+    if(argc != 6)
     {
-        cerr << endl << "Usage: ./stereo_kitti path_to_vocabulary path_to_settings path_to_sequence" << endl;
+        cerr << endl << "Usage: ./stereo_euroc path_to_vocabulary path_to_settings path_to_left_folder path_to_right_folder path_to_times_file" << endl;
         return 1;
     }
 
     // Retrieve paths to images
     vector<string> vstrImageLeft;
     vector<string> vstrImageRight;
-    vector<double> vTimestamps;
-    LoadImages(string(argv[3]), vstrImageLeft, vstrImageRight, vTimestamps);
+    vector<double> vTimeStamp;
+    LoadImages(string(argv[3]), string(argv[4]), string(argv[5]), vstrImageLeft, vstrImageRight, vTimeStamp);
+
+    if(vstrImageLeft.empty() || vstrImageRight.empty())
+    {
+        cerr << "ERROR: No images in provided path." << endl;
+        return 1;
+    }
+
+    if(vstrImageLeft.size()!=vstrImageRight.size())
+    {
+        cerr << "ERROR: Different number of left and right images." << endl;
+        return 1;
+    }
+
+    // Read rectification parameters
+    cv::FileStorage fsSettings(argv[2], cv::FileStorage::READ);
+    if(!fsSettings.isOpened())
+    {
+        cerr << "ERROR: Wrong path to settings" << endl;
+        return -1;
+    }
+
+    cv::Mat K_l, K_r, P_l, P_r, R_l, R_r, D_l, D_r;
+    fsSettings["LEFT.K"] >> K_l;
+    fsSettings["RIGHT.K"] >> K_r;
+
+    fsSettings["LEFT.P"] >> P_l;
+    fsSettings["RIGHT.P"] >> P_r;
+
+    fsSettings["LEFT.R"] >> R_l;
+    fsSettings["RIGHT.R"] >> R_r;
+
+    fsSettings["LEFT.D"] >> D_l;
+    fsSettings["RIGHT.D"] >> D_r;
+
+    int rows_l = fsSettings["LEFT.height"];
+    int cols_l = fsSettings["LEFT.width"];
+    int rows_r = fsSettings["RIGHT.height"];
+    int cols_r = fsSettings["RIGHT.width"];
+
+    if(K_l.empty() || K_r.empty() || P_l.empty() || P_r.empty() || R_l.empty() || R_r.empty() || D_l.empty() || D_r.empty() ||
+            rows_l==0 || rows_r==0 || cols_l==0 || cols_r==0)
+    {
+        cerr << "ERROR: Calibration parameters to rectify stereo are missing!" << endl;
+        return -1;
+    }
+
+    cv::Mat M1l,M2l,M1r,M2r;
+    cv::initUndistortRectifyMap(K_l,D_l,R_l,P_l.rowRange(0,3).colRange(0,3),cv::Size(cols_l,rows_l),CV_32F,M1l,M2l);
+    cv::initUndistortRectifyMap(K_r,D_r,R_r,P_r.rowRange(0,3).colRange(0,3),cv::Size(cols_r,rows_r),CV_32F,M1r,M2r);
+
 
     const int nImages = vstrImageLeft.size();
 
@@ -59,16 +109,15 @@ int main(int argc, char **argv)
 
     cout << endl << "-------" << endl;
     cout << "Start processing sequence ..." << endl;
-    cout << "Images in the sequence: " << nImages << endl << endl;   
+    cout << "Images in the sequence: " << nImages << endl << endl;
 
     // Main loop
-    cv::Mat imLeft, imRight;
+    cv::Mat imLeft, imRight, imLeftRect, imRightRect;
     for(int ni=0; ni<nImages; ni++)
     {
         // Read left and right images from file
         imLeft = cv::imread(vstrImageLeft[ni],CV_LOAD_IMAGE_UNCHANGED);
         imRight = cv::imread(vstrImageRight[ni],CV_LOAD_IMAGE_UNCHANGED);
-        double tframe = vTimestamps[ni];
 
         if(imLeft.empty())
         {
@@ -77,6 +126,19 @@ int main(int argc, char **argv)
             return 1;
         }
 
+        if(imRight.empty())
+        {
+            cerr << endl << "Failed to load image at: "
+                 << string(vstrImageRight[ni]) << endl;
+            return 1;
+        }
+
+        cv::remap(imLeft,imLeftRect,M1l,M2l,cv::INTER_LINEAR);
+        cv::remap(imRight,imRightRect,M1r,M2r,cv::INTER_LINEAR);
+
+        double tframe = vTimeStamp[ni];
+
+
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 #else
@@ -84,7 +146,7 @@ int main(int argc, char **argv)
 #endif
 
         // Pass the images to the SLAM system
-        SLAM.TrackStereo(imLeft,imRight,tframe);
+        SLAM.TrackStereo(imLeftRect,imRightRect,tframe);
 
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
@@ -99,9 +161,9 @@ int main(int argc, char **argv)
         // Wait to load the next frame
         double T=0;
         if(ni<nImages-1)
-            T = vTimestamps[ni+1]-tframe;
+            T = vTimeStamp[ni+1]-tframe;
         else if(ni>0)
-            T = tframe-vTimestamps[ni-1];
+            T = tframe-vTimeStamp[ni-1];
 
         if(ttrack<T)
             usleep((T-ttrack)*1e6);
@@ -122,17 +184,19 @@ int main(int argc, char **argv)
     cout << "mean tracking time: " << totaltime/nImages << endl;
 
     // Save camera trajectory
-    SLAM.SaveTrajectoryKITTI("CameraTrajectory.txt");
+    SLAM.SaveTrajectoryTUM("CameraTrajectory.txt");
 
     return 0;
 }
 
-void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
-                vector<string> &vstrImageRight, vector<double> &vTimestamps)
+void LoadImages(const string &strPathLeft, const string &strPathRight, const string &strPathTimes,
+                vector<string> &vstrImageLeft, vector<string> &vstrImageRight, vector<double> &vTimeStamps)
 {
     ifstream fTimes;
-    string strPathTimeFile = strPathToSequence + "/times.txt";
-    fTimes.open(strPathTimeFile.c_str());
+    fTimes.open(strPathTimes.c_str());
+    vTimeStamps.reserve(5000);
+    vstrImageLeft.reserve(5000);
+    vstrImageRight.reserve(5000);
     while(!fTimes.eof())
     {
         string s;
@@ -141,24 +205,12 @@ void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
         {
             stringstream ss;
             ss << s;
+            vstrImageLeft.push_back(strPathLeft + "/" + ss.str() + ".png");
+            vstrImageRight.push_back(strPathRight + "/" + ss.str() + ".png");
             double t;
             ss >> t;
-            vTimestamps.push_back(t);
+            vTimeStamps.push_back(t/1e9);
+
         }
-    }
-
-    string strPrefixLeft = strPathToSequence + "/image_0/";
-    string strPrefixRight = strPathToSequence + "/image_1/";
-
-    const int nTimes = vTimestamps.size();
-    vstrImageLeft.resize(nTimes);
-    vstrImageRight.resize(nTimes);
-
-    for(int i=0; i<nTimes; i++)
-    {
-        stringstream ss;
-        ss << setfill('0') << setw(6) << i;
-        vstrImageLeft[i] = strPrefixLeft + ss.str() + ".png";
-        vstrImageRight[i] = strPrefixRight + ss.str() + ".png";
     }
 }
