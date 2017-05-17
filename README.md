@@ -7,6 +7,9 @@ Compatible with ROS Kinetic (OpenCV 3, Ubuntu 16.04)
 Stereo node pose and tf publisher  
 Monocular pose publish  
 Compatible with REMODE (Topic: /ORB/DenseInput)  
+Added Support for coloured reconstruction (https://github.com/ayushgaud/rpg_open_remode)
+
+![coloured_reconstruction](https://cloud.githubusercontent.com/assets/4923897/26147541/7f7feec8-3b11-11e7-8b4c-5458aa922709.png)  
               
 ![orb remode](https://cloud.githubusercontent.com/assets/4923897/23068075/20bd81d4-f548-11e6-824d-ace54982f74b.png)                
 
