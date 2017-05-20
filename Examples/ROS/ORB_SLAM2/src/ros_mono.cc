@@ -91,9 +91,11 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
 {
     // Copy the ros image message to cv::Mat.
 	cv_bridge::CvImageConstPtr cv_ptr;
+	cv_bridge::CvImageConstPtr cv_ptr_rgb;
 	try
 	{
 		cv_ptr = cv_bridge::toCvShare(msg,sensor_msgs::image_encodings::MONO8);
+		cv_ptr_rgb = cv_bridge::toCvShare(msg,sensor_msgs::image_encodings::BGR8);
 	}
 	catch (cv_bridge::Exception& e)
 	{
@@ -104,59 +106,6 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
 	cv::Mat pose = mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec());
 	if (pose.empty())
 		return;
-    //std::cout<<pose<<std::endl;
-
-    /* global left handed coordinate system */
-	// static cv::Mat pose_prev = cv::Mat::eye(4,4, CV_32F);
-	// static cv::Mat world_lh = cv::Mat::eye(4,4, CV_32F);
- //        // matrix to flip signs of sinus in rotation matrix, not sure why we need to do that
-	// static const cv::Mat flipSign = (cv::Mat_<float>(4,4) <<   1,-1,-1, 1,
-	// 	-1, 1,-1, 1,
-	// 	-1,-1, 1, 1,
-	// 	1, 1, 1, 1);
-	// cv::Mat translation =  (pose * pose_prev.inv()).mul(flipSign);
-	// world_lh = world_lh * translation;
-	// pose_prev = pose.clone();
- //    /* transform into global right handed coordinate system, publish in ROS*/
-	// tf::Matrix3x3 cameraRotation_rh(  - world_lh.at<float>(0,0),   world_lh.at<float>(0,1),   world_lh.at<float>(0,2),
-	// 	- world_lh.at<float>(1,0),   world_lh.at<float>(1,1),   world_lh.at<float>(1,2),
-	// 	world_lh.at<float>(2,0), - world_lh.at<float>(2,1), - world_lh.at<float>(2,2));
-
-	// tf::Vector3 cameraTranslation_rh( world_lh.at<float>(0,3),world_lh.at<float>(1,3), - world_lh.at<float>(2,3) );
-
-
-	// // tf::Matrix3x3 cameraRotation_rh(   pose.at<float>(0,0),   pose.at<float>(0,1),   pose.at<float>(0,2),
-	// // 	pose.at<float>(1,0),   pose.at<float>(1,1),   pose.at<float>(1,2),
-	// // 	pose.at<float>(2,0),  pose.at<float>(2,1),  pose.at<float>(2,2));
-
-	// // tf::Vector3 cameraTranslation_rh( pose.at<float>(0,3),pose.at<float>(1,3),  pose.at<float>(2,3) );
-
-        //rotate 270deg about x and 270deg about x to get ENU: x forward, y left, z up
-	// const tf::Matrix3x3 rotation270degXZ(   0, 1, 0,
-	// 	0, 0, 1,
-	// 	1, 0, 0);
-
-
-	// static tf::TransformBroadcaster br;
-	// // tf::Matrix3x3 globalRotation_rh = cameraRotation_rh * rotation270degXZ;
-	// // tf::Vector3 globalTranslation_rh = cameraTranslation_rh * rotation270degXZ;
-	// // tf::Transform transform = tf::Transform(globalRotation_rh, globalTranslation_rh);
-	// br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "init_world", "camera_pose"));
-
-
-	// geometry_msgs::PoseStamped _pose;
-	// _pose.pose.position.x = transform.getOrigin().x();
-	// _pose.pose.position.y = transform.getOrigin().y();
-	// _pose.pose.position.z = transform.getOrigin().z();
-	// _pose.pose.orientation.x = transform.getRotation().x();
-	// _pose.pose.orientation.y = transform.getRotation().y();
-	// _pose.pose.orientation.z = transform.getRotation().z();
-	// _pose.pose.orientation.w = transform.getRotation().w();
-
-	// _pose.header.stamp = ros::Time::now();
-	// _pose.header.frame_id = "camera_link";
-	// pose_pub.publish(_pose);
-    //     ROS_INFO("REACHED 1");
 	
 	cv::Mat  TWC=mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();  
 	cv::Mat RWC= TWC.rowRange(0,3).colRange(0,3);  
@@ -207,9 +156,9 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
 		cv_bridge::CvImage img_msg;  
 		img_msg.header.stamp=msg_dense.header.stamp;  
 		img_msg.header.frame_id="camera";  
-		img_msg.image=cv_ptr->image;  
+		img_msg.image=cv_ptr_rgb->image;  
 
-		img_msg.encoding = sensor_msgs::image_encodings::MONO8;  
+		img_msg.encoding = sensor_msgs::image_encodings::BGR8;  
 		msg_dense.image = *img_msg.toImageMsg();
 		
 		msg_dense.min_depth = (float)old_min;
