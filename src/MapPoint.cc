@@ -91,8 +91,8 @@ cv::Mat MapPoint::GetNormal()
 
 KeyFrame* MapPoint::GetReferenceKeyFrame()
 {
-     unique_lock<mutex> lock(mMutexFeatures);
-     return mpRefKF;
+    unique_lock<mutex> lock(mMutexFeatures);
+    return mpRefKF;
 }
 
 void MapPoint::AddObservation(KeyFrame* pKF, size_t idx)
@@ -302,7 +302,7 @@ void MapPoint::ComputeDistinctiveDescriptors()
 
     {
         unique_lock<mutex> lock(mMutexFeatures);
-        mDescriptor = vDescriptors[BestIdx].clone();       
+        mDescriptor = vDescriptors[BestIdx].clone();
     }
 }
 
@@ -354,7 +354,7 @@ void MapPoint::UpdateNormalAndDepth()
         cv::Mat normali = mWorldPos - Owi;
         normal = normal + normali/cv::norm(normali);
         n++;
-    } 
+    }
 
     cv::Mat PC = Pos - pRefKF->GetCameraCenter();
     const float dist = cv::norm(PC);
@@ -382,15 +382,40 @@ float MapPoint::GetMaxDistanceInvariance()
     return 1.2f*mfMaxDistance;
 }
 
-int MapPoint::PredictScale(const float &currentDist, const float &logScaleFactor)
+int MapPoint::PredictScale(const float &currentDist, KeyFrame* pKF)
 {
     float ratio;
     {
-        unique_lock<mutex> lock3(mMutexPos);
+        unique_lock<mutex> lock(mMutexPos);
         ratio = mfMaxDistance/currentDist;
     }
 
-    return ceil(log(ratio)/logScaleFactor);
+    int nScale = ceil(log(ratio)/pKF->mfLogScaleFactor);
+    if(nScale<0)
+        nScale = 0;
+    else if(nScale>=pKF->mnScaleLevels)
+        nScale = pKF->mnScaleLevels-1;
+
+    return nScale;
 }
+
+int MapPoint::PredictScale(const float &currentDist, Frame* pF)
+{
+    float ratio;
+    {
+        unique_lock<mutex> lock(mMutexPos);
+        ratio = mfMaxDistance/currentDist;
+    }
+
+    int nScale = ceil(log(ratio)/pF->mfLogScaleFactor);
+    if(nScale<0)
+        nScale = 0;
+    else if(nScale>=pF->mnScaleLevels)
+        nScale = pF->mnScaleLevels-1;
+
+    return nScale;
+}
+
+
 
 } //namespace ORB_SLAM

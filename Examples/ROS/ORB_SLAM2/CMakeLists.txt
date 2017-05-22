@@ -30,7 +30,14 @@ endif()
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../../../cmake_modules)
 
-find_package(OpenCV 2.4.3 REQUIRED)
+find_package(OpenCV 3.0 QUIET)
+if(NOT OpenCV_FOUND)
+   find_package(OpenCV 2.4.3 QUIET)
+   if(NOT OpenCV_FOUND)
+      message(FATAL_ERROR "OpenCV > 2.4.3 not found.")
+   endif()
+endif()
+
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 
@@ -56,6 +63,17 @@ src/ros_mono.cc
 )
 
 target_link_libraries(Mono
+${LIBS}
+)
+
+# Node for monocular camera (Augmented Reality Demo)
+rosbuild_add_executable(MonoAR
+src/AR/ros_mono_ar.cc
+src/AR/ViewerAR.h
+src/AR/ViewerAR.cc
+)
+
+target_link_libraries(MonoAR
 ${LIBS}
 )
 

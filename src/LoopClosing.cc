@@ -37,11 +37,10 @@ namespace ORB_SLAM2
 
 LoopClosing::LoopClosing(Map *pMap, KeyFrameDatabase *pDB, ORBVocabulary *pVoc, const bool bFixScale):
     mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap),
-    mpKeyFrameDB(pDB), mpORBVocabulary(pVoc), mLastLoopKFid(0), mbRunningGBA(false), mbFinishedGBA(true),
-    mbStopGBA(false), mbFixScale(bFixScale)
+    mpKeyFrameDB(pDB), mpORBVocabulary(pVoc), mpMatchedKF(NULL), mLastLoopKFid(0), mbRunningGBA(false), mbFinishedGBA(true),
+    mbStopGBA(false), mpThreadGBA(NULL), mbFixScale(bFixScale), mnFullBAIdx(0)
 {
     mnCovisibilityConsistencyTh = 3;
-    mpMatchedKF = NULL;
 }
 
 void LoopClosing::SetTracker(Tracking *pTracker)
@@ -411,13 +410,16 @@ void LoopClosing::CorrectLoop()
     // If a Global Bundle Adjustment is running, abort it
     if(isRunningGBA())
     {
+        unique_lock<mutex> lock(mMutexGBA);
         mbStopGBA = true;
 
-        while(!isFinishedGBA())
-            usleep(5000);
+        mnFullBAIdx++;
 
-        mpThreadGBA->join();
-        delete mpThreadGBA;
+        if(mpThreadGBA)
+        {
+            mpThreadGBA->detach();
+            delete mpThreadGBA;
+        }
     }
 
     // Wait until Local Mapping has effectively stopped
@@ -564,6 +566,8 @@ void LoopClosing::CorrectLoop()
     // Optimize graph
     Optimizer::OptimizeEssentialGraph(mpMap, mpMatchedKF, mpCurrentKF, NonCorrectedSim3, CorrectedSim3, LoopConnections, mbFixScale);
 
+    mpMap->InformNewBigChange();
+
     // Add loop edge
     mpMatchedKF->AddLoopEdge(mpCurrentKF);
     mpCurrentKF->AddLoopEdge(mpMatchedKF);
@@ -576,8 +580,6 @@ void LoopClosing::CorrectLoop()
 
     // Loop closed. Release Local Mapping.
     mpLocalMapper->Release();    
-
-    cout << "Loop Closed!" << endl;
 
     mLastLoopKFid = mpCurrentKF->mnId;   
 }
@@ -644,7 +646,8 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
 {
     cout << "Starting Global Bundle Adjustment" << endl;
 
-    Optimizer::GlobalBundleAdjustemnt(mpMap,20,&mbStopGBA,nLoopKF,false);
+    int idx =  mnFullBAIdx;
+    Optimizer::GlobalBundleAdjustemnt(mpMap,10,&mbStopGBA,nLoopKF,false);
 
     // Update all MapPoints and KeyFrames
     // Local Mapping was active during BA, that means that there might be new keyframes
@@ -652,7 +655,8 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
     // We need to propagate the correction through the spanning tree
     {
         unique_lock<mutex> lock(mMutexGBA);
-
+        if(idx!=mnFullBAIdx)
+            return;
 
         if(!mbStopGBA)
         {
@@ -730,7 +734,9 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
 
                     pMP->SetWorldPos(Rwc*Xc+twc);
                 }
-            }
+            }            
+
+            mpMap->InformNewBigChange();
 
             mpLocalMapper->Release();
 
