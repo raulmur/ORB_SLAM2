@@ -169,48 +169,38 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     {
 	pose =  mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
-       	if (pose.empty())
+    
+    if (pose.empty())
 		return;
-	//std::cout<<pose<<std::endl;
-	/* global left handed coordinate system */
-    	static cv::Mat pose_prev = cv::Mat::eye(4,4, CV_32F);
-    	static cv::Mat world_lh = cv::Mat::eye(4,4, CV_32F);
-    	// matrix to flip signs of sinus in rotation matrix, not sure why we need to do that
-    	static const cv::Mat flipSign = (cv::Mat_<float>(4,4) <<   1,-1,-1, 1,
-                                                               -1, 1,-1, 1,
-                                                               -1,-1, 1, 1,
-                                                                1, 1, 1, 1);
-	cv::Mat translation =  (pose * pose_prev.inv()).mul(flipSign);
-    	world_lh = world_lh * translation;
-    	pose_prev = pose.clone();
-	/* transform into global right handed coordinate system, publish in ROS*/
-	tf::Matrix3x3 cameraRotation_rh(  - world_lh.at<float>(0,0),   world_lh.at<float>(0,1),   world_lh.at<float>(0,2),
-                                  - world_lh.at<float>(1,0),   world_lh.at<float>(1,1),   world_lh.at<float>(1,2),
-                                    world_lh.at<float>(2,0), - world_lh.at<float>(2,1), - world_lh.at<float>(2,2));
 
-	tf::Vector3 cameraTranslation_rh( world_lh.at<float>(0,3),world_lh.at<float>(1,3), - world_lh.at<float>(2,3) );
+    cv::Mat  TWC=mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();  
+    cv::Mat RWC= TWC.rowRange(0,3).colRange(0,3);  
+    cv::Mat tWC= TWC.rowRange(0,3).col(3);
 
-    	//rotate 270deg about x and 270deg about x to get ENU: x forward, y left, z up
-    	const tf::Matrix3x3 rotation270degXZ(   0, 1, 0,
-        	                                0, 0, 1,
-			                        1, 0, 0);
-    	static tf::TransformBroadcaster br;
-	tf::Matrix3x3 globalRotation_rh = cameraRotation_rh * rotation270degXZ;
-    	tf::Vector3 globalTranslation_rh = cameraTranslation_rh * rotation270degXZ;
-    	tf::Transform transform = tf::Transform(globalRotation_rh, globalTranslation_rh);
-    	br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "camera_link", "camera_pose"));
-		geometry_msgs::PoseStamped _pose;
-		_pose.pose.position.x = transform.getOrigin().x();
-      	_pose.pose.position.y = transform.getOrigin().y();
-      	_pose.pose.position.z = transform.getOrigin().z();
-      	_pose.pose.orientation.x = transform.getRotation().x();
-      	_pose.pose.orientation.y = transform.getRotation().y();
-      	_pose.pose.orientation.z = transform.getRotation().z();
-      	_pose.pose.orientation.w = transform.getRotation().w();
-      
-      	_pose.header.stamp = ros::Time::now();
-      	_pose.header.frame_id = "camera_link";
-      	pose_pub.publish(_pose);
+    tf::Matrix3x3 M(RWC.at<float>(0,0),RWC.at<float>(0,1),RWC.at<float>(0,2),
+        RWC.at<float>(1,0),RWC.at<float>(1,1),RWC.at<float>(1,2),
+        RWC.at<float>(2,0),RWC.at<float>(2,1),RWC.at<float>(2,2));
+    tf::Vector3 V(tWC.at<float>(0), tWC.at<float>(1), tWC.at<float>(2));
+    tf::Quaternion q;
+    M.getRotation(q);
+
+    static tf::TransformBroadcaster br;
+    tf::Transform transform = tf::Transform(M, V);
+    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "init_link", "camera_pose"));
+
+    geometry_msgs::PoseStamped _pose;
+    _pose.pose.position.x = transform.getOrigin().x();
+    _pose.pose.position.y = transform.getOrigin().y();
+    _pose.pose.position.z = transform.getOrigin().z();
+    _pose.pose.orientation.x = transform.getRotation().x();
+    _pose.pose.orientation.y = transform.getRotation().y();
+    _pose.pose.orientation.z = transform.getRotation().z();
+    _pose.pose.orientation.w = transform.getRotation().w();
+
+    _pose.header.stamp = ros::Time::now();
+    _pose.header.frame_id = "init_link";
+    pose_pub.publish(_pose);
+
 }
 
 
