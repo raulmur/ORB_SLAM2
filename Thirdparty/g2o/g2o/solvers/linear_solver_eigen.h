@@ -65,8 +65,8 @@ class LinearSolverEigen: public LinearSolver<MatrixType>
 
         void analyzePatternWithPermutation(SparseMatrix& a, const PermutationMatrix& permutation)
         {
-          m_Pinv = permutation;
-          m_P = permutation.inverse();
+            //m_Pinv = permutation;
+            m_P = permutation.inverse();
           int size = a.cols();
           SparseMatrix ap(size, size);
           ap.selfadjointView<Eigen::Upper>() = a.selfadjointView<UpLo>().twistedBy(m_P);
