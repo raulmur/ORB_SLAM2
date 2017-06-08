@@ -40,7 +40,7 @@ class System;
 class Viewer
 {
 public:
-    Viewer(System* pSystem, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Tracking *pTracking, const string &strSettingPath);
+    Viewer(System* pSystem, FrameDrawer* pFrameDrawer,FrameDrawer* pFrameDrawer_1, MapDrawer* pMapDrawer, Tracking *pTracking,Tracking *pTracking_1, const string &strSettingPath);
 
     // Main thread function. Draw points, keyframes, the current camera pose and the last processed
     // frame. Drawing is refreshed according to the camera fps. We use Pangolin.
@@ -62,8 +62,10 @@ private:
 
     System* mpSystem;
     FrameDrawer* mpFrameDrawer;
+    FrameDrawer* mpFrameDrawer_1;
     MapDrawer* mpMapDrawer;
     Tracking* mpTracker;
+    Tracking* mpTracker_1;
 
     // 1/fps in ms
     double mT;
@@ -87,5 +89,3 @@ private:
 
 
 #endif // VIEWER_H
-	
-

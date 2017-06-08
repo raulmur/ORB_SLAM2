@@ -51,7 +51,7 @@ class LoopClosing;
 class System;
 
 class Tracking
-{  
+{
 
 public:
     Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
@@ -113,9 +113,21 @@ public:
     // True if local mapping is deactivated and we are performing only localization
     bool mbOnlyTracking;
 
+    //True if this tracker is not the initialization one
+    bool mbAssistant;
+
     void Reset();
 
 protected:
+    //--------------------------------------------------------------------------
+    void SetAssistant(bool ass = true) {
+        /* code */
+        mbAssistant = true;
+    }
+
+
+    //--------------------------------------------------------------------------
+
 
     // Main tracking function. It is independent of the input sensor.
     void Track();
@@ -169,10 +181,10 @@ protected:
     KeyFrame* mpReferenceKF;
     std::vector<KeyFrame*> mvpLocalKeyFrames;
     std::vector<MapPoint*> mvpLocalMapPoints;
-    
+
     // System
     System* mpSystem;
-    
+
     //Drawers
     Viewer* mpViewer;
     FrameDrawer* mpFrameDrawer;
