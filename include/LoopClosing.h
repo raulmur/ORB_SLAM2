@@ -21,6 +21,10 @@
 #ifndef LOOPCLOSING_H
 #define LOOPCLOSING_H
 
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "KeyFrame.h"
 #include "LocalMapping.h"
 #include "Map.h"
@@ -45,7 +49,7 @@ class LoopClosing
 {
 public:
 
-    typedef pair<set<KeyFrame*>,int> ConsistentGroup;    
+    typedef pair<set<KeyFrame*>,int> ConsistentGroup;
     typedef map<KeyFrame*,g2o::Sim3,std::less<KeyFrame*>,
         Eigen::aligned_allocator<std::pair<const KeyFrame*, g2o::Sim3> > > KeyFrameAndPose;
 
@@ -74,7 +78,7 @@ public:
     bool isFinishedGBA(){
         unique_lock<std::mutex> lock(mMutexGBA);
         return mbFinishedGBA;
-    }   
+    }
 
     void RequestFinish();
 
