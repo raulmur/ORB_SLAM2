@@ -91,8 +91,7 @@ cv::Mat FrameDrawer::DrawFrame()
         mnTracked=0;
         mnTrackedVO=0;
         const float r = 5;
-        const int n = vCurrentKeys.size();
-        for(int i=0;i<n;i++)
+        for(int i=0;i<N;i++)
         {
             if(vbVO[i] || vbMap[i])
             {

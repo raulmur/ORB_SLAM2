@@ -22,6 +22,10 @@
 #ifndef VIEWER_H
 #define VIEWER_H
 
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "FrameDrawer.h"
 #include "MapDrawer.h"
 #include "Tracking.h"
@@ -87,5 +91,3 @@ private:
 
 
 #endif // VIEWER_H
-	
-

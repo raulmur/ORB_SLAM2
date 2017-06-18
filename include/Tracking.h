@@ -22,6 +22,10 @@
 #ifndef TRACKING_H
 #define TRACKING_H
 
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include<opencv2/core/core.hpp>
 #include<opencv2/features2d/features2d.hpp>
 
@@ -114,6 +118,11 @@ public:
     bool mbOnlyTracking;
 
     void Reset();
+    
+    Map* mpMap;
+    cv::Mat mK;
+    cv::Mat mDistCoef;
+    float mbf;
 
 protected:
 
@@ -179,12 +188,12 @@ protected:
     MapDrawer* mpMapDrawer;
 
     //Map
-    Map* mpMap;
+    //Map* mpMap;
 
     //Calibration matrix
-    cv::Mat mK;
-    cv::Mat mDistCoef;
-    float mbf;
+    //cv::Mat mK;
+    //cv::Mat mDistCoef;
+    //float mbf;
 
     //New KeyFrame rules (according to fps)
     int mMinFrames;
