@@ -22,4 +22,13 @@ Thirdparty/g2o/lib/
 Vocabulary/ORBvoc.txt
 build/
 *~
+
+# Library files
 lib/
+
+# Executables
+bin/
+
+# Eclipse project settings
+.cproject
+.project
