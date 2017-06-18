@@ -1,4 +1,4 @@
-!#/bin/bash
+#!/bin/bash
 
 
 echo "Going to start the real time demo with the webcam!"
