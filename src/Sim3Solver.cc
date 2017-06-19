@@ -28,7 +28,7 @@
 #include "KeyFrame.h"
 #include "ORBmatcher.h"
 
-#include "Thirdparty/DBoW2/DUtils/Random.h"
+#include "DUtils/Random.h"
 
 namespace ORB_SLAM2
 {

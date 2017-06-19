@@ -1,40 +1,77 @@
-cmake_minimum_required(VERSION 2.8)
-project(DBoW2)
+CMAKE_MINIMUM_REQUIRED (VERSION 3.1)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -w  -O3 -march=native ")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w  -O3 -march=native")
+################################
+# DBOW2
+################################
 
-set(HDRS_DBOW2
-  DBoW2/BowVector.h
-  DBoW2/FORB.h 
-  DBoW2/FClass.h       
-  DBoW2/FeatureVector.h
-  DBoW2/ScoringObject.h   
-  DBoW2/TemplatedVocabulary.h)
-set(SRCS_DBOW2
-  DBoW2/BowVector.cpp
-  DBoW2/FORB.cpp      
-  DBoW2/FeatureVector.cpp
-  DBoW2/ScoringObject.cpp)
+SET(DBOW2_LIB "DBow2")
 
-set(HDRS_DUTILS
-  DUtils/Random.h
-  DUtils/Timestamp.h)
-set(SRCS_DUTILS
-  DUtils/Random.cpp
-  DUtils/Timestamp.cpp)
+IF(NOT PROJECT_NAME)
+  PROJECT(${DBOW2_LIB})
+ENDIF(NOT PROJECT_NAME)
 
-find_package(OpenCV 3.0 QUIET)
-if(NOT OpenCV_FOUND)
-   find_package(OpenCV 2.4.3 QUIET)
-   if(NOT OpenCV_FOUND)
-      message(FATAL_ERROR "OpenCV > 2.4.3 not found.")
-   endif()
-endif()
+IF(NOT CMAKE_BUILD_TYPE)
+  SET(CMAKE_BUILD_TYPE Release)
+ENDIF()
 
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+SET(CMAKE_CXX_STANDARD 11)
+SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include_directories(${OpenCV_INCLUDE_DIRS})
-add_library(DBoW2 SHARED ${SRCS_DBOW2} ${SRCS_DUTILS})
-target_link_libraries(DBoW2 ${OpenCV_LIBS})
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native")
 
+################################
+# File Globbing
+################################
+
+FILE(GLOB_RECURSE DBOW2_HEADERS "${CMAKE_CURRENT_LIST_DIR}/DBoW2/*.h")
+FILE(GLOB_RECURSE DBOW2_SOURCES "${CMAKE_CURRENT_LIST_DIR}/DBoW2/*.cpp")
+
+FILE(GLOB_RECURSE DUTILS_HEADERS "${CMAKE_CURRENT_LIST_DIR}/DUtils/*.h")
+FILE(GLOB_RECURSE DUTILS_SOURCES "${CMAKE_CURRENT_LIST_DIR}/DUtils/*.cpp")
+
+SET(DBOW2_RESOURCES ${DBOW2_SOURCES} ${DBOW2_HEADERS} ${DUTILS_SOURCES} ${DUTILS_HEADERS})
+
+################################
+# Target Definitions
+################################
+
+ADD_LIBRARY(${DBOW2_LIB} STATIC ${DBOW2_RESOURCES})
+
+TARGET_INCLUDE_DIRECTORIES(${DBOW2_LIB} PUBLIC "${CMAKE_CURRENT_LIST_DIR}/include")
+
+SET_TARGET_PROPERTIES(${DBOW2_LIB} PROPERTIES
+  DEBUG_POSTFIX "_d"
+  LIBRARY_OUTPUT_DIRECTORY ../lib/
+  LIBRARY_OUTPUT_DIRECTORY_DEBUG ../lib/
+  LIBRARY_OUTPUT_DIRECTORY_RELEASE ../lib/
+  LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ../lib/
+  ARCHIVE_OUTPUT_DIRECTORY ../lib/
+  ARCHIVE_OUTPUT_DIRECTORY_DEBUG ../lib/
+  ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO ../lib/
+  ARCHIVE_OUTPUT_DIRECTORY_RELEASE ../lib/)
+
+
+################################
+# Dependencies
+################################
+
+FIND_PACKAGE(OpenCV 3.0 REQUIRED)
+FIND_PACKAGE(Eigen3 3.1.0 QUIET)
+IF(NOT Eigen3_FOUND)
+  SET(EIGEN3_INCLUDE_DIR "/usr/include/eigen3/")
+ENDIF()
+
+INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIR})
+
+TARGET_LINK_LIBRARIES(${DBOW2_LIB}
+  debug ${OpenCV_LIBRARIES} optimized ${OpenCV_LIBRARIES}
+)
+
+
+# # Uncomment to display all CMAKE variables:
+# GET_CMAKE_PROPERTY(VARIABLE_NAMES VARIABLES)
+# FOREACH (VARIABLE_NAME ${VARIABLE_NAMES})
+#    MESSAGE(STATUS "${VARIABLE_NAME}=${${VARIABLE_NAME}}")
+# ENDFOREACH()
