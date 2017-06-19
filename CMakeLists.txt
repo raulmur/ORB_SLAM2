@@ -1,5 +1,10 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.1)
-PROJECT(ORB_SLAM2)
+
+SET(ORB_SLAM2_LIB "ORB-SLAM2")
+
+IF(NOT PROJECT_NAME)
+  PROJECT(${ORB_SLAM2_LIB})
+ENDIF(NOT PROJECT_NAME)
 
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release)
@@ -26,11 +31,7 @@ ENDIF()
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
-FIND_PACKAGE(OpenCV 3.0 QUIET)
-IF(NOT OpenCV_FOUND)
-	MESSAGE(FATAL_ERROR "OpenCV > 3.0 not found.")
-ENDIF()
-
+FIND_PACKAGE(OpenCV 3.0 REQUIRED)
 FIND_PACKAGE(Eigen3 3.1.0 REQUIRED)
 
 INCLUDE_DIRECTORIES(
@@ -41,50 +42,40 @@ INCLUDE_DIRECTORIES(
 
 SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 
-ADD_LIBRARY(${PROJECT_NAME} SHARED
-  src/System.cc
-  src/Tracking.cc
-  src/LocalMapping.cc
-  src/LoopClosing.cc
-  src/ORBextractor.cc
-  src/ORBmatcher.cc
-  src/FrameDrawer.cc
-  src/Converter.cc
-  src/MapPoint.cc
-  src/KeyFrame.cc
-  src/Map.cc
-  src/MapDrawer.cc
-  src/Optimizer.cc
-  src/PnPsolver.cc
-  src/Frame.cc
-  src/KeyFrameDatabase.cc
-  src/Sim3Solver.cc
-  src/Initializer.cc
-  src/Viewer.cc
+ADD_LIBRARY(${ORB_SLAM2_LIB} SHARED
+  ${CMAKE_CURRENT_LIST_DIR}/src/System.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/Tracking.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/LocalMapping.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/LoopClosing.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/ORBextractor.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/ORBmatcher.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/FrameDrawer.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/Converter.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/MapPoint.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/KeyFrame.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/Map.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/MapDrawer.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/Optimizer.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/PnPsolver.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/Frame.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/KeyFrameDatabase.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/Sim3Solver.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/Initializer.cc
+  ${CMAKE_CURRENT_LIST_DIR}/src/Viewer.cc
 )
 
 IF(APPLE)
-  TARGET_LINK_LIBRARIES(${PROJECT_NAME}
+  TARGET_LINK_LIBRARIES(${ORB_SLAM2_LIB}
   ${OpenCV_LIBS}
   ${EIGEN3_LIBS}
-  ${Pangolin_LIBRARIES}
   ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.dylib
   ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.dylib
   )
 ELSE(APPLE)
-  TARGET_LINK_LIBRARIES(${PROJECT_NAME}
+  TARGET_LINK_LIBRARIES(${ORB_SLAM2_LIB}
   ${OpenCV_LIBS}
   ${EIGEN3_LIBS}
-  ${Pangolin_LIBRARIES}
   ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
   ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
   )
 ENDIF(APPLE)
-
-
-# Build examples
-SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
-ADD_EXECUTABLE(mono_main
-src/mono_main.cc)
-
-TARGET_LINK_LIBRARIES(mono_main ${PROJECT_NAME})
