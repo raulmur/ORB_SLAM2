@@ -94,9 +94,10 @@ INCLUDE(${CMAKE_CURRENT_LIST_DIR}/Thirdparty/DBoW2/CMakeLists.txt)
 INCLUDE(${CMAKE_CURRENT_LIST_DIR}/Thirdparty/g2o/CMakeLists.txt)
 
 TARGET_LINK_LIBRARIES(${ORB_SLAM2_LIB}
+  pthread
   debug ${OpenCV_LIBRARIES} optimized ${OpenCV_LIBRARIES}
   debug ${DBOW2_LIB} optimized ${DBOW2_LIB}
-  debug ${G2O_LIB} debug ${G2O_LIB}
+  debug ${G2O_LIB} optimized ${G2O_LIB}
 )
 
 # # Uncomment to display all CMAKE variables:
