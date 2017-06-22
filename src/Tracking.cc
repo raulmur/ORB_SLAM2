@@ -689,7 +689,9 @@ void Tracking::CreateInitialMapMonocular()
     float medianDepth = pKFini->ComputeSceneMedianDepth(2);
     float invMedianDepth = 1.0f/medianDepth;
 
-    if(medianDepth<0 || pKFcur->TrackedMapPoints(1)<100)
+    // gocarlos: default value was 100, this makes ORB_SLAM2 crash after initialization. 
+    std::size_t kMinNumPoints = 20;
+    if(medianDepth<0 || pKFcur->TrackedMapPoints(1)<kMinNumPoints)
     {
         cout << "Wrong initialization, reseting..." << endl;
         Reset();
@@ -916,7 +918,7 @@ bool Tracking::TrackWithMotionModel()
             else if(mCurrentFrame.mvpMapPoints[i]->Observations()>0)
                 nmatchesMap++;
         }
-    }    
+    }
 
     if(mbOnlyTracking)
     {
@@ -1548,7 +1550,7 @@ void Tracking::Reset()
 
 //    if(mpViewer)
 //        mpViewer->Release();
-    
+
     mpViewer->Release();
 }
 
