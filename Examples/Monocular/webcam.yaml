@@ -5,37 +5,29 @@
 #--------------------------------------------------------------------------------------------
 
 # Camera calibration and distortion parameters (OpenCV) 
-Camera.fx: 721.5377
-Camera.fy: 721.5377
-Camera.cx: 609.5593
-Camera.cy: 172.854
+Camera.fx: 719
+Camera.fy: 719
+Camera.cx: 319.5
+Camera.cy: 239.5
 
-Camera.k1: 0.0
-Camera.k2: 0.0
-Camera.p1: 0.0
-Camera.p2: 0.0
-
-Camera.width: 1241
-Camera.height: 376
+Camera.k1: 0.063870314171528386
+Camera.k2: -0.52116281612447268
+Camera.p1: 0
+Camera.p2: 0
+Camera.k3: 0.72288795670281047
 
 # Camera frames per second 
-Camera.fps: 10.0
-
-# stereo baseline times fx
-Camera.bf: 387.5744
+Camera.fps: 30.0
 
 # Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
-Camera.RGB: 1
-
-# Close/Far threshold. Baseline times.
-ThDepth: 40
+Camera.RGB: 0
 
 #--------------------------------------------------------------------------------------------
 # ORB Parameters
 #--------------------------------------------------------------------------------------------
 
 # ORB Extractor: Number of features per image
-ORBextractor.nFeatures: 2000
+ORBextractor.nFeatures: 1000
 
 # ORB Extractor: Scale factor between levels in the scale pyramid 	
 ORBextractor.scaleFactor: 1.2
@@ -53,14 +45,14 @@ ORBextractor.minThFAST: 7
 #--------------------------------------------------------------------------------------------
 # Viewer Parameters
 #--------------------------------------------------------------------------------------------
-Viewer.KeyFrameSize: 0.6
-Viewer.KeyFrameLineWidth: 2
-Viewer.GraphLineWidth: 1
+Viewer.KeyFrameSize: 0.05
+Viewer.KeyFrameLineWidth: 1
+Viewer.GraphLineWidth: 0.9
 Viewer.PointSize:2
-Viewer.CameraSize: 0.7
+Viewer.CameraSize: 0.08
 Viewer.CameraLineWidth: 3
 Viewer.ViewpointX: 0
-Viewer.ViewpointY: -100
-Viewer.ViewpointZ: -0.1
-Viewer.ViewpointF: 2000
+Viewer.ViewpointY: -0.7
+Viewer.ViewpointZ: -1.8
+Viewer.ViewpointF: 500
 

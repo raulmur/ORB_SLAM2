@@ -37,7 +37,7 @@
 #ifdef _MSC_VER
 #include <unordered_map>
 #else
-#include <tr1/unordered_map>
+#include <unordered_map>
 #endif
 
 namespace g2o {
@@ -135,32 +135,32 @@ namespace g2o {
           size_t operator ()(const OptimizableGraph::Vertex* v) const { return v->id();}
       };
 
-      typedef std::tr1::unordered_map<OptimizableGraph::Vertex*, AdjacencyMapEntry, VertexIDHashFunction> AdjacencyMap;
+      typedef std::unordered_map<OptimizableGraph::Vertex*, AdjacencyMapEntry, VertexIDHashFunction> AdjacencyMap;
 
     public:
       EstimatePropagator(OptimizableGraph* g);
       OptimizableGraph::VertexSet& visited() {return _visited; }
       AdjacencyMap& adjacencyMap() {return _adjacencyMap; }
-      OptimizableGraph* graph() {return _graph;} 
+      OptimizableGraph* graph() {return _graph;}
 
       /**
        * propagate an initial guess starting from v. The function computes a spanning tree
        * whereas the cost for each edge is determined by calling cost() and the action applied to
        * each vertex is action().
        */
-      void propagate(OptimizableGraph::Vertex* v, 
-          const EstimatePropagator::PropagateCost& cost, 
+      void propagate(OptimizableGraph::Vertex* v,
+          const EstimatePropagator::PropagateCost& cost,
           const EstimatePropagator::PropagateAction& action = PropagateAction(),
-          double maxDistance=std::numeric_limits<double>::max(), 
+          double maxDistance=std::numeric_limits<double>::max(),
           double maxEdgeCost=std::numeric_limits<double>::max());
 
       /**
        * same as above but starting to propagate from a set of vertices instead of just a single one.
        */
-      void propagate(OptimizableGraph::VertexSet& vset, 
-          const EstimatePropagator::PropagateCost& cost, 
+      void propagate(OptimizableGraph::VertexSet& vset,
+          const EstimatePropagator::PropagateCost& cost,
           const EstimatePropagator::PropagateAction& action = PropagateAction(),
-          double maxDistance=std::numeric_limits<double>::max(), 
+          double maxDistance=std::numeric_limits<double>::max(),
           double maxEdgeCost=std::numeric_limits<double>::max());
 
     protected:

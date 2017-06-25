@@ -2,6 +2,7 @@ CMakeLists.txt.user
 Examples/Monocular/mono_euroc
 Examples/Monocular/mono_kitti
 Examples/Monocular/mono_tum
+Examples/Monocular/mono_main
 Examples/RGB-D/rgbd_tum
 Examples/ROS/ORB_SLAM2/CMakeLists.txt.user
 Examples/ROS/ORB_SLAM2/Mono
@@ -15,10 +16,19 @@ KeyFrameTrajectory.txt
 Thirdparty/DBoW2/build/
 Thirdparty/DBoW2/lib/
 Thirdparty/g2o/build/
+Thirdparty/g2o/CMakeFiles/
 Thirdparty/g2o/config.h
 Thirdparty/g2o/lib/
 Vocabulary/ORBvoc.txt
 build/
 *~
+
+# Library files
 lib/
 
+# Executables
+bin/
+
+# Eclipse project settings
+.cproject
+.project
