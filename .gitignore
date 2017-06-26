@@ -22,3 +22,8 @@ build/
 *~
 lib/
 
+CMakeFiles
+
+# VIM
+
+*.swp
