@@ -24,15 +24,23 @@
 #include<fstream>
 #include<chrono>
 
-#include<ros/ros.h>
+#include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
 #include<opencv2/core/core.hpp>
+#include<opencv2/features2d/features2d.hpp> //ADR may not need this
 
 #include"../../../include/System.h"
+
+#include "std_msgs/Float32.h" //ADR
+#include "geometry_msgs/Pose.h" //ADR
+#include "geometry_msgs/TransformStamped.h"
+#include "../../../include/System.h"
+#include "tf/transform_datatypes.h"
+#include <tf/transform_broadcaster.h>
 
 using namespace std;
 
@@ -42,6 +50,7 @@ public:
     ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){}
 
     void GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const sensor_msgs::ImageConstPtr& msgD);
+    void PubPose(cv::Mat Pose);
 
     ORB_SLAM2::System* mpSLAM;
 };
@@ -71,6 +80,8 @@ int main(int argc, char **argv)
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub,depth_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabRGBD,&igb,_1,_2));
 
+    ros::Publisher pub = nh.advertise<std_msgs::Float32>("Pose_AR", 1000); //ADR
+	
     ros::spin();
 
     // Stop all threads
@@ -110,6 +121,27 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
     }
 
     mpSLAM->TrackRGBD(cv_ptrRGB->image,cv_ptrD->image,cv_ptrRGB->header.stamp.toSec());
+}
+
+void ImageGrabber::PubPose(cv::Mat Pose) // ADR
+{
+
+    cv::Mat poseIn = Pose.clone();
+
+
+    tf::Matrix3x3 Rotation(poseIn.at<float>(0,0),   poseIn.at<float>(0,1),   poseIn.at<float>(0,2),
+                           poseIn.at<float>(1,0),   poseIn.at<float>(1,1),   poseIn.at<float>(1,2),
+                           poseIn.at<float>(2,0),   poseIn.at<float>(2,1),   poseIn.at<float>(2,2));
+
+
+    tf::Vector3 Translation(poseIn.at<float>(0,3), poseIn.at<float>(1,3), poseIn.at<float>(2,3) );
+    
+    tf::Transform transform = tf::Transform(Rotation, Translation);
+
+    static tf::TransformBroadcaster pub;
+
+    pub.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", "camera_pose"));
+
 }
 
 
