@@ -39,6 +39,7 @@ endif()
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 
+
 include_directories(
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
@@ -79,11 +80,22 @@ ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
 )
 
+configure_file(cmake_config/ORB_SLAM2.cmake.in
+  "${PROJECT_BINARY_DIR}/ORB_SLAM2Config.cmake" @ONLY)
+
 install(TARGETS ${PROJECT_NAME}
   LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 )
+install(DIRECTORY include/ 
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}
+)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/ORB_SLAM2Config.cmake"
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}
+)
+install(FILES "${PROJECT_BINARY_DIR}/ORB_SLAM2Config.cmake" 
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/${PROJECT_NAME}
+)
 
-install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME})
 # Build examples
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
