@@ -1,4 +1,4 @@
-/**
+/*
 * This file is part of ORB-SLAM2.
 *
 * Copyright (C) 2014-2016 Raúl Mur-Artal <raulmur at unizar dot es> (University of Zaragoza)
@@ -25,6 +25,8 @@
 #include<chrono>
 
 #include<ros/ros.h>
+#include "tf/transform_datatypes.h"
+#include <tf/transform_broadcaster.h>
 #include <cv_bridge/cv_bridge.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
@@ -33,8 +35,10 @@
 #include<opencv2/core/core.hpp>
 
 #include"../../../include/System.h"
-
+#include <iostream>
 using namespace std;
+cv::Mat pose;
+ros::Publisher pose_pub; 
 
 class ImageGrabber
 {
@@ -114,6 +118,7 @@ int main(int argc, char **argv)
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), left_sub,right_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabStereo,&igb,_1,_2));
+    pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/camera_pose",1);
 
     ros::spin();
 
@@ -121,15 +126,13 @@ int main(int argc, char **argv)
     SLAM.Shutdown();
 
     // Save camera trajectory
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory_TUM_Format.txt");
-    SLAM.SaveTrajectoryTUM("FrameTrajectory_TUM_Format.txt");
-    SLAM.SaveTrajectoryKITTI("FrameTrajectory_KITTI_Format.txt");
+    //SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory_TUM_Format.txt");
+    //SLAM.SaveTrajectoryTUM("FrameTrajectory_TUM_Format.txt");
+    //SLAM.SaveTrajectoryKITTI("FrameTrajectory_KITTI_Format.txt");
 
     ros::shutdown();
-
     return 0;
 }
-
 void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight)
 {
     // Copy the ros image message to cv::Mat.
@@ -160,13 +163,45 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
         cv::Mat imLeft, imRight;
         cv::remap(cv_ptrLeft->image,imLeft,M1l,M2l,cv::INTER_LINEAR);
         cv::remap(cv_ptrRight->image,imRight,M1r,M2r,cv::INTER_LINEAR);
-        mpSLAM->TrackStereo(imLeft,imRight,cv_ptrLeft->header.stamp.toSec());
+        pose = mpSLAM->TrackStereo(imLeft,imRight,cv_ptrLeft->header.stamp.toSec());
     }
     else
     {
-        mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
+	pose =  mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
+    
+    //publishing pose using GrabRGBD function for the sake of simplicity
+    if (pose.empty())
+		return;
+
+    cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();  
+    cv::Mat Rotation = TWC.rowRange(0,3).colRange(0,3);  
+    cv::Mat Translation = TWC.rowRange(0,3).col(3);
+
+    tf::Matrix3x3 RotMatrix(Rotation.at<float>(0,0),Rotation.at<float>(0,1),Rotation.at<float>(0,2),
+                            Rotation.at<float>(1,0),Rotation.at<float>(1,1),Rotation.at<float>(1,2),
+                            Rotation.at<float>(2,0),Rotation.at<float>(2,1),Rotation.at<float>(2,2));
+
+    tf::Vector3 TransVect(Translation.at<float>(0), Translation.at<float>(1), Translation.at<float>(2));
+    
+    tf::Quaternion q;
+    RotMatrix.getRotation(q);
+
+    static tf::TransformBroadcaster br;
+    tf::Transform transform = tf::Transform(RotMatrix, TransVect);
+    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "init_link", "camera_pose"));
+
+    geometry_msgs::PoseStamped PubPose;
+    PubPose.pose.position.x = transform.getOrigin().x();
+    PubPose.pose.position.y = transform.getOrigin().y();
+    PubPose.pose.position.z = transform.getOrigin().z();
+    PubPose.pose.orientation.x = transform.getRotation().x();
+    PubPose.pose.orientation.y = transform.getRotation().y();
+    PubPose.pose.orientation.z = transform.getRotation().z();
+    PubPose.pose.orientation.w = transform.getRotation().w();
+
+    PubPose.header.stamp = ros::Time::now();
+    PubPose.header.frame_id = "init_link";
+    pose_pub.publish(PubPose);
 
 }
-
-
