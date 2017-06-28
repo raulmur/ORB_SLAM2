@@ -473,7 +473,7 @@ void Tracking::Track()
         {
             if(mpMap->KeyFramesInMap()<=5)
             {
-                cout << "Track lost soon after initialisation, reseting..." << endl;
+                cout << "Track lost soon after initialisation, resetting..." << endl;
                 mpSystem->Reset();
                 return;
             }
@@ -691,7 +691,7 @@ void Tracking::CreateInitialMapMonocular()
 
     if(medianDepth<0 || pKFcur->TrackedMapPoints(1)<100)
     {
-        cout << "Wrong initialization, reseting..." << endl;
+        cout << "Wrong initialization, resetting..." << endl;
         Reset();
         return;
     }
@@ -1504,7 +1504,7 @@ bool Tracking::Relocalization()
 void Tracking::Reset()
 {
 
-    cout << "System Reseting" << endl;
+    cout << "System Resetting" << endl;
     if(mpViewer)
     {
         mpViewer->RequestStop();
@@ -1513,17 +1513,17 @@ void Tracking::Reset()
     }
 
     // Reset Local Mapping
-    cout << "Reseting Local Mapper...";
+    cout << "Resetting Local Mapper...";
     mpLocalMapper->RequestReset();
     cout << " done" << endl;
 
     // Reset Loop Closing
-    cout << "Reseting Loop Closing...";
+    cout << "Resetting Loop Closing...";
     mpLoopClosing->RequestReset();
     cout << " done" << endl;
 
     // Clear BoW Database
-    cout << "Reseting Database...";
+    cout << "Resetting Database...";
     mpKeyFrameDB->clear();
     cout << " done" << endl;
 
