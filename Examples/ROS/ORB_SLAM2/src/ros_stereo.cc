@@ -36,9 +36,12 @@
 
 #include"../../../include/System.h"
 #include <iostream>
+#include "std_msgs/Int8.h"
+
 using namespace std;
 cv::Mat pose;
 ros::Publisher pose_pub; 
+ros::Publisher track_pub; 
 
 class ImageGrabber
 {
@@ -119,6 +122,7 @@ int main(int argc, char **argv)
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), left_sub,right_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabStereo,&igb,_1,_2));
     pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/camera_pose",1);
+    track_pub = nh.advertise<std_msgs::Int8>("tracking_state", 1);
 
     ros::spin();
 
@@ -170,9 +174,23 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 	pose =  mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
     
-    //publishing pose using GrabRGBD function for the sake of simplicity
-    if (pose.empty())
-		return;
+
+    ////// publishing tracking state ///////
+
+    int state = mpSLAM->mpTracker->mState;
+    
+    std_msgs::Int8 msg;
+
+    msg.data = state;
+
+    ROS_INFO("%d", msg.data);
+    
+    track_pub.publish(msg);
+
+    //////// publishing pose and equivalent transform ///////
+
+    if (pose.empty()) //returning if pose is empty (ex. if tracking is lost) 
+    		return; //because inverting empty matrix throws an error
 
     cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();  
     cv::Mat Rotation = TWC.rowRange(0,3).colRange(0,3);  
@@ -203,5 +221,4 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     PubPose.header.stamp = ros::Time::now();
     PubPose.header.frame_id = "init_link";
     pose_pub.publish(PubPose);
-
 }
