@@ -183,7 +183,7 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 
     msg.data = state;
 
-    ROS_INFO("%d", msg.data);
+    //ROS_INFO("%d", msg.data);
     
     track_pub.publish(msg);
 
