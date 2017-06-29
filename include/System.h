@@ -89,6 +89,9 @@ public:
     // Reset the system (clear map)
     void Reset();
 
+    // Soft Reset the system (don't clear map)
+    void SoftReset();
+
     // All threads will be requested to finish.
     // It waits until all threads have finished.
     // This function must be called before saving the trajectory.

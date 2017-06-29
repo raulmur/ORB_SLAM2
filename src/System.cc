@@ -298,6 +298,11 @@ void System::Reset()
     mbReset = true;
 }
 
+void System::SoftReset() //this is a bad way of doing it -- I should make my own mutex lock at some point
+{
+    mpTracker->SoftReset();
+}
+
 void System::Shutdown()
 {
     mpLocalMapper->RequestFinish();

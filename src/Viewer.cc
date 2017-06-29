@@ -72,6 +72,7 @@ void Viewer::Run()
     pangolin::Var<bool> menuShowGraph("menu.Show Graph",true,true);
     pangolin::Var<bool> menuLocalizationMode("menu.Localization Mode",false,true);
     pangolin::Var<bool> menuReset("menu.Reset",false,false);
+    pangolin::Var<bool> menuMyReset("menu.Soft Reset",false,false); //my 'Soft' Reset
 
     // Define Camera Render Object (for view / scene browsing)
     pangolin::OpenGlRenderState s_cam(
@@ -138,7 +139,7 @@ void Viewer::Run()
         cv::imshow("ORB-SLAM2: Current Frame",im);
         cv::waitKey(mT);
 
-        if(menuReset)
+        if(menuReset)// Hard reset button
         {
             menuShowGraph = true;
             menuShowKeyFrames = true;
@@ -150,6 +151,21 @@ void Viewer::Run()
             bFollow = true;
             menuFollowCamera = true;
             mpSystem->Reset();
+            menuReset = false;
+        }
+
+        if(menuMyReset) //my 'Soft' reset button
+        {
+	    menuShowGraph = true;
+            menuShowKeyFrames = true;
+            menuShowPoints = true;
+            menuLocalizationMode = false;
+            if(bLocalizationMode)
+                mpSystem->DeactivateLocalizationMode();
+            bLocalizationMode = false;
+            bFollow = true;
+            menuFollowCamera = true;
+            mpSystem->SoftReset();
             menuReset = false;
         }
 

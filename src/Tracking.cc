@@ -1502,7 +1502,7 @@ bool Tracking::Relocalization()
 
 }
 
-void Tracking::Reset()
+void Tracking::Reset() // original hard reset
 {
 
     cout << "System Resetting" << endl;
@@ -1547,6 +1547,55 @@ void Tracking::Reset()
     mlbLost.clear();
 
     if(mpViewer)
+        mpViewer->Release();
+}
+
+void Tracking::SoftReset() //my 'soft' reset function
+{
+
+    cout << "System Soft Resetting" << endl;
+    
+    if(mpViewer) //stopping the viewer
+    {
+        mpViewer->RequestStop();
+        while(!mpViewer->isStopped())
+            usleep(3000); //check every 3 seconds
+    }
+
+    // Reset Local Mapping
+    cout << "Resetting Local Mapper...";
+    mpLocalMapper->RequestReset();
+    cout << " done" << endl;
+
+     // Reset Loop Closing
+    cout << "Resetting Loop Closing...";
+    mpLoopClosing->RequestReset();
+    cout << " done" << endl;
+
+     // Clear BoW Database
+    cout << "Resetting Database...";
+    mpKeyFrameDB->clear();
+    cout << " done" << endl;
+
+    // Clear Map (this erase MapPoints and KeyFrames)
+    // mpMap->clear();
+
+    // KeyFrame::nNextId = 0;
+    // Frame::nNextId = 0;
+    mState = NO_IMAGES_YET; //not setting IDs to 0 could cause a problem
+
+    if(mpInitializer) //I'm assuming this makes the system re-initialize, I should double check
+    {
+        delete mpInitializer;
+        mpInitializer = static_cast<Initializer*>(NULL);
+    }
+
+    //mlRelativeFramePoses.clear();
+    //mlpReferences.clear();
+    //mlFrameTimes.clear();
+    mlbLost.clear();
+
+    if(mpViewer) //starting the viewer back up
         mpViewer->Release();
 }
 

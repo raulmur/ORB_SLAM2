@@ -114,6 +114,7 @@ public:
     bool mbOnlyTracking;
 
     void Reset();
+    void SoftReset();
 
 protected:
 
