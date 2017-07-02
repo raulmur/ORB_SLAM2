@@ -31,6 +31,7 @@
 namespace ORB_SLAM2
 {
 
+///Drawing functions to visualize current map
 class MapDrawer
 {
 public:

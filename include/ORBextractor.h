@@ -42,20 +42,42 @@ public:
     bool bNoMore;
 };
 
+/** \brief Compute the ORB features and descriptors on an image, with distribution limits.
+*
+* ORB features are used for stereo matching, tracking, mapping and place recognition. They
+* are fast to compute, robust to scale and rotation, camera and lighting effects.
+*
+* ORB features are dispersed on the image using an octree using different scale levels. We try
+* to detect a minimum number of corners in each cell. At each cell FAST corners are extracted 
+* imposing a minimum response. Firstly we impose iniThFAST threshold. If no corners are detected 
+* we impose a lower value minThFAST. The thresholds may need adjusting for low contrast images.
+*
+* Mask is ignored in the current implementation.
+*/
 class ORBextractor
 {
 public:
     
     enum {HARRIS_SCORE=0, FAST_SCORE=1 };
 
+    /** \brief Constructor
+    * \param nfeatures Target number of features to extract
+    * \param scaleFactor Scale factor of FAST corner features
+    * \param nlevels Number of scale levels
+    * \param iniThFAST Initial response threshold
+    * \param minThFAST Minimum response threshold
+    */
     ORBextractor(int nfeatures, float scaleFactor, int nlevels,
                  int iniThFAST, int minThFAST);
 
     ~ORBextractor(){}
 
-    // Compute the ORB features and descriptors on an image.
-    // ORB are dispersed on the image using an octree.
-    // Mask is ignored in the current implementation.
+    /** \brief Compute the ORB features and descriptors on an image
+    * @param img the image to compute the features and descriptors on
+    * @param mask the mask to apply
+    * @param keypoints the resulting keypoints
+    * @param descriptors output descriptors of keypoints
+    */
     void operator()( cv::InputArray image, cv::InputArray mask,
       std::vector<cv::KeyPoint>& keypoints,
       cv::OutputArray descriptors);
@@ -87,17 +109,31 @@ public:
 protected:
 
     void ComputePyramid(cv::Mat image);
-    void ComputeKeyPointsOctTree(std::vector<std::vector<cv::KeyPoint> >& allKeypoints);    
+    void ComputeKeyPointsOctTree(std::vector<std::vector<cv::KeyPoint> >& allKeypoints);  
+
+	/// Compute the ORB keypoints on an image ensuring a wide distribution of key points
     std::vector<cv::KeyPoint> DistributeOctTree(const std::vector<cv::KeyPoint>& vToDistributeKeys, const int &minX,
                                            const int &maxX, const int &minY, const int &maxY, const int &nFeatures, const int &level);
 
+    /** Compute the ORB keypoints on an image with no distribution limits
+    * @param image_pyramid the image pyramid to compute the features and descriptors on
+    * @param mask_pyramid the masks to apply at every level
+    * @param keypoints the resulting keypoints, clustered per level
+    */
     void ComputeKeyPointsOld(std::vector<std::vector<cv::KeyPoint> >& allKeypoints);
+
     std::vector<cv::Point> pattern;
 
+    /// Target number of features to extract
     int nfeatures;
+    /// Scale factor of FAST corner features
     double scaleFactor;
+    /// Number of scale levels
     int nlevels;
+
+    /// Initial response threshold
     int iniThFAST;
+    /// Minimum response threshold
     int minThFAST;
 
     std::vector<int> mnFeaturesPerLevel;

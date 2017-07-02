@@ -35,7 +35,9 @@ class KeyFrame;
 class Map;
 class Frame;
 
-
+/** \brief An observable map feature, with an ORB descriptor and position, which is part of the current Map.
+*
+**/
 class MapPoint
 {
 public:
@@ -114,30 +116,30 @@ public:
 
 protected:    
 
-     // Position in absolute coordinates
+     /// Position in absolute coordinates
      cv::Mat mWorldPos;
 
-     // Keyframes observing the point and associated index in keyframe
+     /// Keyframes observing the point and associated index in keyframe
      std::map<KeyFrame*,size_t> mObservations;
 
-     // Mean viewing direction
+     /// Mean viewing direction
      cv::Mat mNormalVector;
 
-     // Best descriptor to fast matching
+     /// Best descriptor to fast matching
      cv::Mat mDescriptor;
 
-     // Reference KeyFrame
+     /// Reference KeyFrame
      KeyFrame* mpRefKF;
 
-     // Tracking counters
+     /// Tracking counters
      int mnVisible;
      int mnFound;
 
-     // Bad flag (we do not currently erase MapPoint from memory)
+     /// Bad flag (we do not currently erase MapPoint from memory)
      bool mbBad;
      MapPoint* mpReplaced;
 
-     // Scale invariance distances
+     /// Scale invariance distances
      float mfMinDistance;
      float mfMaxDistance;
 

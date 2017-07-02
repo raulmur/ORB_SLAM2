@@ -872,6 +872,7 @@ bool Tracking::TrackWithMotionModel()
     // Create "visual odometry" points if in Localization Mode
     UpdateLastFrame();
 
+    //Update position based on motion model
     mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw);
 
     fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));

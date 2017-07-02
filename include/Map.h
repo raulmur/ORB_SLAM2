@@ -35,6 +35,7 @@ namespace ORB_SLAM2
 class MapPoint;
 class KeyFrame;
 
+/// Map structure that stores the list of pointers to KeyFrame and MapPoint objects.
 class Map
 {
 public:
@@ -63,7 +64,7 @@ public:
 
     std::mutex mMutexMapUpdate;
 
-    // This avoid that two points are created simultaneously in separate threads (id conflict)
+    /// This avoid that two points are created simultaneously in separate threads (id conflict)
     std::mutex mMutexPointCreation;
 
 protected:
@@ -74,7 +75,7 @@ protected:
 
     long unsigned int mnMaxKFid;
 
-    // Index related to a big change in the map (loop closure, global BA)
+    /// Index related to a big change in the map (loop closure, global BA)
     int mnBigChangeIdx;
 
     std::mutex mMutexMap;

@@ -73,7 +73,7 @@ const int PATCH_SIZE = 31;
 const int HALF_PATCH_SIZE = 15;
 const int EDGE_THRESHOLD = 19;
 
-
+/// Compute the ORB keypoint orientation
 static float IC_Angle(const Mat& image, Point2f pt,  const vector<int> & u_max)
 {
     int m_01 = 0, m_10 = 0;
@@ -105,6 +105,9 @@ static float IC_Angle(const Mat& image, Point2f pt,  const vector<int> & u_max)
 
 
 const float factorPI = (float)(CV_PI/180.f);
+
+/** Compute the ORB decriptor
+ */
 static void computeOrbDescriptor(const KeyPoint& kpt,
                                  const Mat& img, const Point* pattern,
                                  uchar* desc)
@@ -536,6 +539,14 @@ void ExtractorNode::DivideNode(ExtractorNode &n1, ExtractorNode &n2, ExtractorNo
 
 }
 
+/** \brief Distribute nodes in a quad tree. This is performed for each level of the pyramid.
+*
+* First create a layer of initial top level nodes. Assign key points into the grid. While
+* a leaf node contains more than one node, recusively split each leaf node into four and reassign
+* nodes to the new leafs. Stop when the number of leaf nodes reaches the desired number of
+* feature points or each leaf contains exactly one node. Return the highest response key point
+* from each node.
+*/
 vector<cv::KeyPoint> ORBextractor::DistributeOctTree(const vector<cv::KeyPoint>& vToDistributeKeys, const int &minX,
                                        const int &maxX, const int &minY, const int &maxY, const int &N, const int &level)
 {

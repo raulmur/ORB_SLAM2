@@ -32,6 +32,9 @@
 namespace ORB_SLAM2
 {
 
+/// \brief Finds the relative position of two coordinate systems based on a set of observations
+///
+/// Custom implementation of: Horn 1987, Closed-form solution of absolute orientataion using unit quaternions
 class Sim3Solver
 {
 public:
