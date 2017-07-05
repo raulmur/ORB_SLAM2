@@ -90,7 +90,7 @@ public:
     void Reset();
 
     // Soft Reset the system (don't clear map)
-    void SoftReset();
+    //void SoftReset();
 
     // All threads will be requested to finish.
     // It waits until all threads have finished.
@@ -166,6 +166,10 @@ private:
     // Reset flag
     std::mutex mMutexReset;
     bool mbReset;
+
+    // Soft Reset flag
+    //std::mutex mMutexSoftReset;
+    //bool mbSoftReset = false;
 
     // Change mode flags
     std::mutex mMutexMode;
