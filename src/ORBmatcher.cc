@@ -42,6 +42,8 @@ ORBmatcher::ORBmatcher(float nnratio, bool checkOri): mfNNratio(nnratio), mbChec
 {
 }
 
+// Search matches between Frame keypoints and projected MapPoints. Returns number of matches
+// Used to track the local map (Tracking) (1) -----------------------------------------------------------   (1)
 int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoints, const float th)
 {
     int nmatches=0;
@@ -123,6 +125,401 @@ int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoint
             F.mvpMapPoints[bestIdx]=pMP;
             nmatches++;
         }
+    }
+
+    return nmatches;
+}
+
+// Project MapPoints tracked in last frame into the current frame and search matches.
+// Used to track from previous frame (Tracking) (2)
+// This is the code I am interested in modifying ----------------------------------------------------------  (2)
+int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono)
+{
+    int nmatches = 0;
+
+    // Rotation Histogram (to check rotation consistency)
+    vector<int> rotHist[HISTO_LENGTH];
+    for(int i=0;i<HISTO_LENGTH;i++)
+        rotHist[i].reserve(500);
+    const float factor = 1.0f/HISTO_LENGTH;
+
+    const cv::Mat Rcw = CurrentFrame.mTcw.rowRange(0,3).colRange(0,3); // Current Camera Rotation
+    const cv::Mat tcw = CurrentFrame.mTcw.rowRange(0,3).col(3); // Current Camera Translation
+
+    const cv::Mat twc = -Rcw.t()*tcw; //.transpose()
+
+    const cv::Mat Rlw = LastFrame.mTcw.rowRange(0,3).colRange(0,3); // Last Frame's Camera Rotation
+    const cv::Mat tlw = LastFrame.mTcw.rowRange(0,3).col(3); // Last Frame's Camera Translation
+ 
+    const cv::Mat tlc = Rlw*twc+tlw;
+
+    const bool bForward = tlc.at<float>(2)>CurrentFrame.mb && !bMono;
+    const bool bBackward = -tlc.at<float>(2)>CurrentFrame.mb && !bMono;
+
+    for(int i=0; i<LastFrame.N; i++)
+    {
+        MapPoint* pMP = LastFrame.mvpMapPoints[i];
+
+        if(pMP)
+        {
+            if(!LastFrame.mvbOutlier[i])
+            {
+                // Project
+                cv::Mat x3Dw = pMP->GetWorldPos();
+                cv::Mat x3Dc = Rcw*x3Dw+tcw; //camera pos of pMP
+
+                const float xc = x3Dc.at<float>(0);
+                const float yc = x3Dc.at<float>(1);
+                const float invzc = 1.0/x3Dc.at<float>(2);
+
+                if(invzc<0)
+                    continue;
+
+                float u = CurrentFrame.fx*xc*invzc+CurrentFrame.cx;
+                float v = CurrentFrame.fy*yc*invzc+CurrentFrame.cy;
+
+                if(u<CurrentFrame.mnMinX || u>CurrentFrame.mnMaxX) //u, v must be within bounds of frame
+                    continue;
+                if(v<CurrentFrame.mnMinY || v>CurrentFrame.mnMaxY)
+                    continue;
+
+                int nLastOctave = LastFrame.mvKeys[i].octave;
+
+                // Search in a window. Size depends on scale
+                float radius = th*CurrentFrame.mvScaleFactors[nLastOctave];
+
+                vector<size_t> vIndices2; // vector holds features found in area
+
+                if(bForward)
+                    vIndices2 = CurrentFrame.GetFeaturesInArea(u,v, radius, nLastOctave);
+                else if(bBackward)
+                    vIndices2 = CurrentFrame.GetFeaturesInArea(u,v, radius, 0, nLastOctave);
+                else
+                    vIndices2 = CurrentFrame.GetFeaturesInArea(u,v, radius, nLastOctave-1, nLastOctave+1);
+
+                if(vIndices2.empty())
+                    continue;
+
+                const cv::Mat dMP = pMP->GetDescriptor();
+
+                int bestDist = 256;
+                int bestIdx2 = -1;
+
+                for(vector<size_t>::const_iterator vit=vIndices2.begin(), vend=vIndices2.end(); vit!=vend; vit++)
+                {
+                    const size_t i2 = *vit;
+                    if(CurrentFrame.mvpMapPoints[i2])
+                        if(CurrentFrame.mvpMapPoints[i2]->Observations()>0)
+                            continue;
+
+                    if(CurrentFrame.mvuRight[i2]>0)
+                    {
+                        const float ur = u - CurrentFrame.mbf*invzc;
+                        const float er = fabs(ur - CurrentFrame.mvuRight[i2]);
+                        if(er>radius)
+                            continue;
+                    }
+
+                    const cv::Mat &d = CurrentFrame.mDescriptors.row(i2);
+
+                    const int dist = DescriptorDistance(dMP,d);
+
+                    if(dist<bestDist)
+                    {
+                        bestDist=dist;
+                        bestIdx2=i2;
+                    }
+                }
+
+                if(bestDist<=TH_HIGH)
+                {
+                    CurrentFrame.mvpMapPoints[bestIdx2]=pMP;
+                    nmatches++;
+
+                    if(mbCheckOrientation)
+                    {
+                        float rot = LastFrame.mvKeysUn[i].angle-CurrentFrame.mvKeysUn[bestIdx2].angle;
+                        if(rot<0.0)
+                            rot+=360.0f;
+                        int bin = round(rot*factor);
+                        if(bin==HISTO_LENGTH)
+                            bin=0;
+                        assert(bin>=0 && bin<HISTO_LENGTH);
+                        rotHist[bin].push_back(bestIdx2);
+                    }
+                }
+            }
+        }
+    }
+
+    //Apply rotation consistency
+    if(mbCheckOrientation)
+    {
+        int ind1=-1;
+        int ind2=-1;
+        int ind3=-1;
+
+        ComputeThreeMaxima(rotHist,HISTO_LENGTH,ind1,ind2,ind3);
+
+        for(int i=0; i<HISTO_LENGTH; i++)
+        {
+            if(i!=ind1 && i!=ind2 && i!=ind3)
+            {
+                for(size_t j=0, jend=rotHist[i].size(); j<jend; j++)
+                {
+                    CurrentFrame.mvpMapPoints[rotHist[i][j]]=static_cast<MapPoint*>(NULL);
+                    nmatches--;
+                }
+            }
+        }
+    }
+
+    return nmatches;
+}
+
+// Project MapPoints seen in KeyFrame into the Frame and search matches. ----------------------------------  (3)
+// Used in relocalisation (Tracking) (3)
+int ORBmatcher::SearchByProjection(Frame &CurrentFrame, KeyFrame *pKF, const set<MapPoint*> &sAlreadyFound, const float th , const int ORBdist)
+{
+    int nmatches = 0;
+
+    const cv::Mat Rcw = CurrentFrame.mTcw.rowRange(0,3).colRange(0,3);
+    const cv::Mat tcw = CurrentFrame.mTcw.rowRange(0,3).col(3);
+    const cv::Mat Ow = -Rcw.t()*tcw;
+
+    // Rotation Histogram (to check rotation consistency)
+    vector<int> rotHist[HISTO_LENGTH];
+    for(int i=0;i<HISTO_LENGTH;i++)
+        rotHist[i].reserve(500);
+    const float factor = 1.0f/HISTO_LENGTH;
+
+    const vector<MapPoint*> vpMPs = pKF->GetMapPointMatches();
+
+    for(size_t i=0, iend=vpMPs.size(); i<iend; i++)
+    {
+        MapPoint* pMP = vpMPs[i];
+
+        if(pMP)
+        {
+            if(!pMP->isBad() && !sAlreadyFound.count(pMP))
+            {
+                //Project
+                cv::Mat x3Dw = pMP->GetWorldPos();
+                cv::Mat x3Dc = Rcw*x3Dw+tcw;
+
+                const float xc = x3Dc.at<float>(0);
+                const float yc = x3Dc.at<float>(1);
+                const float invzc = 1.0/x3Dc.at<float>(2);
+
+                const float u = CurrentFrame.fx*xc*invzc+CurrentFrame.cx;
+                const float v = CurrentFrame.fy*yc*invzc+CurrentFrame.cy;
+
+                if(u<CurrentFrame.mnMinX || u>CurrentFrame.mnMaxX)
+                    continue;
+                if(v<CurrentFrame.mnMinY || v>CurrentFrame.mnMaxY)
+                    continue;
+
+                // Compute predicted scale level
+                cv::Mat PO = x3Dw-Ow;
+                float dist3D = cv::norm(PO);
+
+                const float maxDistance = pMP->GetMaxDistanceInvariance();
+                const float minDistance = pMP->GetMinDistanceInvariance();
+
+                // Depth must be inside the scale pyramid of the image
+                if(dist3D<minDistance || dist3D>maxDistance)
+                    continue;
+
+                int nPredictedLevel = pMP->PredictScale(dist3D,&CurrentFrame);
+
+                // Search in a window
+                const float radius = th*CurrentFrame.mvScaleFactors[nPredictedLevel];
+
+                const vector<size_t> vIndices2 = CurrentFrame.GetFeaturesInArea(u, v, radius, nPredictedLevel-1, nPredictedLevel+1);
+
+                if(vIndices2.empty())
+                    continue;
+
+                const cv::Mat dMP = pMP->GetDescriptor();
+
+                int bestDist = 256;
+                int bestIdx2 = -1;
+
+                for(vector<size_t>::const_iterator vit=vIndices2.begin(); vit!=vIndices2.end(); vit++)
+                {
+                    const size_t i2 = *vit;
+                    if(CurrentFrame.mvpMapPoints[i2])
+                        continue;
+
+                    const cv::Mat &d = CurrentFrame.mDescriptors.row(i2);
+
+                    const int dist = DescriptorDistance(dMP,d);
+
+                    if(dist<bestDist)
+                    {
+                        bestDist=dist;
+                        bestIdx2=i2;
+                    }
+                }
+
+                if(bestDist<=ORBdist)
+                {
+                    CurrentFrame.mvpMapPoints[bestIdx2]=pMP;
+                    nmatches++;
+
+                    if(mbCheckOrientation)
+                    {
+                        float rot = pKF->mvKeysUn[i].angle-CurrentFrame.mvKeysUn[bestIdx2].angle;
+                        if(rot<0.0)
+                            rot+=360.0f;
+                        int bin = round(rot*factor);
+                        if(bin==HISTO_LENGTH)
+                            bin=0;
+                        assert(bin>=0 && bin<HISTO_LENGTH);
+                        rotHist[bin].push_back(bestIdx2);
+                    }
+                }
+
+            }
+        }
+    }
+
+    if(mbCheckOrientation)
+    {
+        int ind1=-1;
+        int ind2=-1;
+        int ind3=-1;
+
+        ComputeThreeMaxima(rotHist,HISTO_LENGTH,ind1,ind2,ind3);
+
+        for(int i=0; i<HISTO_LENGTH; i++)
+        {
+            if(i!=ind1 && i!=ind2 && i!=ind3)
+            {
+                for(size_t j=0, jend=rotHist[i].size(); j<jend; j++)
+                {
+                    CurrentFrame.mvpMapPoints[rotHist[i][j]]=NULL;
+                    nmatches--;
+                }
+            }
+        }
+    }
+
+    return nmatches;
+}
+
+// Project MapPoints using a Similarity Transformation and search matches.
+// Used in loop detection (Loop Closing) (4) -------------------------------------------------------------  (4)
+int ORBmatcher::SearchByProjection(KeyFrame* pKF, cv::Mat Scw, const vector<MapPoint*> &vpPoints, vector<MapPoint*> &vpMatched, int th)
+{
+    // Get Calibration Parameters for later projection
+    const float &fx = pKF->fx;
+    const float &fy = pKF->fy;
+    const float &cx = pKF->cx;
+    const float &cy = pKF->cy;
+
+    // Decompose Scw
+    cv::Mat sRcw = Scw.rowRange(0,3).colRange(0,3);
+    const float scw = sqrt(sRcw.row(0).dot(sRcw.row(0)));
+    cv::Mat Rcw = sRcw/scw;
+    cv::Mat tcw = Scw.rowRange(0,3).col(3)/scw;
+    cv::Mat Ow = -Rcw.t()*tcw;
+
+    // Set of MapPoints already found in the KeyFrame
+    set<MapPoint*> spAlreadyFound(vpMatched.begin(), vpMatched.end());
+    spAlreadyFound.erase(static_cast<MapPoint*>(NULL));
+
+    int nmatches=0;
+
+    // For each Candidate MapPoint Project and Match
+    for(int iMP=0, iendMP=vpPoints.size(); iMP<iendMP; iMP++)
+    {
+        MapPoint* pMP = vpPoints[iMP];
+
+        // Discard Bad MapPoints and already found
+        if(pMP->isBad() || spAlreadyFound.count(pMP))
+            continue;
+
+        // Get 3D Coords.
+        cv::Mat p3Dw = pMP->GetWorldPos();
+
+        // Transform into Camera Coords.
+        cv::Mat p3Dc = Rcw*p3Dw+tcw;
+
+        // Depth must be positive
+        if(p3Dc.at<float>(2)<0.0)
+            continue;
+
+        // Project into Image
+        const float invz = 1/p3Dc.at<float>(2);
+        const float x = p3Dc.at<float>(0)*invz;
+        const float y = p3Dc.at<float>(1)*invz;
+
+        const float u = fx*x+cx;
+        const float v = fy*y+cy;
+
+        // Point must be inside the image
+        if(!pKF->IsInImage(u,v))
+            continue;
+
+        // Depth must be inside the scale invariance region of the point
+        const float maxDistance = pMP->GetMaxDistanceInvariance();
+        const float minDistance = pMP->GetMinDistanceInvariance();
+        cv::Mat PO = p3Dw-Ow;
+        const float dist = cv::norm(PO);
+
+        if(dist<minDistance || dist>maxDistance)
+            continue;
+
+        // Viewing angle must be less than 60 deg
+        cv::Mat Pn = pMP->GetNormal();
+
+        if(PO.dot(Pn)<0.5*dist)
+            continue;
+
+        int nPredictedLevel = pMP->PredictScale(dist,pKF);
+
+        // Search in a radius
+        const float radius = th*pKF->mvScaleFactors[nPredictedLevel];
+
+        const vector<size_t> vIndices = pKF->GetFeaturesInArea(u,v,radius);
+
+        if(vIndices.empty())
+            continue;
+
+        // Match to the most similar keypoint in the radius
+        const cv::Mat dMP = pMP->GetDescriptor();
+
+        int bestDist = 256;
+        int bestIdx = -1;
+        for(vector<size_t>::const_iterator vit=vIndices.begin(), vend=vIndices.end(); vit!=vend; vit++)
+        {
+            const size_t idx = *vit;
+            if(vpMatched[idx])
+                continue;
+
+            const int &kpLevel= pKF->mvKeysUn[idx].octave;
+
+            if(kpLevel<nPredictedLevel-1 || kpLevel>nPredictedLevel)
+                continue;
+
+            const cv::Mat &dKF = pKF->mDescriptors.row(idx);
+
+            const int dist = DescriptorDistance(dMP,dKF);
+
+            if(dist<bestDist)
+            {
+                bestDist = dist;
+                bestIdx = idx;
+            }
+        }
+
+        if(bestDist<=TH_LOW)
+        {
+            vpMatched[bestIdx]=pMP;
+            nmatches++;
+        }
+
     }
 
     return nmatches;
@@ -287,120 +684,6 @@ int ORBmatcher::SearchByBoW(KeyFrame* pKF,Frame &F, vector<MapPoint*> &vpMapPoin
     return nmatches;
 }
 
-int ORBmatcher::SearchByProjection(KeyFrame* pKF, cv::Mat Scw, const vector<MapPoint*> &vpPoints, vector<MapPoint*> &vpMatched, int th)
-{
-    // Get Calibration Parameters for later projection
-    const float &fx = pKF->fx;
-    const float &fy = pKF->fy;
-    const float &cx = pKF->cx;
-    const float &cy = pKF->cy;
-
-    // Decompose Scw
-    cv::Mat sRcw = Scw.rowRange(0,3).colRange(0,3);
-    const float scw = sqrt(sRcw.row(0).dot(sRcw.row(0)));
-    cv::Mat Rcw = sRcw/scw;
-    cv::Mat tcw = Scw.rowRange(0,3).col(3)/scw;
-    cv::Mat Ow = -Rcw.t()*tcw;
-
-    // Set of MapPoints already found in the KeyFrame
-    set<MapPoint*> spAlreadyFound(vpMatched.begin(), vpMatched.end());
-    spAlreadyFound.erase(static_cast<MapPoint*>(NULL));
-
-    int nmatches=0;
-
-    // For each Candidate MapPoint Project and Match
-    for(int iMP=0, iendMP=vpPoints.size(); iMP<iendMP; iMP++)
-    {
-        MapPoint* pMP = vpPoints[iMP];
-
-        // Discard Bad MapPoints and already found
-        if(pMP->isBad() || spAlreadyFound.count(pMP))
-            continue;
-
-        // Get 3D Coords.
-        cv::Mat p3Dw = pMP->GetWorldPos();
-
-        // Transform into Camera Coords.
-        cv::Mat p3Dc = Rcw*p3Dw+tcw;
-
-        // Depth must be positive
-        if(p3Dc.at<float>(2)<0.0)
-            continue;
-
-        // Project into Image
-        const float invz = 1/p3Dc.at<float>(2);
-        const float x = p3Dc.at<float>(0)*invz;
-        const float y = p3Dc.at<float>(1)*invz;
-
-        const float u = fx*x+cx;
-        const float v = fy*y+cy;
-
-        // Point must be inside the image
-        if(!pKF->IsInImage(u,v))
-            continue;
-
-        // Depth must be inside the scale invariance region of the point
-        const float maxDistance = pMP->GetMaxDistanceInvariance();
-        const float minDistance = pMP->GetMinDistanceInvariance();
-        cv::Mat PO = p3Dw-Ow;
-        const float dist = cv::norm(PO);
-
-        if(dist<minDistance || dist>maxDistance)
-            continue;
-
-        // Viewing angle must be less than 60 deg
-        cv::Mat Pn = pMP->GetNormal();
-
-        if(PO.dot(Pn)<0.5*dist)
-            continue;
-
-        int nPredictedLevel = pMP->PredictScale(dist,pKF);
-
-        // Search in a radius
-        const float radius = th*pKF->mvScaleFactors[nPredictedLevel];
-
-        const vector<size_t> vIndices = pKF->GetFeaturesInArea(u,v,radius);
-
-        if(vIndices.empty())
-            continue;
-
-        // Match to the most similar keypoint in the radius
-        const cv::Mat dMP = pMP->GetDescriptor();
-
-        int bestDist = 256;
-        int bestIdx = -1;
-        for(vector<size_t>::const_iterator vit=vIndices.begin(), vend=vIndices.end(); vit!=vend; vit++)
-        {
-            const size_t idx = *vit;
-            if(vpMatched[idx])
-                continue;
-
-            const int &kpLevel= pKF->mvKeysUn[idx].octave;
-
-            if(kpLevel<nPredictedLevel-1 || kpLevel>nPredictedLevel)
-                continue;
-
-            const cv::Mat &dKF = pKF->mDescriptors.row(idx);
-
-            const int dist = DescriptorDistance(dMP,dKF);
-
-            if(dist<bestDist)
-            {
-                bestDist = dist;
-                bestIdx = idx;
-            }
-        }
-
-        if(bestDist<=TH_LOW)
-        {
-            vpMatched[bestIdx]=pMP;
-            nmatches++;
-        }
-
-    }
-
-    return nmatches;
-}
 
 int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f> &vbPrevMatched, vector<int> &vnMatches12, int windowSize)
 {
@@ -1325,278 +1608,7 @@ int ORBmatcher::SearchBySim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint*> &
     return nFound;
 }
 
-int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono)
-{
-    int nmatches = 0;
 
-    // Rotation Histogram (to check rotation consistency)
-    vector<int> rotHist[HISTO_LENGTH];
-    for(int i=0;i<HISTO_LENGTH;i++)
-        rotHist[i].reserve(500);
-    const float factor = 1.0f/HISTO_LENGTH;
-
-    const cv::Mat Rcw = CurrentFrame.mTcw.rowRange(0,3).colRange(0,3);
-    const cv::Mat tcw = CurrentFrame.mTcw.rowRange(0,3).col(3);
-
-    const cv::Mat twc = -Rcw.t()*tcw;
-
-    const cv::Mat Rlw = LastFrame.mTcw.rowRange(0,3).colRange(0,3);
-    const cv::Mat tlw = LastFrame.mTcw.rowRange(0,3).col(3);
-
-    const cv::Mat tlc = Rlw*twc+tlw;
-
-    const bool bForward = tlc.at<float>(2)>CurrentFrame.mb && !bMono;
-    const bool bBackward = -tlc.at<float>(2)>CurrentFrame.mb && !bMono;
-
-    for(int i=0; i<LastFrame.N; i++)
-    {
-        MapPoint* pMP = LastFrame.mvpMapPoints[i];
-
-        if(pMP)
-        {
-            if(!LastFrame.mvbOutlier[i])
-            {
-                // Project
-                cv::Mat x3Dw = pMP->GetWorldPos();
-                cv::Mat x3Dc = Rcw*x3Dw+tcw;
-
-                const float xc = x3Dc.at<float>(0);
-                const float yc = x3Dc.at<float>(1);
-                const float invzc = 1.0/x3Dc.at<float>(2);
-
-                if(invzc<0)
-                    continue;
-
-                float u = CurrentFrame.fx*xc*invzc+CurrentFrame.cx;
-                float v = CurrentFrame.fy*yc*invzc+CurrentFrame.cy;
-
-                if(u<CurrentFrame.mnMinX || u>CurrentFrame.mnMaxX)
-                    continue;
-                if(v<CurrentFrame.mnMinY || v>CurrentFrame.mnMaxY)
-                    continue;
-
-                int nLastOctave = LastFrame.mvKeys[i].octave;
-
-                // Search in a window. Size depends on scale
-                float radius = th*CurrentFrame.mvScaleFactors[nLastOctave];
-
-                vector<size_t> vIndices2;
-
-                if(bForward)
-                    vIndices2 = CurrentFrame.GetFeaturesInArea(u,v, radius, nLastOctave);
-                else if(bBackward)
-                    vIndices2 = CurrentFrame.GetFeaturesInArea(u,v, radius, 0, nLastOctave);
-                else
-                    vIndices2 = CurrentFrame.GetFeaturesInArea(u,v, radius, nLastOctave-1, nLastOctave+1);
-
-                if(vIndices2.empty())
-                    continue;
-
-                const cv::Mat dMP = pMP->GetDescriptor();
-
-                int bestDist = 256;
-                int bestIdx2 = -1;
-
-                for(vector<size_t>::const_iterator vit=vIndices2.begin(), vend=vIndices2.end(); vit!=vend; vit++)
-                {
-                    const size_t i2 = *vit;
-                    if(CurrentFrame.mvpMapPoints[i2])
-                        if(CurrentFrame.mvpMapPoints[i2]->Observations()>0)
-                            continue;
-
-                    if(CurrentFrame.mvuRight[i2]>0)
-                    {
-                        const float ur = u - CurrentFrame.mbf*invzc;
-                        const float er = fabs(ur - CurrentFrame.mvuRight[i2]);
-                        if(er>radius)
-                            continue;
-                    }
-
-                    const cv::Mat &d = CurrentFrame.mDescriptors.row(i2);
-
-                    const int dist = DescriptorDistance(dMP,d);
-
-                    if(dist<bestDist)
-                    {
-                        bestDist=dist;
-                        bestIdx2=i2;
-                    }
-                }
-
-                if(bestDist<=TH_HIGH)
-                {
-                    CurrentFrame.mvpMapPoints[bestIdx2]=pMP;
-                    nmatches++;
-
-                    if(mbCheckOrientation)
-                    {
-                        float rot = LastFrame.mvKeysUn[i].angle-CurrentFrame.mvKeysUn[bestIdx2].angle;
-                        if(rot<0.0)
-                            rot+=360.0f;
-                        int bin = round(rot*factor);
-                        if(bin==HISTO_LENGTH)
-                            bin=0;
-                        assert(bin>=0 && bin<HISTO_LENGTH);
-                        rotHist[bin].push_back(bestIdx2);
-                    }
-                }
-            }
-        }
-    }
-
-    //Apply rotation consistency
-    if(mbCheckOrientation)
-    {
-        int ind1=-1;
-        int ind2=-1;
-        int ind3=-1;
-
-        ComputeThreeMaxima(rotHist,HISTO_LENGTH,ind1,ind2,ind3);
-
-        for(int i=0; i<HISTO_LENGTH; i++)
-        {
-            if(i!=ind1 && i!=ind2 && i!=ind3)
-            {
-                for(size_t j=0, jend=rotHist[i].size(); j<jend; j++)
-                {
-                    CurrentFrame.mvpMapPoints[rotHist[i][j]]=static_cast<MapPoint*>(NULL);
-                    nmatches--;
-                }
-            }
-        }
-    }
-
-    return nmatches;
-}
-
-int ORBmatcher::SearchByProjection(Frame &CurrentFrame, KeyFrame *pKF, const set<MapPoint*> &sAlreadyFound, const float th , const int ORBdist)
-{
-    int nmatches = 0;
-
-    const cv::Mat Rcw = CurrentFrame.mTcw.rowRange(0,3).colRange(0,3);
-    const cv::Mat tcw = CurrentFrame.mTcw.rowRange(0,3).col(3);
-    const cv::Mat Ow = -Rcw.t()*tcw;
-
-    // Rotation Histogram (to check rotation consistency)
-    vector<int> rotHist[HISTO_LENGTH];
-    for(int i=0;i<HISTO_LENGTH;i++)
-        rotHist[i].reserve(500);
-    const float factor = 1.0f/HISTO_LENGTH;
-
-    const vector<MapPoint*> vpMPs = pKF->GetMapPointMatches();
-
-    for(size_t i=0, iend=vpMPs.size(); i<iend; i++)
-    {
-        MapPoint* pMP = vpMPs[i];
-
-        if(pMP)
-        {
-            if(!pMP->isBad() && !sAlreadyFound.count(pMP))
-            {
-                //Project
-                cv::Mat x3Dw = pMP->GetWorldPos();
-                cv::Mat x3Dc = Rcw*x3Dw+tcw;
-
-                const float xc = x3Dc.at<float>(0);
-                const float yc = x3Dc.at<float>(1);
-                const float invzc = 1.0/x3Dc.at<float>(2);
-
-                const float u = CurrentFrame.fx*xc*invzc+CurrentFrame.cx;
-                const float v = CurrentFrame.fy*yc*invzc+CurrentFrame.cy;
-
-                if(u<CurrentFrame.mnMinX || u>CurrentFrame.mnMaxX)
-                    continue;
-                if(v<CurrentFrame.mnMinY || v>CurrentFrame.mnMaxY)
-                    continue;
-
-                // Compute predicted scale level
-                cv::Mat PO = x3Dw-Ow;
-                float dist3D = cv::norm(PO);
-
-                const float maxDistance = pMP->GetMaxDistanceInvariance();
-                const float minDistance = pMP->GetMinDistanceInvariance();
-
-                // Depth must be inside the scale pyramid of the image
-                if(dist3D<minDistance || dist3D>maxDistance)
-                    continue;
-
-                int nPredictedLevel = pMP->PredictScale(dist3D,&CurrentFrame);
-
-                // Search in a window
-                const float radius = th*CurrentFrame.mvScaleFactors[nPredictedLevel];
-
-                const vector<size_t> vIndices2 = CurrentFrame.GetFeaturesInArea(u, v, radius, nPredictedLevel-1, nPredictedLevel+1);
-
-                if(vIndices2.empty())
-                    continue;
-
-                const cv::Mat dMP = pMP->GetDescriptor();
-
-                int bestDist = 256;
-                int bestIdx2 = -1;
-
-                for(vector<size_t>::const_iterator vit=vIndices2.begin(); vit!=vIndices2.end(); vit++)
-                {
-                    const size_t i2 = *vit;
-                    if(CurrentFrame.mvpMapPoints[i2])
-                        continue;
-
-                    const cv::Mat &d = CurrentFrame.mDescriptors.row(i2);
-
-                    const int dist = DescriptorDistance(dMP,d);
-
-                    if(dist<bestDist)
-                    {
-                        bestDist=dist;
-                        bestIdx2=i2;
-                    }
-                }
-
-                if(bestDist<=ORBdist)
-                {
-                    CurrentFrame.mvpMapPoints[bestIdx2]=pMP;
-                    nmatches++;
-
-                    if(mbCheckOrientation)
-                    {
-                        float rot = pKF->mvKeysUn[i].angle-CurrentFrame.mvKeysUn[bestIdx2].angle;
-                        if(rot<0.0)
-                            rot+=360.0f;
-                        int bin = round(rot*factor);
-                        if(bin==HISTO_LENGTH)
-                            bin=0;
-                        assert(bin>=0 && bin<HISTO_LENGTH);
-                        rotHist[bin].push_back(bestIdx2);
-                    }
-                }
-
-            }
-        }
-    }
-
-    if(mbCheckOrientation)
-    {
-        int ind1=-1;
-        int ind2=-1;
-        int ind3=-1;
-
-        ComputeThreeMaxima(rotHist,HISTO_LENGTH,ind1,ind2,ind3);
-
-        for(int i=0; i<HISTO_LENGTH; i++)
-        {
-            if(i!=ind1 && i!=ind2 && i!=ind3)
-            {
-                for(size_t j=0, jend=rotHist[i].size(); j<jend; j++)
-                {
-                    CurrentFrame.mvpMapPoints[rotHist[i][j]]=NULL;
-                    nmatches--;
-                }
-            }
-        }
-    }
-
-    return nmatches;
-}
 
 void ORBmatcher::ComputeThreeMaxima(vector<int>* histo, const int L, int &ind1, int &ind2, int &ind3)
 {
