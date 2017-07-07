@@ -46,6 +46,10 @@ ros::Publisher track_pub;
 ros::Publisher m_pub;
 ros::Publisher version;  
 
+bool pubPose;
+bool pubTracking;
+bool pubM;
+
 class ImageGrabber
 {
 public:
@@ -181,86 +185,87 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 	pose =  mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
 
-/*
     ////// publishing tracking state ///////
 
     int state = mpSLAM->mpTracker->mState;
-    
     std_msgs::Int8 msg;
-
     msg.data = state;
-
-    ROS_INFO("%d", msg.data);
-    
     track_pub.publish(msg);
+
 
     //////// publishing pose and equivalent transform ///////
 
-    if (pose.empty()) //returning if pose is empty (ex. if tracking is lost) 
-    		return; //because inverting empty matrix throws an error
+    // TODO: make bool to skip publishing pose instead of simply returning
+ 
+    pubPose = true;
+    if (pose.empty()) {pubPose = false;} //skipping if pose is empty (ex. if tracking is lost) 
+    if (pubPose) {
 
-    cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();  
-    cv::Mat Rotation = TWC.rowRange(0,3).colRange(0,3);  
-    cv::Mat Translation = TWC.rowRange(0,3).col(3);
+	    cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();  
+	    cv::Mat Rotation = TWC.rowRange(0,3).colRange(0,3);  
+	    cv::Mat Translation = TWC.rowRange(0,3).col(3);
 
-    tf::Matrix3x3 RotMatrix(Rotation.at<float>(0,0),Rotation.at<float>(0,1),Rotation.at<float>(0,2),
-                            Rotation.at<float>(1,0),Rotation.at<float>(1,1),Rotation.at<float>(1,2),
-                            Rotation.at<float>(2,0),Rotation.at<float>(2,1),Rotation.at<float>(2,2));
+	    tf::Matrix3x3 RotMatrix(Rotation.at<float>(0,0),Rotation.at<float>(0,1),Rotation.at<float>(0,2),
+		                    Rotation.at<float>(1,0),Rotation.at<float>(1,1),Rotation.at<float>(1,2),
+		                    Rotation.at<float>(2,0),Rotation.at<float>(2,1),Rotation.at<float>(2,2));
 
-    tf::Vector3 TransVect(Translation.at<float>(0), Translation.at<float>(1), Translation.at<float>(2));
+	    tf::Vector3 TransVect(Translation.at<float>(0), Translation.at<float>(1), Translation.at<float>(2));
+	    
+	    tf::Quaternion q;
+	    RotMatrix.getRotation(q);
+
+	    static tf::TransformBroadcaster br_pose;
+	    tf::Transform transform = tf::Transform(RotMatrix, TransVect);
+	    br_pose.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "init_link", "camera_pose"));
+
+	    geometry_msgs::PoseStamped PubPose;
+	    PubPose.pose.position.x = transform.getOrigin().x();
+	    PubPose.pose.position.y = transform.getOrigin().y();
+	    PubPose.pose.position.z = transform.getOrigin().z();
+	    PubPose.pose.orientation.x = transform.getRotation().x();
+	    PubPose.pose.orientation.y = transform.getRotation().y();
+	    PubPose.pose.orientation.z = transform.getRotation().z();
+	    PubPose.pose.orientation.w = transform.getRotation().w();
+
+	    PubPose.header.stamp = ros::Time::now();
+	    PubPose.header.frame_id = "init_link";
+	    pose_pub.publish(PubPose);
+    }
     
-    tf::Quaternion q;
-    RotMatrix.getRotation(q);
-
-    static tf::TransformBroadcaster br_pose;
-    tf::Transform transform = tf::Transform(RotMatrix, TransVect);
-    br_pose.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "init_link", "camera_pose"));
-
-    geometry_msgs::PoseStamped PubPose;
-    PubPose.pose.position.x = transform.getOrigin().x();
-    PubPose.pose.position.y = transform.getOrigin().y();
-    PubPose.pose.position.z = transform.getOrigin().z();
-    PubPose.pose.orientation.x = transform.getRotation().x();
-    PubPose.pose.orientation.y = transform.getRotation().y();
-    PubPose.pose.orientation.z = transform.getRotation().z();
-    PubPose.pose.orientation.w = transform.getRotation().w();
-
-    PubPose.header.stamp = ros::Time::now();
-    PubPose.header.frame_id = "init_link";
-    pose_pub.publish(PubPose);
-
     //////// publishing mVelocity and equivalent transform ///////
 
     cv::Mat mVelocity = mpSLAM->mpTracker->mVelocity; //getting mVelocity
+    pubM = true;
+    if (mVelocity.empty()) {pubM = false;} //returning if mVelocity is empty (ex. if tracking is lost or just starting up) 
 
-    cv::Mat mRotation = mVelocity.rowRange(0,3).colRange(0,3); //getting rotation matrix
-    cv::Mat mTranslation = mVelocity.rowRange(0,3).col(3); //getting translation
+    if (pubM) {
+	    cv::Mat mRotation = mVelocity.rowRange(0,3).colRange(0,3); //getting rotation matrix
+	    cv::Mat mTranslation = mVelocity.rowRange(0,3).col(3); //getting translation
 
-    tf::Matrix3x3 mRotMatrix(mRotation.at<float>(0,0),mRotation.at<float>(0,1),mRotation.at<float>(0,2),
-                            mRotation.at<float>(1,0),mRotation.at<float>(1,1),mRotation.at<float>(1,2),
-                            mRotation.at<float>(2,0),mRotation.at<float>(2,1),mRotation.at<float>(2,2));
+	    tf::Matrix3x3 mRotMatrix(mRotation.at<float>(0,0),mRotation.at<float>(0,1),mRotation.at<float>(0,2),
+		                    mRotation.at<float>(1,0),mRotation.at<float>(1,1),mRotation.at<float>(1,2),
+		                    mRotation.at<float>(2,0),mRotation.at<float>(2,1),mRotation.at<float>(2,2));
 
-    tf::Vector3 mTransVect(mTranslation.at<float>(0), mTranslation.at<float>(1), mTranslation.at<float>(2));
+	    tf::Vector3 mTransVect(mTranslation.at<float>(0), mTranslation.at<float>(1), mTranslation.at<float>(2));
 
-    tf::Quaternion m;           
-    mRotMatrix.getRotation(m); //converting rotation matrix into quaternion
+	    tf::Quaternion m;           
+	    mRotMatrix.getRotation(m); //converting rotation matrix into quaternion
 
-    static tf::TransformBroadcaster br_m;
-    tf::Transform transform_m = tf::Transform(mRotMatrix, mTransVect);
-    br_m.sendTransform(tf::StampedTransform(transform_m, ros::Time::now(), "init_link", "mVelocity"));
+	    static tf::TransformBroadcaster br_m;
+	    tf::Transform transform_m = tf::Transform(mRotMatrix, mTransVect);
+	    br_m.sendTransform(tf::StampedTransform(transform_m, ros::Time::now(), "init_link", "mVelocity"));
 
-    geometry_msgs::PoseStamped PubM;
-    PubM.pose.position.x = transform_m.getOrigin().x();
-    PubM.pose.position.y = transform_m.getOrigin().y();
-    PubM.pose.position.z = transform_m.getOrigin().z();
-    PubM.pose.orientation.x = transform_m.getRotation().x();
-    PubM.pose.orientation.y = transform_m.getRotation().y();
-    PubM.pose.orientation.z = transform_m.getRotation().z();
-    PubM.pose.orientation.w = transform_m.getRotation().w();
+	    geometry_msgs::PoseStamped PubM;
+	    PubM.pose.position.x = transform_m.getOrigin().x();
+	    PubM.pose.position.y = transform_m.getOrigin().y();
+	    PubM.pose.position.z = transform_m.getOrigin().z();
+	    PubM.pose.orientation.x = transform_m.getRotation().x();
+	    PubM.pose.orientation.y = transform_m.getRotation().y();
+	    PubM.pose.orientation.z = transform_m.getRotation().z();
+	    PubM.pose.orientation.w = transform_m.getRotation().w();
 
-    PubM.header.stamp = ros::Time::now();
-    PubM.header.frame_id = "init_link";
-    m_pub.publish(PubM); 
-*/
-
+	    PubM.header.stamp = ros::Time::now();
+	    PubM.header.frame_id = "init_link";
+	    m_pub.publish(PubM); 
+    }
 } //end
