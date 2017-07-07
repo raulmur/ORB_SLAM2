@@ -116,6 +116,13 @@ public:
     void Reset();
     //void SoftReset();
 
+    //Motion Model from ORB-SLAM visual odometry
+    //I made this public so we can publish it
+    cv::Mat mVelocity;
+
+    //Motion Model from IMU + VO
+    cv::Mat pVelocity;
+
 protected:
 
     // Main tracking function. It is independent of the input sensor.
@@ -207,9 +214,6 @@ protected:
     Frame mLastFrame;
     unsigned int mnLastKeyFrameId;
     unsigned int mnLastRelocFrameId;
-
-    //Motion Model
-    cv::Mat mVelocity;
 
     //Color order (true RGB, false BGR, ignored if grayscale)
     bool mbRGB;

@@ -35,12 +35,11 @@
 #include<opencv2/core/core.hpp>
 #include<opencv2/features2d/features2d.hpp> //ADR may not need this
 
-#include"../../../include/System.h"
+#include"System.h"
 
 #include "std_msgs/Float32.h" //ADR
 #include "geometry_msgs/Pose.h" //ADR
 #include "geometry_msgs/TransformStamped.h"
-#include "../../../include/System.h"
 #include "tf/transform_datatypes.h"
 #include <tf/transform_broadcaster.h>
 

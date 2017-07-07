@@ -36,6 +36,7 @@
 #include<iostream>
 
 #include<mutex>
+#include<ros/ros.h>
 
 
 using namespace std;
@@ -428,6 +429,8 @@ void Tracking::Track()
                 mLastFrame.GetRotationInverse().copyTo(LastTwc.rowRange(0,3).colRange(0,3));
                 mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
                 mVelocity = mCurrentFrame.mTcw*LastTwc;
+
+		pVelocity = mVelocity.clone();
             }
             else
                 mVelocity = cv::Mat();

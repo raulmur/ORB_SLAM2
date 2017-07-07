@@ -24,7 +24,7 @@
 #include<fstream>
 #include<chrono>
 
-#include<ros/ros.h>
+#include "ros/ros.h"
 #include "tf/transform_datatypes.h"
 #include <tf/transform_broadcaster.h>
 #include <cv_bridge/cv_bridge.h>
@@ -34,14 +34,17 @@
 
 #include<opencv2/core/core.hpp>
 
-#include"../../../include/System.h"
+#include"System.h"
 #include <iostream>
+#include <sstream>
 #include "std_msgs/Int8.h"
 
 using namespace std;
 cv::Mat pose;
 ros::Publisher pose_pub; 
 ros::Publisher track_pub; 
+ros::Publisher m_pub;
+ros::Publisher version;  
 
 class ImageGrabber
 {
@@ -117,13 +120,17 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     message_filters::Subscriber<sensor_msgs::Image> left_sub(nh, "/camera/left/image_raw", 1);
-    message_filters::Subscriber<sensor_msgs::Image> right_sub(nh, "camera/right/image_raw", 1);
+    message_filters::Subscriber<sensor_msgs::Image> right_sub(nh, "/camera/right/image_raw", 1);
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), left_sub,right_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabStereo,&igb,_1,_2));
-    pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/camera_pose",1);
-    track_pub = nh.advertise<std_msgs::Int8>("tracking_state", 1);
-
+    
+    //advertising my publishers
+    m_pub = nh.advertise<geometry_msgs::PoseStamped>("m_velocity",1000);
+    pose_pub = nh.advertise<geometry_msgs::PoseStamped>("camera_pose",1000);
+    track_pub = nh.advertise<std_msgs::Int8>("tracking_state2", 1000);
+    version = nh.advertise<std_msgs::Int8>("version1", 1000);
+    
     ros::spin();
 
     // Stop all threads
@@ -173,8 +180,8 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     {
 	pose =  mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
-    
 
+/*
     ////// publishing tracking state ///////
 
     int state = mpSLAM->mpTracker->mState;
@@ -183,7 +190,7 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 
     msg.data = state;
 
-    //ROS_INFO("%d", msg.data);
+    ROS_INFO("%d", msg.data);
     
     track_pub.publish(msg);
 
@@ -205,9 +212,9 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     tf::Quaternion q;
     RotMatrix.getRotation(q);
 
-    static tf::TransformBroadcaster br;
+    static tf::TransformBroadcaster br_pose;
     tf::Transform transform = tf::Transform(RotMatrix, TransVect);
-    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "init_link", "camera_pose"));
+    br_pose.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "init_link", "camera_pose"));
 
     geometry_msgs::PoseStamped PubPose;
     PubPose.pose.position.x = transform.getOrigin().x();
@@ -221,4 +228,39 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     PubPose.header.stamp = ros::Time::now();
     PubPose.header.frame_id = "init_link";
     pose_pub.publish(PubPose);
-}
+
+    //////// publishing mVelocity and equivalent transform ///////
+
+    cv::Mat mVelocity = mpSLAM->mpTracker->mVelocity; //getting mVelocity
+
+    cv::Mat mRotation = mVelocity.rowRange(0,3).colRange(0,3); //getting rotation matrix
+    cv::Mat mTranslation = mVelocity.rowRange(0,3).col(3); //getting translation
+
+    tf::Matrix3x3 mRotMatrix(mRotation.at<float>(0,0),mRotation.at<float>(0,1),mRotation.at<float>(0,2),
+                            mRotation.at<float>(1,0),mRotation.at<float>(1,1),mRotation.at<float>(1,2),
+                            mRotation.at<float>(2,0),mRotation.at<float>(2,1),mRotation.at<float>(2,2));
+
+    tf::Vector3 mTransVect(mTranslation.at<float>(0), mTranslation.at<float>(1), mTranslation.at<float>(2));
+
+    tf::Quaternion m;           
+    mRotMatrix.getRotation(m); //converting rotation matrix into quaternion
+
+    static tf::TransformBroadcaster br_m;
+    tf::Transform transform_m = tf::Transform(mRotMatrix, mTransVect);
+    br_m.sendTransform(tf::StampedTransform(transform_m, ros::Time::now(), "init_link", "mVelocity"));
+
+    geometry_msgs::PoseStamped PubM;
+    PubM.pose.position.x = transform_m.getOrigin().x();
+    PubM.pose.position.y = transform_m.getOrigin().y();
+    PubM.pose.position.z = transform_m.getOrigin().z();
+    PubM.pose.orientation.x = transform_m.getRotation().x();
+    PubM.pose.orientation.y = transform_m.getRotation().y();
+    PubM.pose.orientation.z = transform_m.getRotation().z();
+    PubM.pose.orientation.w = transform_m.getRotation().w();
+
+    PubM.header.stamp = ros::Time::now();
+    PubM.header.frame_id = "init_link";
+    m_pub.publish(PubM); 
+*/
+
+} //end
