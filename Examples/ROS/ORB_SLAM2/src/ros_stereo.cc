@@ -281,13 +281,14 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     if (pose.empty()) {pubPose = false;} //skipping if pose is empty (ex. if tracking is lost) 
     if (pubPose) {
 
-	    cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();  
+	    cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();  //inverted or not?
+	    //cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw;
 	    cv::Mat Rotation = TWC.rowRange(0,3).colRange(0,3);  
 	    cv::Mat Translation = TWC.rowRange(0,3).col(3);
 
-	    tf::Matrix3x3 RotMatrix(Rotation.at<float>(0,0),Rotation.at<float>(0,1),Rotation.at<float>(0,2),
-		                    Rotation.at<float>(1,0),Rotation.at<float>(1,1),Rotation.at<float>(1,2),
-		                    Rotation.at<float>(2,0),Rotation.at<float>(2,1),Rotation.at<float>(2,2));
+	    tf::Matrix3x3 RotMatrix(Rotation.at<float>(0,0),Rotation.at<float>(0,1),Rotation.at<float>(0,2), //double or float?
+		                        Rotation.at<float>(1,0),Rotation.at<float>(1,1),Rotation.at<float>(1,2),
+		                        Rotation.at<float>(2,0),Rotation.at<float>(2,1),Rotation.at<float>(2,2));
 
 	    tf::Vector3 TransVect(Translation.at<float>(0), Translation.at<float>(1), Translation.at<float>(2));
 	    
@@ -313,7 +314,7 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     }
     
     //////// publishing mVelocity and equivalent transform ///////
-
+/*
     cv::Mat mVelocity = mpSLAM->mpTracker->mVelocity; //getting mVelocity
     pubM = true;
     if (mVelocity.empty()) {pubM = false;} //returning if mVelocity is empty (ex. if tracking is lost or just starting up) 
@@ -348,12 +349,14 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 	    PubM.header.frame_id = "init_link";
 	    m_pub.publish(PubM); 
     }
-    
+*/
     
     ////// Publishing pVelocity //////
-    cv::Mat pVelocity = mpSLAM->mpTracker->pVelocity; //getting mVelocity
-    //std::cout << pVelocity << "\n";
+    cv::Mat pVelocity = mpSLAM->mpTracker->pVelocity; //getting pVelocity
     publish(pVelocity, p_pub);
+    
+    cv::Mat mVelocity = mpSLAM->mpTracker->mVelocity; //getting mVelocity
+    publish(mVelocity, m_pub);
     
     //ROS_INFO("testing...");
     

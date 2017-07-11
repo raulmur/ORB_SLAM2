@@ -282,7 +282,9 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 //This is where heavy lifting is done for tracking once features are obtained
 void Tracking::Track()
 {
-    //CalculatePVelocity();
+
+
+    CalculatePVelocity();
     if(mState == NO_IMAGES_YET)
     {
         mState = NOT_INITIALIZED;
@@ -1121,7 +1123,6 @@ bool Tracking::CalculatePVelocity()
     pVelocity.at<double>(2,0) = RotMatrix.getRow(2).getX();
     pVelocity.at<double>(2,1) = RotMatrix.getRow(2).getY();
     pVelocity.at<double>(2,2) = RotMatrix.getRow(2).getZ();
-    
     
     return true;
     ///////             
