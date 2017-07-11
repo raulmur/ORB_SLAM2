@@ -1,0 +1,1 @@
+./ORB_SLAM2/Examples/Monocular/mono_tum ./ORBvoc.txt ./ORB_SLAM2/Examples/Monocular/TUM1.yaml ./rgbd_dataset_freiburg1_desk2
