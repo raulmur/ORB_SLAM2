@@ -155,12 +155,13 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     }
 
 }
-
+/*
 void chatterCallback(const std_msgs::Int8::ConstPtr& msg) //my subscriber
 {
   ROS_INFO("I heard: [%d]", msg->data);
   //testing = msg; //not declared in this scope
 }
+*/
 
 void Tracking::SetLocalMapper(LocalMapping *pLocalMapper)
 {
@@ -281,6 +282,7 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 //This is where heavy lifting is done for tracking once features are obtained
 void Tracking::Track()
 {
+    //CalculatePVelocity();
     if(mState == NO_IMAGES_YET)
     {
         mState = NOT_INITIALIZED;
@@ -307,6 +309,8 @@ void Tracking::Track()
     else // System is initialized. Track Frame.
     {
         bool bOK;
+        
+        //CalculatePVelocity();
 
         // Initial camera pose estimation using motion model or relocalization (if tracking is lost)
         if(!mbOnlyTracking)
@@ -321,7 +325,8 @@ void Tracking::Track()
 
                 if(mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
                 {
-                    bOK = TrackReferenceKeyFrame();
+                    //CalculatePVelocity();
+                    bOK = TrackReferenceKeyFrame(); 
                 }
                 else
                 {
@@ -351,7 +356,7 @@ void Tracking::Track()
 
                     if(!mVelocity.empty())
                     {
-                        CalculatePVelocity();
+                        //CalculatePVelocity();
                         bOK = TrackWithMotionModel();
                         
                         // TrackWithIMU();
@@ -376,6 +381,7 @@ void Tracking::Track()
                     cv::Mat TcwMM;
                     if(!mVelocity.empty())
                     {
+                        //CalculatePVelocity();
                         bOKMM = TrackWithMotionModel();
                         vpMPsMM = mCurrentFrame.mvpMapPoints;
                         vbOutMM = mCurrentFrame.mvbOutlier;
@@ -445,7 +451,10 @@ void Tracking::Track()
                 mLastFrame.GetRotationInverse().copyTo(LastTwc.rowRange(0,3).colRange(0,3));
                 mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
                 mVelocity = mCurrentFrame.mTcw*LastTwc;
-
+                    
+                    
+                //CalculatePVelocity();
+                
 		        //pVelocity = mVelocity.clone()*my_variable;
 
                 //ros::NodeHandle nh;
@@ -965,8 +974,6 @@ bool Tracking::TrackWithIMU()
     //////// getting IMU information //////
     geometry_msgs::TransformStamped transformStamped;
     try{
-      //transformStamped = tfBuffer.lookupTransform("imu4", ros::Time(mCurrentFrame.mTimeStamp.toSec()), "imu4",
-      //                          ros::Time(mLastFrame.mTimeStamp.toSec()), "odom");
       transformStamped = tfBuffer.lookupTransform("imu4", ros::Time(mCurrentFrame.mTimeStamp), "imu4",
                                 ros::Time(mLastFrame.mTimeStamp), "odom", ros::Duration(.01));
     }
@@ -1057,7 +1064,7 @@ bool Tracking::TrackWithIMU()
 //This is the modified version of TrackWithMotionModel() that uses IMU information
 bool Tracking::CalculatePVelocity()
 {   
-
+    ROS_INFO("Calculating pVelocity");
     //////// getting IMU information //////
     geometry_msgs::TransformStamped transformStamped;
     try{
@@ -1077,18 +1084,44 @@ bool Tracking::CalculatePVelocity()
     
     tf2::Matrix3x3 RotMatrix(Q); //converting from Quaternion to Rotation Matrix
     
+    if (!((mVelocity.cols == 4) && (mVelocity.rows == 4)))
+    { ROS_INFO("mVelocity not initialized"); return false; }
+    
     pVelocity = mVelocity.clone();
+    /*
+    const double &var1 = RotMatrix.getRow(0).getX(); //getting info
+    const double &var2 = RotMatrix.getRow(0).getY();
+    const double &var3 = RotMatrix.getRow(0).getZ();
+    const double &var4 = RotMatrix.getRow(1).getX();
+    const double &var5 = RotMatrix.getRow(1).getY();
+    const double &var6 = RotMatrix.getRow(1).getZ();
+    const double &var7 = RotMatrix.getRow(2).getX();
+    const double &var8 = RotMatrix.getRow(2).getY();
+    const double &var9 = RotMatrix.getRow(2).getZ();
     
     //converting from 3x3 TF to cv::Mat
-    pVelocity.at<double>(0,0) = RotMatrix.getColumn(0).getX(); //replacing Rotation Matrix in pVelocity with IMU Rot Matrix
-    pVelocity.at<double>(0,1) = RotMatrix.getColumn(0).getY();
-    pVelocity.at<double>(0,2) = RotMatrix.getColumn(0).getZ();
-    pVelocity.at<double>(1,0) = RotMatrix.getColumn(1).getX();
-    pVelocity.at<double>(1,1) = RotMatrix.getColumn(1).getY();
-    pVelocity.at<double>(1,2) = RotMatrix.getColumn(1).getZ();
-    pVelocity.at<double>(2,0) = RotMatrix.getColumn(2).getX();
-    pVelocity.at<double>(2,1) = RotMatrix.getColumn(2).getY();
-    pVelocity.at<double>(2,2) = RotMatrix.getColumn(2).getZ();
+    pVelocity.at<double>(0,0) = 1; //setting info
+    pVelocity.at<double>(0,1) = 2;
+    pVelocity.at<double>(0,2) = 3;
+    pVelocity.at<double>(1,0) = 4;
+    pVelocity.at<double>(1,1) = 5;
+    pVelocity.at<double>(1,2) = 6;
+    pVelocity.at<double>(2,0) = 7;
+    pVelocity.at<double>(2,1) = 8;
+    pVelocity.at<double>(2,2) = 9;
+    */
+    
+    //converting from 3x3 TF to cv::Mat
+    pVelocity.at<double>(0,0) = RotMatrix.getRow(0).getX(); //replacing Rotation Matrix in pVelocity with IMU Rot Matrix
+    pVelocity.at<double>(0,1) = RotMatrix.getRow(0).getY();
+    pVelocity.at<double>(0,2) = RotMatrix.getRow(0).getZ();
+    pVelocity.at<double>(1,0) = RotMatrix.getRow(1).getX();
+    pVelocity.at<double>(1,1) = RotMatrix.getRow(1).getY();
+    pVelocity.at<double>(1,2) = RotMatrix.getRow(1).getZ();
+    pVelocity.at<double>(2,0) = RotMatrix.getRow(2).getX();
+    pVelocity.at<double>(2,1) = RotMatrix.getRow(2).getY();
+    pVelocity.at<double>(2,2) = RotMatrix.getRow(2).getZ();
+    
     
     return true;
     ///////             

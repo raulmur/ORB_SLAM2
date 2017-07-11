@@ -67,12 +67,14 @@ public:
     cv::Mat M1l,M2l,M1r,M2r;
 };
 
+
 void chatterCallback(sensor_msgs::Imu matrix)
 {
   //orientation = matrix;
   //tf::Quaternion q;
   //RotMatrix.getRotation(q);
 }
+
 
 int main(int argc, char **argv)
 {
@@ -141,6 +143,7 @@ int main(int argc, char **argv)
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), left_sub,right_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabStereo,&igb,_1,_2));
     
+    
     //advertising my publishers
     m_pub = nh.advertise<geometry_msgs::PoseStamped>("mVelocity",1000);
     pose_pub = nh.advertise<geometry_msgs::PoseStamped>("camera_pose",1000);
@@ -152,7 +155,7 @@ int main(int argc, char **argv)
     
     //setting up subscriber for IMU Orientation
     ros::Subscriber sub = nh.subscribe("imu/data", 1000, chatterCallback);
-
+   
 
     ros::spin();
 
@@ -167,6 +170,7 @@ int main(int argc, char **argv)
     ros::shutdown();
     return 0;
 }
+
 
 void publish(cv::Mat toPublish, ros::Publisher Publisher) {
     if (toPublish.empty()) {return;}
@@ -236,6 +240,7 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 	pose =  mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
 
+    
     ////// publishing tracking state ///////
     /*
     int state = mpSLAM->mpTracker->mState;
@@ -250,6 +255,7 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     test_int.data = testing;
     test_pub.publish(test_int);
     */
+    
     
     ////// publishing tracking debugging ///////
     // demonstrates ability to change variables in tracker from stereo
@@ -346,7 +352,11 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     
     ////// Publishing pVelocity //////
     cv::Mat pVelocity = mpSLAM->mpTracker->pVelocity; //getting mVelocity
+    //std::cout << pVelocity << "\n";
     publish(pVelocity, p_pub);
+    
+    //ROS_INFO("testing...");
+    
     
 } //end
 
