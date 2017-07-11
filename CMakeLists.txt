@@ -3,11 +3,16 @@ project(ORB_SLAM2)
 
 
 find_package(catkin REQUIRED COMPONENTS
+	rospy
 	roscpp
 	sensor_msgs
 	cv_bridge
-image_transport
-tf
+    image_transport
+    tf
+    tf2
+    tf2_geometry_msgs
+    tf2_ros
+    geometry_msgs
 	)
 
 IF(NOT CMAKE_BUILD_TYPE)

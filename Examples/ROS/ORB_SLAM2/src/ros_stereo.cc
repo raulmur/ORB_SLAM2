@@ -38,17 +38,22 @@
 #include <iostream>
 #include <sstream>
 #include "std_msgs/Int8.h"
+#include "sensor_msgs/Imu.h"
 
 using namespace std;
 cv::Mat pose;
 ros::Publisher pose_pub; 
 ros::Publisher track_pub; 
 ros::Publisher m_pub;
-ros::Publisher version;  
+ros::Publisher p_pub;
+ros::Publisher test_pub2;  
+ros::Publisher test_pub; 
+ros::Publisher version; 
 
 bool pubPose;
 bool pubTracking;
 bool pubM;
+cv::Mat orientation;
 
 class ImageGrabber
 {
@@ -62,9 +67,16 @@ public:
     cv::Mat M1l,M2l,M1r,M2r;
 };
 
+void chatterCallback(sensor_msgs::Imu matrix)
+{
+  //orientation = matrix;
+  //tf::Quaternion q;
+  //RotMatrix.getRotation(q);
+}
+
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "RGBD");
+    ros::init(argc, argv, "RGBD"); //This should be changed to Stereo
     ros::start();
 
     if(argc != 4)
@@ -130,11 +142,18 @@ int main(int argc, char **argv)
     sync.registerCallback(boost::bind(&ImageGrabber::GrabStereo,&igb,_1,_2));
     
     //advertising my publishers
-    m_pub = nh.advertise<geometry_msgs::PoseStamped>("m_velocity",1000);
+    m_pub = nh.advertise<geometry_msgs::PoseStamped>("mVelocity",1000);
     pose_pub = nh.advertise<geometry_msgs::PoseStamped>("camera_pose",1000);
-    track_pub = nh.advertise<std_msgs::Int8>("tracking_state2", 1000);
-    version = nh.advertise<std_msgs::Int8>("version1", 1000);
+    track_pub = nh.advertise<std_msgs::Int8>("tracking_state", 1000);
+    version = nh.advertise<std_msgs::Int8>("version_1", 1000);
+    test_pub = nh.advertise<std_msgs::Int8>("testing_pub", 1000);
+    test_pub2 = nh.advertise<std_msgs::Int8>("testing_sub", 1000);
+    p_pub = nh.advertise<geometry_msgs::PoseStamped>("pVelocity",1000);
     
+    //setting up subscriber for IMU Orientation
+    ros::Subscriber sub = nh.subscribe("imu/data", 1000, chatterCallback);
+
+
     ros::spin();
 
     // Stop all threads
@@ -148,6 +167,38 @@ int main(int argc, char **argv)
     ros::shutdown();
     return 0;
 }
+
+void publish(cv::Mat toPublish, ros::Publisher Publisher) {
+    if (toPublish.empty()) {return;}
+    
+    cv::Mat Rotation = toPublish.rowRange(0,3).colRange(0,3); //getting rotation matrix
+	cv::Mat Translation = toPublish.rowRange(0,3).col(3); //getting translation
+	
+	tf::Matrix3x3 RotationMatrix(Rotation.at<float>(0,0),Rotation.at<float>(0,1),Rotation.at<float>(0,2),
+		                    Rotation.at<float>(1,0),Rotation.at<float>(1,1),Rotation.at<float>(1,2),
+		                    Rotation.at<float>(2,0),Rotation.at<float>(2,1),Rotation.at<float>(2,2));
+
+	tf::Vector3 TranslationVector(Translation.at<float>(0), Translation.at<float>(1), Translation.at<float>(2));
+	
+	tf::Quaternion Quaternion;           
+    RotationMatrix.getRotation(Quaternion); //converting rotation matrix into quaternion
+    
+    tf::Transform TF_Transform = tf::Transform(RotationMatrix, TranslationVector);
+    
+    geometry_msgs::PoseStamped MessageToPublish;
+	MessageToPublish.pose.position.x = TF_Transform.getOrigin().x();
+	MessageToPublish.pose.position.y = TF_Transform.getOrigin().y();
+	MessageToPublish.pose.position.z = TF_Transform.getOrigin().z();
+	MessageToPublish.pose.orientation.x = TF_Transform.getRotation().x();
+	MessageToPublish.pose.orientation.y = TF_Transform.getRotation().y();
+	MessageToPublish.pose.orientation.z = TF_Transform.getRotation().z();
+	MessageToPublish.pose.orientation.w = TF_Transform.getRotation().w();
+
+	MessageToPublish.header.stamp = ros::Time::now();
+	MessageToPublish.header.frame_id = "init_link";
+	Publisher.publish(MessageToPublish); 
+}    
+
 void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight)
 {
     // Copy the ros image message to cv::Mat.
@@ -186,17 +237,40 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     }
 
     ////// publishing tracking state ///////
-
+    /*
     int state = mpSLAM->mpTracker->mState;
     std_msgs::Int8 msg;
     msg.data = state;
     track_pub.publish(msg);
-
+    
+    ////// publishing tracking debugging ///////
+    
+    int testing = mpSLAM->mpTracker->my_variable; //publishing what Tracking.cc has
+    std_msgs::Int8 test_int;
+    test_int.data = testing;
+    test_pub.publish(test_int);
+    */
+    
+    ////// publishing tracking debugging ///////
+    // demonstrates ability to change variables in tracker from stereo
+    mpSLAM->mpTracker->my_variable = 5;
+    int testing = mpSLAM->mpTracker->my_variable;
+    std_msgs::Int8 test_int;
+    test_int.data = testing;
+    test_pub.publish(test_int);
+    
+    ////// publishing tracking debugging ///////
+    
+    //int testing_pub = test_int.data + 1; //publishing 1 + Tracking.cc
+    int testing_pub = 5;
+    std_msgs::Int8 test_int2;
+    test_int2.data = testing_pub;
+    test_pub2.publish(test_int2);
 
     //////// publishing pose and equivalent transform ///////
 
     // TODO: make bool to skip publishing pose instead of simply returning
- 
+
     pubPose = true;
     if (pose.empty()) {pubPose = false;} //skipping if pose is empty (ex. if tracking is lost) 
     if (pubPose) {
@@ -268,4 +342,21 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 	    PubM.header.frame_id = "init_link";
 	    m_pub.publish(PubM); 
     }
+    
+    
+    ////// Publishing pVelocity //////
+    cv::Mat pVelocity = mpSLAM->mpTracker->pVelocity; //getting mVelocity
+    publish(pVelocity, p_pub);
+    
 } //end
+
+
+
+
+
+
+
+
+
+
+

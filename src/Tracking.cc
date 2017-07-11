@@ -34,10 +34,16 @@
 #include"PnPsolver.h"
 
 #include<iostream>
-
 #include<mutex>
-#include<ros/ros.h>
 
+#include <ros/ros.h>
+#include "std_msgs/Int8.h"
+#include <message_filters/subscriber.h>
+
+#include <tf2_ros/transform_listener.h>
+#include <geometry_msgs/TransformStamped.h>
+#include "tf/transform_datatypes.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
 using namespace std;
 
@@ -47,7 +53,8 @@ namespace ORB_SLAM2
 Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(false), mbVO(false), mpORBVocabulary(pVoc),
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
-    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0)
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0),
+    tfBuffer(), tfListener(tfBuffer)
 {
     // Load camera parameters from settings file
 
@@ -147,6 +154,12 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
             mDepthMapFactor = 1.0f/mDepthMapFactor;
     }
 
+}
+
+void chatterCallback(const std_msgs::Int8::ConstPtr& msg) //my subscriber
+{
+  ROS_INFO("I heard: [%d]", msg->data);
+  //testing = msg; //not declared in this scope
 }
 
 void Tracking::SetLocalMapper(LocalMapping *pLocalMapper)
@@ -338,7 +351,10 @@ void Tracking::Track()
 
                     if(!mVelocity.empty())
                     {
+                        CalculatePVelocity();
                         bOK = TrackWithMotionModel();
+                        
+                        // TrackWithIMU();
                     }
                     else
                     {
@@ -430,7 +446,11 @@ void Tracking::Track()
                 mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
                 mVelocity = mCurrentFrame.mTcw*LastTwc;
 
-		pVelocity = mVelocity.clone();
+		        //pVelocity = mVelocity.clone()*my_variable;
+
+                //ros::NodeHandle nh;
+                //ros::Subscriber sub = nh.subscribe("testing_sub", 1000, chatterCallback);
+
             }
             else
                 mVelocity = cv::Mat();
@@ -930,6 +950,151 @@ bool Tracking::TrackWithMotionModel()
 
     return nmatchesMap>=10;
 }
+
+//tf2_geometry_msgs (put this in my CMakeLists and package xml)
+//tf2::fromMsg          00000000000000
+//This is the modified version of TrackWithMotionModel() that uses IMU information
+bool Tracking::TrackWithIMU()
+{
+    ORBmatcher matcher(0.9,true);
+
+    // Update last frame pose according to its reference keyframe
+    // Create "visual odometry" points if in Localization Mode
+    UpdateLastFrame();
+    
+    //////// getting IMU information //////
+    geometry_msgs::TransformStamped transformStamped;
+    try{
+      //transformStamped = tfBuffer.lookupTransform("imu4", ros::Time(mCurrentFrame.mTimeStamp.toSec()), "imu4",
+      //                          ros::Time(mLastFrame.mTimeStamp.toSec()), "odom");
+      transformStamped = tfBuffer.lookupTransform("imu4", ros::Time(mCurrentFrame.mTimeStamp), "imu4",
+                                ros::Time(mLastFrame.mTimeStamp), "odom", ros::Duration(.01));
+    }
+    catch (tf2::TransformException &ex) {
+      ROS_WARN("%s",ex.what());
+      ros::Duration(1.0).sleep();
+      return false;
+    }
+    
+    //converting from geometry msg to tf2 msg
+    tf2::Quaternion Q;
+    tf2::fromMsg(transformStamped.transform.rotation, Q); //comment this back, this is what is causing trouble
+    
+    
+    tf2::Matrix3x3 RotMatrix(Q); //converting from Quaternion to Rotation Matrix
+    
+    pVelocity = mVelocity.clone();
+    
+    //converting from 3x3 TF to cv::Mat
+    pVelocity.at<double>(0,0) = RotMatrix.getColumn(0).getX(); //replacing Rotation Matrix in pVelocity with IMU Rot Matrix
+    pVelocity.at<double>(0,1) = RotMatrix.getColumn(0).getY();
+    pVelocity.at<double>(0,2) = RotMatrix.getColumn(0).getZ();
+    pVelocity.at<double>(1,0) = RotMatrix.getColumn(1).getX();
+    pVelocity.at<double>(1,1) = RotMatrix.getColumn(1).getY();
+    pVelocity.at<double>(1,2) = RotMatrix.getColumn(1).getZ();
+    pVelocity.at<double>(2,0) = RotMatrix.getColumn(2).getX();
+    pVelocity.at<double>(2,1) = RotMatrix.getColumn(2).getY();
+    pVelocity.at<double>(2,2) = RotMatrix.getColumn(2).getZ();
+    
+    ///////             
+
+    mCurrentFrame.SetPose(pVelocity*mLastFrame.mTcw); //setting pose using IMU information
+
+    fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
+
+    // Project points seen in previous frame
+    int th;
+    if(mSensor!=System::STEREO)
+        th=15;
+    else
+        th=7;
+    int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
+
+    // If few matches, uses a wider window search
+    if(nmatches<20)
+    {
+        fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
+        nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR);
+    }
+
+    if(nmatches<20)
+        return false;
+
+    // Optimize frame pose with all matches
+    Optimizer::PoseOptimization(&mCurrentFrame);
+
+    // Discard outliers
+    int nmatchesMap = 0;
+    for(int i =0; i<mCurrentFrame.N; i++)
+    {
+        if(mCurrentFrame.mvpMapPoints[i])
+        {
+            if(mCurrentFrame.mvbOutlier[i])
+            {
+                MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
+
+                mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
+                mCurrentFrame.mvbOutlier[i]=false;
+                pMP->mbTrackInView = false;
+                pMP->mnLastFrameSeen = mCurrentFrame.mnId;
+                nmatches--;
+            }
+            else if(mCurrentFrame.mvpMapPoints[i]->Observations()>0)
+                nmatchesMap++;
+        }
+    }    
+
+    if(mbOnlyTracking)
+    {
+        mbVO = nmatchesMap<10;
+        return nmatches>20;
+    }
+
+    return nmatchesMap>=10;
+}
+
+
+//This is the modified version of TrackWithMotionModel() that uses IMU information
+bool Tracking::CalculatePVelocity()
+{   
+
+    //////// getting IMU information //////
+    geometry_msgs::TransformStamped transformStamped;
+    try{
+      transformStamped = tfBuffer.lookupTransform("imu4", ros::Time(mCurrentFrame.mTimeStamp), "imu4",
+                                ros::Time(mLastFrame.mTimeStamp), "odom", ros::Duration(.01));
+    }
+    catch (tf2::TransformException &ex) {
+      ROS_WARN("%s",ex.what());
+      ros::Duration(1.0).sleep();
+      return false;
+    }
+    
+    //converting from geometry msg to tf2 msg
+    tf2::Quaternion Q;
+    tf2::fromMsg(transformStamped.transform.rotation, Q);
+    
+    
+    tf2::Matrix3x3 RotMatrix(Q); //converting from Quaternion to Rotation Matrix
+    
+    pVelocity = mVelocity.clone();
+    
+    //converting from 3x3 TF to cv::Mat
+    pVelocity.at<double>(0,0) = RotMatrix.getColumn(0).getX(); //replacing Rotation Matrix in pVelocity with IMU Rot Matrix
+    pVelocity.at<double>(0,1) = RotMatrix.getColumn(0).getY();
+    pVelocity.at<double>(0,2) = RotMatrix.getColumn(0).getZ();
+    pVelocity.at<double>(1,0) = RotMatrix.getColumn(1).getX();
+    pVelocity.at<double>(1,1) = RotMatrix.getColumn(1).getY();
+    pVelocity.at<double>(1,2) = RotMatrix.getColumn(1).getZ();
+    pVelocity.at<double>(2,0) = RotMatrix.getColumn(2).getX();
+    pVelocity.at<double>(2,1) = RotMatrix.getColumn(2).getY();
+    pVelocity.at<double>(2,2) = RotMatrix.getColumn(2).getZ();
+    
+    return true;
+    ///////             
+
+}
+
 
 bool Tracking::TrackLocalMap()
 {
@@ -1595,3 +1760,5 @@ void Tracking::InformOnlyTracking(const bool &flag)
 
 
 } //namespace ORB_SLAM
+
+
