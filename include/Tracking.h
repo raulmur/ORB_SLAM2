@@ -130,6 +130,10 @@ public:
 
     //variable for testing my subscriber
     int my_variable;
+    
+    bool calculatePVelocity(); //my pVelocity calculator
+        
+    cv::Mat getMVelocity(); //my mVelocity calculator
 
 protected:
 
@@ -234,7 +238,6 @@ protected:
     tf2_ros::TransformListener tfListener;
     
     bool TrackWithIMU(); //my IMU tracking function
-    bool CalculatePVelocity(); //my pVelocity calculator
 };
 
 

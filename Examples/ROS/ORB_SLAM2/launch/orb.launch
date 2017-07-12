@@ -1,5 +1,0 @@
-<launch>
-
-<node name="Stereo" pkg="orb_slam2_imu" type="Stereo" args="$(find orb_slam2_imu)/../../../Vocabulary/ORBvoc.txt $(find orb_slam2_imu)/../../../Examples/Stereo/EuRoC.yaml true"/>
-
-</launch>

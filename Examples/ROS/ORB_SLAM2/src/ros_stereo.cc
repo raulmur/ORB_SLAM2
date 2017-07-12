@@ -42,13 +42,7 @@
 
 using namespace std;
 
-//defining my publishers
-ros::Publisher c_pub;
-ros::Publisher m_pub;
-ros::Publisher p_pub;
 
-bool pubPose;
-cv::Mat pose;
 
 class ImageGrabber
 {
@@ -57,10 +51,25 @@ public:
     ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){}
 
     void GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight);
+    void init(ros::NodeHandle nh);
 
     ORB_SLAM2::System* mpSLAM;
     bool do_rectify;
     cv::Mat M1l,M2l,M1r,M2r;
+    
+    //defining my publishers
+    ros::Publisher c_pub;
+    ros::Publisher m_pub;
+    ros::Publisher m_pub2;
+    ros::Publisher p_pub;
+
+    bool pubPose;
+    cv::Mat pose;
+    
+        
+    tf::TransformBroadcaster br_c;
+    tf::TransformBroadcaster br_m;
+    tf::TransformBroadcaster br_p;
 };
 
 int main(int argc, char **argv)
@@ -130,11 +139,7 @@ int main(int argc, char **argv)
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), left_sub,right_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabStereo,&igb,_1,_2));
     
-    
-    //advertising my publishers
-    c_pub = nh.advertise<geometry_msgs::PoseStamped>("camera_pose",1000);
-    m_pub = nh.advertise<geometry_msgs::PoseStamped>("mVelocity",1000);
-    p_pub = nh.advertise<geometry_msgs::PoseStamped>("pVelocity",1000);
+    igb.init(nh);
    
     ros::spin();
 
@@ -147,7 +152,7 @@ int main(int argc, char **argv)
     return 0;
 }
 
-//my function for publishing various things
+//my function for publishing various things (original)
 void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcaster br, string parent, string child, bool publishTransform) {
     if (toPublish.empty()) {return;}
     
@@ -155,13 +160,13 @@ void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcast
 	cv::Mat Translation = toPublish.rowRange(0,3).col(3); //getting translation
 	
 	tf::Matrix3x3 RotationMatrix(Rotation.at<float>(0,0),Rotation.at<float>(0,1),Rotation.at<float>(0,2),
-		                    Rotation.at<float>(1,0),Rotation.at<float>(1,1),Rotation.at<float>(1,2),
-		                    Rotation.at<float>(2,0),Rotation.at<float>(2,1),Rotation.at<float>(2,2));
+		                         Rotation.at<float>(1,0),Rotation.at<float>(1,1),Rotation.at<float>(1,2),
+		                         Rotation.at<float>(2,0),Rotation.at<float>(2,1),Rotation.at<float>(2,2));
 
 	tf::Vector3 TranslationVector(Translation.at<float>(0), Translation.at<float>(1), Translation.at<float>(2));
 	
-	tf::Quaternion Quaternion;           
-    RotationMatrix.getRotation(Quaternion); //converting rotation matrix into quaternion
+	//tf::Quaternion Quaternion;           
+    //RotationMatrix.getRotation(Quaternion); //converting rotation matrix into quaternion
     
     tf::Transform TF_Transform = tf::Transform(RotationMatrix, TranslationVector); 
     
@@ -182,6 +187,51 @@ void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcast
 	MessageToPublish.header.frame_id = child;
 	Publisher.publish(MessageToPublish); //publishing pose
 }    
+
+//my function for publishing various things (modified)
+void publish2(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcaster br, string parent, string child, bool publishTransform) {
+    if (toPublish.empty()) {return;}
+    
+    cv::Mat Rotation = toPublish.rowRange(0,3).colRange(0,3); //getting rotation matrix (inclusive, exclusive)
+	cv::Mat Translation = toPublish.rowRange(0,3).col(3); //getting translation
+	
+	tf::Matrix3x3 RotationMatrix(Rotation.at<float>(0,0),Rotation.at<float>(0,1),Rotation.at<float>(0,2),
+		                         Rotation.at<float>(1,0),Rotation.at<float>(1,1),Rotation.at<float>(1,2),
+		                         Rotation.at<float>(2,0),Rotation.at<float>(2,1),Rotation.at<float>(2,2));
+
+	tf::Vector3 TranslationVector(Translation.at<float>(0), Translation.at<float>(1), Translation.at<float>(2));
+	
+	tf::Quaternion Quaternion;           
+    RotationMatrix.getRotation(Quaternion); //converting rotation matrix into quaternion (THIS ISN'T USED?)
+    
+    tf::Transform TF_Transform = tf::Transform(RotationMatrix, TranslationVector); 
+    
+    if (publishTransform) {
+	br.sendTransform(tf::StampedTransform(TF_Transform, ros::Time::now(), parent, child)); //sending TF Transform
+    }
+    
+    geometry_msgs::PoseStamped MessageToPublish;
+	MessageToPublish.pose.position.x = TF_Transform.getOrigin().x();
+	MessageToPublish.pose.position.y = TF_Transform.getOrigin().y();
+	MessageToPublish.pose.position.z = TF_Transform.getOrigin().z();
+	MessageToPublish.pose.orientation.x = Quaternion.x();
+	MessageToPublish.pose.orientation.y = Quaternion.y();
+	MessageToPublish.pose.orientation.z = Quaternion.z();
+	MessageToPublish.pose.orientation.w = Quaternion.w();
+
+	MessageToPublish.header.stamp = ros::Time::now();
+	MessageToPublish.header.frame_id = child;
+	Publisher.publish(MessageToPublish); //publishing pose
+}   
+
+void ImageGrabber::init(ros::NodeHandle nh)
+{
+    //advertising my publishers
+    c_pub = nh.advertise<geometry_msgs::PoseStamped>("camera_pose",1000);
+    m_pub = nh.advertise<geometry_msgs::PoseStamped>("mVelocity",1000);
+    m_pub2 = nh.advertise<geometry_msgs::PoseStamped>("mVelocity2",1000);
+    p_pub = nh.advertise<geometry_msgs::PoseStamped>("pVelocity",1000);
+}
 
 void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight)
 {
@@ -223,10 +273,7 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 
 
     ////// Publishing pose, mVelocity, pVelocity ///////
-    
-    static tf::TransformBroadcaster br_c;
-    static tf::TransformBroadcaster br_m;
-    static tf::TransformBroadcaster br_p;
+
     
     pubPose = true;
     if (pose.empty()) {pubPose = false;} //skipping if pose is empty (ex. if tracking is lost) 
@@ -235,12 +282,21 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     publish(TWC, c_pub, br_c, "init_link", "camera_pose", true);
     }
     
+    /*
+    cv::Mat mVelocity = mpSLAM->mpTracker->getMVelocity(); //publishing mVelocity
+    publish(mVelocity, m_pub, br_m, "", "imu4", false);
+    //publish(mVelocity, m_pub2, br_m, "", "imu4", false);
+    
+    cv::Mat pVelocity = mpSLAM->mpTracker->calculatePVelocity(); //publishing pVelocity
+    publish(pVelocity, p_pub, br_p, "", "imu4", false);
+    */
+    
     cv::Mat mVelocity = mpSLAM->mpTracker->mVelocity; //publishing mVelocity
     publish(mVelocity, m_pub, br_m, "", "imu4", false);
+    publish2(mVelocity, m_pub2, br_m, "", "imu4", false);
     
     cv::Mat pVelocity = mpSLAM->mpTracker->pVelocity; //publishing pVelocity
     publish(pVelocity, p_pub, br_p, "", "imu4", false);
-    
     
 } //end
 

@@ -2,8 +2,18 @@
 
 <param name = "/use_sim_time" value="true"/>
 
+<node pkg="tf" type="static_transform_publisher" name="camera_frame_publisher" args="0 0 0 .5 -.5 .5 .5 camera_pose camera_frame 100" />
+
+<node pkg="tf" type="static_transform_publisher" name="world_frame_publisher" args="0 0 0 .5 -.5 .5 .5 init_link world 100" />
+
+<node pkg="tf" type="static_transform_publisher" name="imu4_frame_publisher" args="0 0 0 .5 .5 +.5 .5 world odom 100" />
+
 <node name="imu_filter_node" pkg="imu_filter_madgwick" type="imu_filter_node" args="_use_mag:=false"/>
 
-<node name="Stereo" pkg="ORB_SLAM2" type="Stereo" args="$(find ORB_SLAM2)/Vocabulary/ORBvoc.txt $(find ORB_SLAM2)/Examples/Stereo/EuRoC.yaml true"/>
+<!--<node name="Stereo" pkg="ORB_SLAM2" type="Stereo" args="$(find ORB_SLAM2)/Vocabulary/ORBvoc.txt $(find ORB_SLAM2)/Examples/Stereo/EuRoC.yaml true"/> -->
+
+<node name="rviz" pkg="rviz" type="rviz" args="-d $(find ORB_SLAM2)/Examples/ROS/ORB_SLAM2/data/testing_rviz.rviz"/>
+
+<node name="rqt_tf_tree" pkg="rqt_tf_tree" type="rqt_tf_tree" />
 
 </launch>
