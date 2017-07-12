@@ -41,22 +41,18 @@
 #include "sensor_msgs/Imu.h"
 
 using namespace std;
-cv::Mat pose;
-ros::Publisher pose_pub; 
-ros::Publisher track_pub; 
+
+//defining my publishers
+ros::Publisher c_pub;
 ros::Publisher m_pub;
 ros::Publisher p_pub;
-ros::Publisher test_pub2;  
-ros::Publisher test_pub; 
-ros::Publisher version; 
 
 bool pubPose;
-bool pubTracking;
-bool pubM;
-cv::Mat orientation;
+cv::Mat pose;
 
 class ImageGrabber
 {
+
 public:
     ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){}
 
@@ -67,18 +63,9 @@ public:
     cv::Mat M1l,M2l,M1r,M2r;
 };
 
-
-void chatterCallback(sensor_msgs::Imu matrix)
-{
-  //orientation = matrix;
-  //tf::Quaternion q;
-  //RotMatrix.getRotation(q);
-}
-
-
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "RGBD"); //This should be changed to Stereo
+    ros::init(argc, argv, "RGBD");
     ros::start();
 
     if(argc != 4)
@@ -145,34 +132,23 @@ int main(int argc, char **argv)
     
     
     //advertising my publishers
+    c_pub = nh.advertise<geometry_msgs::PoseStamped>("camera_pose",1000);
     m_pub = nh.advertise<geometry_msgs::PoseStamped>("mVelocity",1000);
-    pose_pub = nh.advertise<geometry_msgs::PoseStamped>("camera_pose",1000);
-    track_pub = nh.advertise<std_msgs::Int8>("tracking_state", 1000);
-    version = nh.advertise<std_msgs::Int8>("version_1", 1000);
-    test_pub = nh.advertise<std_msgs::Int8>("testing_pub", 1000);
-    test_pub2 = nh.advertise<std_msgs::Int8>("testing_sub", 1000);
     p_pub = nh.advertise<geometry_msgs::PoseStamped>("pVelocity",1000);
-    
-    //setting up subscriber for IMU Orientation
-    ros::Subscriber sub = nh.subscribe("imu/data", 1000, chatterCallback);
    
-
     ros::spin();
 
     // Stop all threads
     SLAM.Shutdown();
-
-    // Save camera trajectory
-    //SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory_TUM_Format.txt");
-    //SLAM.SaveTrajectoryTUM("FrameTrajectory_TUM_Format.txt");
-    //SLAM.SaveTrajectoryKITTI("FrameTrajectory_KITTI_Format.txt");
+    
+    //removed saving camera trajectory from here
 
     ros::shutdown();
     return 0;
 }
 
-
-void publish(cv::Mat toPublish, ros::Publisher Publisher) {
+//my function for publishing various things
+void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcaster br, string parent, string child, bool publishTransform) {
     if (toPublish.empty()) {return;}
     
     cv::Mat Rotation = toPublish.rowRange(0,3).colRange(0,3); //getting rotation matrix
@@ -187,7 +163,11 @@ void publish(cv::Mat toPublish, ros::Publisher Publisher) {
 	tf::Quaternion Quaternion;           
     RotationMatrix.getRotation(Quaternion); //converting rotation matrix into quaternion
     
-    tf::Transform TF_Transform = tf::Transform(RotationMatrix, TranslationVector);
+    tf::Transform TF_Transform = tf::Transform(RotationMatrix, TranslationVector); 
+    
+    if (publishTransform) {
+	br.sendTransform(tf::StampedTransform(TF_Transform, ros::Time::now(), parent, child)); //sending TF Transform
+    }
     
     geometry_msgs::PoseStamped MessageToPublish;
 	MessageToPublish.pose.position.x = TF_Transform.getOrigin().x();
@@ -199,8 +179,8 @@ void publish(cv::Mat toPublish, ros::Publisher Publisher) {
 	MessageToPublish.pose.orientation.w = TF_Transform.getRotation().w();
 
 	MessageToPublish.header.stamp = ros::Time::now();
-	MessageToPublish.header.frame_id = "init_link";
-	Publisher.publish(MessageToPublish); 
+	MessageToPublish.header.frame_id = child;
+	Publisher.publish(MessageToPublish); //publishing pose
 }    
 
 void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight)
@@ -240,125 +220,26 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 	pose =  mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
 
-    
-    ////// publishing tracking state ///////
-    /*
-    int state = mpSLAM->mpTracker->mState;
-    std_msgs::Int8 msg;
-    msg.data = state;
-    track_pub.publish(msg);
-    
-    ////// publishing tracking debugging ///////
-    
-    int testing = mpSLAM->mpTracker->my_variable; //publishing what Tracking.cc has
-    std_msgs::Int8 test_int;
-    test_int.data = testing;
-    test_pub.publish(test_int);
-    */
-    
-    
-    ////// publishing tracking debugging ///////
-    // demonstrates ability to change variables in tracker from stereo
-    mpSLAM->mpTracker->my_variable = 5;
-    int testing = mpSLAM->mpTracker->my_variable;
-    std_msgs::Int8 test_int;
-    test_int.data = testing;
-    test_pub.publish(test_int);
-    
-    ////// publishing tracking debugging ///////
-    
-    //int testing_pub = test_int.data + 1; //publishing 1 + Tracking.cc
-    int testing_pub = 5;
-    std_msgs::Int8 test_int2;
-    test_int2.data = testing_pub;
-    test_pub2.publish(test_int2);
 
-    //////// publishing pose and equivalent transform ///////
 
-    // TODO: make bool to skip publishing pose instead of simply returning
-
+    ////// Publishing pose, mVelocity, pVelocity ///////
+    
+    static tf::TransformBroadcaster br_c;
+    static tf::TransformBroadcaster br_m;
+    static tf::TransformBroadcaster br_p;
+    
     pubPose = true;
     if (pose.empty()) {pubPose = false;} //skipping if pose is empty (ex. if tracking is lost) 
     if (pubPose) {
-
-	    cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();  //inverted or not?
-	    //cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw;
-	    cv::Mat Rotation = TWC.rowRange(0,3).colRange(0,3);  
-	    cv::Mat Translation = TWC.rowRange(0,3).col(3);
-
-	    tf::Matrix3x3 RotMatrix(Rotation.at<float>(0,0),Rotation.at<float>(0,1),Rotation.at<float>(0,2), //double or float?
-		                        Rotation.at<float>(1,0),Rotation.at<float>(1,1),Rotation.at<float>(1,2),
-		                        Rotation.at<float>(2,0),Rotation.at<float>(2,1),Rotation.at<float>(2,2));
-
-	    tf::Vector3 TransVect(Translation.at<float>(0), Translation.at<float>(1), Translation.at<float>(2));
-	    
-	    tf::Quaternion q;
-	    RotMatrix.getRotation(q);
-
-	    static tf::TransformBroadcaster br_pose;
-	    tf::Transform transform = tf::Transform(RotMatrix, TransVect);
-	    br_pose.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "init_link", "camera_pose"));
-
-	    geometry_msgs::PoseStamped PubPose;
-	    PubPose.pose.position.x = transform.getOrigin().x();
-	    PubPose.pose.position.y = transform.getOrigin().y();
-	    PubPose.pose.position.z = transform.getOrigin().z();
-	    PubPose.pose.orientation.x = transform.getRotation().x();
-	    PubPose.pose.orientation.y = transform.getRotation().y();
-	    PubPose.pose.orientation.z = transform.getRotation().z();
-	    PubPose.pose.orientation.w = transform.getRotation().w();
-
-	    PubPose.header.stamp = ros::Time::now();
-	    PubPose.header.frame_id = "init_link";
-	    pose_pub.publish(PubPose);
+    cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();
+    publish(TWC, c_pub, br_c, "init_link", "camera_pose", true);
     }
     
-    //////// publishing mVelocity and equivalent transform ///////
-/*
-    cv::Mat mVelocity = mpSLAM->mpTracker->mVelocity; //getting mVelocity
-    pubM = true;
-    if (mVelocity.empty()) {pubM = false;} //returning if mVelocity is empty (ex. if tracking is lost or just starting up) 
-
-    if (pubM) {
-	    cv::Mat mRotation = mVelocity.rowRange(0,3).colRange(0,3); //getting rotation matrix
-	    cv::Mat mTranslation = mVelocity.rowRange(0,3).col(3); //getting translation
-
-	    tf::Matrix3x3 mRotMatrix(mRotation.at<float>(0,0),mRotation.at<float>(0,1),mRotation.at<float>(0,2),
-		                    mRotation.at<float>(1,0),mRotation.at<float>(1,1),mRotation.at<float>(1,2),
-		                    mRotation.at<float>(2,0),mRotation.at<float>(2,1),mRotation.at<float>(2,2));
-
-	    tf::Vector3 mTransVect(mTranslation.at<float>(0), mTranslation.at<float>(1), mTranslation.at<float>(2));
-
-	    tf::Quaternion m;           
-	    mRotMatrix.getRotation(m); //converting rotation matrix into quaternion
-
-	    static tf::TransformBroadcaster br_m;
-	    tf::Transform transform_m = tf::Transform(mRotMatrix, mTransVect);
-	    br_m.sendTransform(tf::StampedTransform(transform_m, ros::Time::now(), "init_link", "mVelocity"));
-
-	    geometry_msgs::PoseStamped PubM;
-	    PubM.pose.position.x = transform_m.getOrigin().x();
-	    PubM.pose.position.y = transform_m.getOrigin().y();
-	    PubM.pose.position.z = transform_m.getOrigin().z();
-	    PubM.pose.orientation.x = transform_m.getRotation().x();
-	    PubM.pose.orientation.y = transform_m.getRotation().y();
-	    PubM.pose.orientation.z = transform_m.getRotation().z();
-	    PubM.pose.orientation.w = transform_m.getRotation().w();
-
-	    PubM.header.stamp = ros::Time::now();
-	    PubM.header.frame_id = "init_link";
-	    m_pub.publish(PubM); 
-    }
-*/
+    cv::Mat mVelocity = mpSLAM->mpTracker->mVelocity; //publishing mVelocity
+    publish(mVelocity, m_pub, br_m, "", "imu4", false);
     
-    ////// Publishing pVelocity //////
-    cv::Mat pVelocity = mpSLAM->mpTracker->pVelocity; //getting pVelocity
-    publish(pVelocity, p_pub);
-    
-    cv::Mat mVelocity = mpSLAM->mpTracker->mVelocity; //getting mVelocity
-    publish(mVelocity, m_pub);
-    
-    //ROS_INFO("testing...");
+    cv::Mat pVelocity = mpSLAM->mpTracker->pVelocity; //publishing pVelocity
+    publish(pVelocity, p_pub, br_p, "", "imu4", false);
     
     
 } //end
