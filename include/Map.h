@@ -27,7 +27,9 @@
 
 #include <mutex>
 
-
+#ifdef FUNC_MAP_SAVE_LOAD
+#include "BoostArchiver.h"
+#endif
 
 namespace ORB_SLAM2
 {
@@ -66,6 +68,13 @@ public:
     // This avoid that two points are created simultaneously in separate threads (id conflict)
     std::mutex mMutexPointCreation;
 
+#ifdef FUNC_MAP_SAVE_LOAD
+private:
+    // serialize is recommended to be private
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive &ar, const unsigned int version);
+#endif
 protected:
     std::set<MapPoint*> mspMapPoints;
     std::set<KeyFrame*> mspKeyFrames;

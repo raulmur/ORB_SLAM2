@@ -36,6 +36,11 @@
 #include "ORBVocabulary.h"
 #include "Viewer.h"
 
+#ifdef FUNC_MAP_SAVE_LOAD
+#include "BoostArchiver.h"
+// for map file io
+#include <fstream>
+#endif
 namespace ORB_SLAM2
 {
 
@@ -59,7 +64,11 @@ public:
 public:
 
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
+#ifdef FUNC_MAP_SAVE_LOAD
+    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true, bool is_save_map_=false);
+#else
     System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true);
+#endif
 
     // Proccess the given stereo frame. Images must be synchronized and rectified.
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
@@ -111,16 +120,17 @@ public:
     // Call first Shutdown()
     // See format details at: http://www.cvlibs.net/datasets/kitti/eval_odometry.php
     void SaveTrajectoryKITTI(const string &filename);
-
-    // TODO: Save/Load functions
-    // SaveMap(const string &filename);
-    // LoadMap(const string &filename);
-
     // Information from most recent processed frame
     // You can call this right after TrackMonocular (or stereo or RGBD)
     int GetTrackingState();
     std::vector<MapPoint*> GetTrackedMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
+#ifdef FUNC_MAP_SAVE_LOAD
+private:
+    // Save/Load functions
+    void SaveMap(const string &filename);
+    bool LoadMap(const string &filename);
+#endif
 
 private:
 
@@ -135,7 +145,10 @@ private:
 
     // Map structure that stores the pointers to all KeyFrames and MapPoints.
     Map* mpMap;
-
+#ifdef FUNC_MAP_SAVE_LOAD
+    string mapfile;
+    bool is_save_map;
+#endif
     // Tracker. It receives a frame and computes the associated camera pose.
     // It also decides when to insert a new keyframe, create some new MapPoints and
     // performs relocalization if tracking fails.

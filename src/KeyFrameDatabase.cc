@@ -30,10 +30,10 @@ using namespace std;
 namespace ORB_SLAM2
 {
 
-KeyFrameDatabase::KeyFrameDatabase (const ORBVocabulary &voc):
-    mpVoc(&voc)
+KeyFrameDatabase::KeyFrameDatabase (ORBVocabulary *voc):
+    mpVoc(voc)
 {
-    mvInvertedFile.resize(voc.size());
+    mvInvertedFile.resize(voc->size());
 }
 
 
@@ -308,4 +308,16 @@ vector<KeyFrame*> KeyFrameDatabase::DetectRelocalizationCandidates(Frame *F)
     return vpRelocCandidates;
 }
 
+#ifdef FUNC_MAP_SAVE_LOAD
+template<class Archive>
+void KeyFrameDatabase::serialize(Archive &ar, const unsigned int version)
+{
+    // don't save associated vocabulary, KFDB restore by created explicitly from a new ORBvocabulary instance
+    // inverted file
+    ar & mvInvertedFile;
+    // don't save mutex
+}
+template void KeyFrameDatabase::serialize(boost::archive::binary_iarchive&, const unsigned int);
+template void KeyFrameDatabase::serialize(boost::archive::binary_oarchive&, const unsigned int);
+#endif
 } //namespace ORB_SLAM
