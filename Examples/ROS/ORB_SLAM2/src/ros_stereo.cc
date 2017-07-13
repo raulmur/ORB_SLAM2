@@ -39,10 +39,11 @@
 #include <sstream>
 #include "std_msgs/Int8.h"
 #include "sensor_msgs/Imu.h"
+#include "geometry_msgs/TransformStamped.h"
 
 using namespace std;
 
-
+geometry_msgs::PoseStamped Vicon;
 
 class ImageGrabber
 {
@@ -60,16 +61,20 @@ public:
     //defining my publishers
     ros::Publisher c_pub;
     ros::Publisher m_pub;
-    ros::Publisher m_pub2;
     ros::Publisher p_pub;
+    ros::Publisher v_pub;
+    
+    ros::Subscriber sub;
+    void callback(const geometry_msgs::TransformStamped& SubscribedTransform);
 
     bool pubPose;
     cv::Mat pose;
-    
         
     tf::TransformBroadcaster br_c;
     tf::TransformBroadcaster br_m;
     tf::TransformBroadcaster br_p;
+    tf::TransformBroadcaster br_v;
+    
 };
 
 int main(int argc, char **argv)
@@ -141,7 +146,9 @@ int main(int argc, char **argv)
     
     igb.init(nh);
    
-    ros::spin();
+    ros::AsyncSpinner spinner(4);
+    spinner.start();
+    ros::waitForShutdown();
 
     // Stop all threads
     SLAM.Shutdown();
@@ -151,6 +158,8 @@ int main(int argc, char **argv)
     ros::shutdown();
     return 0;
 }
+
+
 
 //my function for publishing various things (original)
 void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcaster br, string parent, string child, bool publishTransform) {
@@ -186,51 +195,32 @@ void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcast
 	MessageToPublish.header.stamp = ros::Time::now();
 	MessageToPublish.header.frame_id = child;
 	Publisher.publish(MessageToPublish); //publishing pose
-}    
+}
 
-//my function for publishing various things (modified)
-void publish2(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcaster br, string parent, string child, bool publishTransform) {
-    if (toPublish.empty()) {return;}
-    
-    cv::Mat Rotation = toPublish.rowRange(0,3).colRange(0,3); //getting rotation matrix (inclusive, exclusive)
-	cv::Mat Translation = toPublish.rowRange(0,3).col(3); //getting translation
-	
-	tf::Matrix3x3 RotationMatrix(Rotation.at<float>(0,0),Rotation.at<float>(0,1),Rotation.at<float>(0,2),
-		                         Rotation.at<float>(1,0),Rotation.at<float>(1,1),Rotation.at<float>(1,2),
-		                         Rotation.at<float>(2,0),Rotation.at<float>(2,1),Rotation.at<float>(2,2));
+void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTransform)
+{
 
-	tf::Vector3 TranslationVector(Translation.at<float>(0), Translation.at<float>(1), Translation.at<float>(2));
-	
-	tf::Quaternion Quaternion;           
-    RotationMatrix.getRotation(Quaternion); //converting rotation matrix into quaternion (THIS ISN'T USED?)
+    //cerr << "callback..." << endl;
+    ROS_INFO("callback...");
+    //Vicon.header.seq //int
+    Vicon.header = SubscribedTransform.header;
+    Vicon.pose.position.x = SubscribedTransform.transform.translation.x;
+    Vicon.pose.position.y = SubscribedTransform.transform.translation.y;
+    Vicon.pose.position.z = SubscribedTransform.transform.translation.z;
+    Vicon.pose.orientation = SubscribedTransform.transform.rotation;
     
-    tf::Transform TF_Transform = tf::Transform(RotationMatrix, TranslationVector); 
-    
-    if (publishTransform) {
-	br.sendTransform(tf::StampedTransform(TF_Transform, ros::Time::now(), parent, child)); //sending TF Transform
-    }
-    
-    geometry_msgs::PoseStamped MessageToPublish;
-	MessageToPublish.pose.position.x = TF_Transform.getOrigin().x();
-	MessageToPublish.pose.position.y = TF_Transform.getOrigin().y();
-	MessageToPublish.pose.position.z = TF_Transform.getOrigin().z();
-	MessageToPublish.pose.orientation.x = Quaternion.x();
-	MessageToPublish.pose.orientation.y = Quaternion.y();
-	MessageToPublish.pose.orientation.z = Quaternion.z();
-	MessageToPublish.pose.orientation.w = Quaternion.w();
-
-	MessageToPublish.header.stamp = ros::Time::now();
-	MessageToPublish.header.frame_id = child;
-	Publisher.publish(MessageToPublish); //publishing pose
-}   
+    v_pub.publish(Vicon); //publishing pose;
+}
 
 void ImageGrabber::init(ros::NodeHandle nh)
 {
     //advertising my publishers
     c_pub = nh.advertise<geometry_msgs::PoseStamped>("camera_pose",1000);
     m_pub = nh.advertise<geometry_msgs::PoseStamped>("mVelocity",1000);
-    m_pub2 = nh.advertise<geometry_msgs::PoseStamped>("mVelocity2",1000);
     p_pub = nh.advertise<geometry_msgs::PoseStamped>("pVelocity",1000);
+    v_pub = nh.advertise<geometry_msgs::PoseStamped>("vicon/data",1000);
+    
+    sub = nh.subscribe("/vicon/firefly_sbx/firefly_sbx", 1, &ImageGrabber::callback, this);
 }
 
 void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight)
@@ -273,7 +263,6 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 
 
     ////// Publishing pose, mVelocity, pVelocity ///////
-
     
     pubPose = true;
     if (pose.empty()) {pubPose = false;} //skipping if pose is empty (ex. if tracking is lost) 
@@ -293,7 +282,6 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     
     cv::Mat mVelocity = mpSLAM->mpTracker->mVelocity; //publishing mVelocity
     publish(mVelocity, m_pub, br_m, "", "imu4", false);
-    publish2(mVelocity, m_pub2, br_m, "", "imu4", false);
     
     cv::Mat pVelocity = mpSLAM->mpTracker->pVelocity; //publishing pVelocity
     publish(pVelocity, p_pub, br_p, "", "imu4", false);

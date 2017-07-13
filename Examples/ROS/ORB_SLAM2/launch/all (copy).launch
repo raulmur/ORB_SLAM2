@@ -1,5 +1,7 @@
 <launch>
 
+<node pkg="rosbag" type="play" name="player" output="screen" args="--clock --pause -r 1 /home/andre/Documents/bags/medium.bag /imu0:=/imu/data_raw /cam0/image_raw:=/camera/left/image_raw /cam1/image_raw:=/camera/right/image_raw"/>
+
 <param name = "/use_sim_time" value="true"/>
 
 <node pkg="tf" type="static_transform_publisher" name="camera_frame_publisher" args="0 0 0 .5 -.5 .5 .5 camera_pose camera_frame 100" />
