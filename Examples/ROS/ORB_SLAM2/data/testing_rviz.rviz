@@ -5,9 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /Vicon_Pose1
         - /TF1
-        - /TF1/Frames1
       Splitter Ratio: 0.5
     Tree Height: 304
   - Class: rviz/Selection
@@ -55,7 +53,7 @@ Visualization Manager:
       Axes Radius: 0.100000001
       Class: rviz/Pose
       Color: 0; 0; 255
-      Enabled: false
+      Enabled: true
       Head Length: 0.300000012
       Head Radius: 0.100000001
       Name: mVelocity
@@ -64,13 +62,13 @@ Visualization Manager:
       Shape: Arrow
       Topic: /mVelocity
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.100000001
       Class: rviz/Pose
       Color: 255; 25; 0
-      Enabled: false
+      Enabled: true
       Head Length: 0.300000012
       Head Radius: 0.100000001
       Name: pVelocity
@@ -79,7 +77,7 @@ Visualization Manager:
       Shape: Arrow
       Topic: /pVelocity
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Class: rviz_plugin_tutorials/Imu
       Color: 204; 51; 204
@@ -156,19 +154,19 @@ Visualization Manager:
       Enabled: true
       Frame Timeout: 15
       Frames:
-        All Enabled: true
+        All Enabled: false
         camera_frame:
           Value: true
         camera_optical_frame:
-          Value: true
+          Value: false
         imu4:
-          Value: true
+          Value: false
         init_link:
-          Value: true
+          Value: false
         local:
-          Value: true
+          Value: false
         odom:
-          Value: true
+          Value: false
         vicon/firefly_sbx/firefly_sbx:
           Value: true
         world:
@@ -180,14 +178,14 @@ Visualization Manager:
       Show Names: true
       Tree:
         world:
-          init_link:
-            camera_optical_frame:
-              camera_frame:
-                {}
-            local:
-              odom:
-                imu4:
+          local:
+            init_link:
+              camera_optical_frame:
+                camera_frame:
                   {}
+            odom:
+              imu4:
+                {}
           vicon/firefly_sbx/firefly_sbx:
             {}
       Update Interval: 0
@@ -216,24 +214,24 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 9.20522213
+      Distance: 21.9820328
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: -1.19300234
+        Y: -0.272455961
+        Z: 0.966480553
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.630013287
+      Pitch: 0.440013051
       Target Frame: world
       Value: Orbit (rviz)
-      Yaw: 3.05767155
+      Yaw: 1.08946347
     Saved:
       - Class: rviz/Orbit
         Distance: 12.164053

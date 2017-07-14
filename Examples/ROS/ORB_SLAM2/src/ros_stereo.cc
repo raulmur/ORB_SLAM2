@@ -267,7 +267,7 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     if (pose.empty()) {pubPose = false;} //skipping if pose is empty (ex. if tracking is lost) 
     if (pubPose) {
     //cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();
-    cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw;
+    cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();
     publish(TWC, c_pub, br, "init_link", "camera_optical_frame", true);
     }
     
