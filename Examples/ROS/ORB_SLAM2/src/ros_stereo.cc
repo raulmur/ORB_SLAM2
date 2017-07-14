@@ -70,10 +70,7 @@ public:
     bool pubPose;
     cv::Mat pose;
         
-    tf::TransformBroadcaster br_c;
-    tf::TransformBroadcaster br_m;
-    tf::TransformBroadcaster br_p;
-    tf::TransformBroadcaster br_v;
+    tf::TransformBroadcaster br;
     
 };
 
@@ -210,12 +207,14 @@ void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTra
     Vicon.pose.orientation = SubscribedTransform.transform.rotation;
     
     v_pub.publish(Vicon); //publishing pose;
+    
+	br.sendTransform(SubscribedTransform); //sending TF Transform
 }
 
 void ImageGrabber::init(ros::NodeHandle nh)
 {
     //advertising my publishers
-    c_pub = nh.advertise<geometry_msgs::PoseStamped>("camera_pose",1000);
+    c_pub = nh.advertise<geometry_msgs::PoseStamped>("robot_pose",1000); //robot_pose == camera_optical_frame
     m_pub = nh.advertise<geometry_msgs::PoseStamped>("mVelocity",1000);
     p_pub = nh.advertise<geometry_msgs::PoseStamped>("pVelocity",1000);
     v_pub = nh.advertise<geometry_msgs::PoseStamped>("vicon/data",1000);
@@ -267,24 +266,25 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     pubPose = true;
     if (pose.empty()) {pubPose = false;} //skipping if pose is empty (ex. if tracking is lost) 
     if (pubPose) {
-    cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();
-    publish(TWC, c_pub, br_c, "init_link", "camera_pose", true);
+    //cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();
+    cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw;
+    publish(TWC, c_pub, br, "init_link", "camera_optical_frame", true);
     }
     
     /*
     cv::Mat mVelocity = mpSLAM->mpTracker->getMVelocity(); //publishing mVelocity
-    publish(mVelocity, m_pub, br_m, "", "imu4", false);
-    //publish(mVelocity, m_pub2, br_m, "", "imu4", false);
+    publish(mVelocity, m_pub, br, "", "imu4", false);
+    //publish(mVelocity, m_pub2, br, "", "imu4", false);
     
     cv::Mat pVelocity = mpSLAM->mpTracker->calculatePVelocity(); //publishing pVelocity
-    publish(pVelocity, p_pub, br_p, "", "imu4", false);
+    publish(pVelocity, p_pub, br, "", "imu4", false);
     */
     
     cv::Mat mVelocity = mpSLAM->mpTracker->mVelocity; //publishing mVelocity
-    publish(mVelocity, m_pub, br_m, "", "imu4", false);
+    publish(mVelocity, m_pub, br, "", "imu4", false);
     
     cv::Mat pVelocity = mpSLAM->mpTracker->pVelocity; //publishing pVelocity
-    publish(pVelocity, p_pub, br_p, "", "imu4", false);
+    publish(pVelocity, p_pub, br, "", "imu4", false);
     
 } //end
 
