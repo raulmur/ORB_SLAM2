@@ -69,6 +69,7 @@ public:
 
     bool pubPose;
     cv::Mat pose;
+    bool transformFound;
         
     tf::TransformBroadcaster br;
     
@@ -196,15 +197,27 @@ void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcast
 
 void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTransform)
 {
-
     //cerr << "callback..." << endl;
-    ROS_INFO("callback...");
+    //ROS_INFO("callback...");
     //Vicon.header.seq //int
-    Vicon.header = SubscribedTransform.header;
+    Vicon.header = SubscribedTransform.header; //sending a transform between world and vicon/firefly_sbx/firefly_sbx
     Vicon.pose.position.x = SubscribedTransform.transform.translation.x;
     Vicon.pose.position.y = SubscribedTransform.transform.translation.y;
     Vicon.pose.position.z = SubscribedTransform.transform.translation.z;
     Vicon.pose.orientation = SubscribedTransform.transform.rotation;
+    
+    //here I am publishing the transform between Init_Link and World, this transform was originally hard-coded but is now automatically set
+    // Init_Link is where ORB_SLAM creates its first keyframe, which in stereo is typically the first frame.
+    if (!transformFound) {
+        geometry_msgs::TransformStamped InitLink_to_World_Transform;
+        InitLink_to_World_Transform = SubscribedTransform;
+        
+        InitLink_to_World_Transform.header.frame_id = "world";
+        InitLink_to_World_Transform.child_frame_id = "init_link";
+        br.sendTransform(InitLink_to_World_Transform);
+        ROS_INFO("TRANSFORM SENT!");
+        transformFound = true;
+    }
     
     v_pub.publish(Vicon); //publishing pose;
     
@@ -213,6 +226,8 @@ void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTra
 
 void ImageGrabber::init(ros::NodeHandle nh)
 {
+    transformFound = false;
+    
     //advertising my publishers
     c_pub = nh.advertise<geometry_msgs::PoseStamped>("robot_pose",1000); //robot_pose == camera_optical_frame
     m_pub = nh.advertise<geometry_msgs::PoseStamped>("mVelocity",1000);
@@ -259,9 +274,9 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 	pose =  mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
 
-
-
     ////// Publishing pose, mVelocity, pVelocity ///////
+    
+    if (transformFound) { cerr << "Transform Found..." << endl; }
     
     pubPose = true;
     if (pose.empty()) {pubPose = false;} //skipping if pose is empty (ex. if tracking is lost) 

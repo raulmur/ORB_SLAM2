@@ -10,6 +10,8 @@
 
 <node pkg="tf" type="static_transform_publisher" name="imu4_frame_publisher" args="0 0 0 .5 .5 +.5 .5 local odom 100" />
 
+<node pkg="tf" type="static_transform_publisher" name="vicon_frame_publisher" args="-0.908334475867 0.466110781714 1.43992635914 0.00104411731491 0.0166180891764 0.999675526175 -0.0192767035009 world init_link 100" />
+
 <node name="imu_filter_node" pkg="imu_filter_madgwick" type="imu_filter_node" args="_use_mag:=false"/>
 
 <node name="Stereo" pkg="ORB_SLAM2" type="Stereo" args="$(find ORB_SLAM2)/Vocabulary/ORBvoc.txt $(find ORB_SLAM2)/Examples/Stereo/EuRoC.yaml true"/>
