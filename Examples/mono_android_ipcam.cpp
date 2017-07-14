@@ -1,3 +1,10 @@
+/*
+ * This an example base on ORB_SLAM2
+ * It supports video input from a webcam or mjpeg stream over HTTP
+ * libcurl is needed
+ * Usage:
+ * ./mono_android_ipcam /path/to/ORBvoc.{bin,txt} /path/to/settings.yaml http://xxx.xxx.xxx.xxx/video UpdateMap(0|1)
+ */
 #include <curl/curl.h>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
@@ -8,6 +15,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <signal.h>
+#include <execinfo.h>
 #include"System.h"
 
 #define MAX_JPEG_BUF_LEN 1000000
@@ -26,11 +34,21 @@ inline double timeval2double(struct timeval t)
     return t.tv_sec + double(t.tv_usec)/1000000;
 }
 static bool is_exit=false;
-void SIGINT_handler(int dummy)
+static void SIGINT_handler(int dummy)
 {
     is_exit = true;
     puts("exiting...");
 }
+static void SIGSEGV_handler(int sig)
+{
+    void *array[100];
+    size_t size;
+    size = backtrace(array, 100);
+    fprintf(stderr, "Error: signal %d:\n", sig);
+    backtrace_symbols_fd(array, size, STDERR_FILENO);
+    exit(-1);
+}
+
 void register_handler()
 {
     // register SIGINT handler
@@ -39,6 +57,12 @@ void register_handler()
     sigemptyset(&sigint_hdl.sa_mask);
     sigint_hdl.sa_flags = 0;
     sigaction(SIGINT, &sigint_hdl, NULL);
+    // register SIGSEGV handler
+    struct sigaction sigsegv_hdl;
+    sigsegv_hdl.sa_handler = SIGSEGV_handler;
+    sigemptyset(&sigsegv_hdl.sa_mask);
+    sigsegv_hdl.sa_flags = 0;
+    sigaction(SIGSEGV, &sigsegv_hdl, NULL);
 }
 static size_t write_cb(char *buf, size_t n, size_t nmemb, void *p)
 {
@@ -86,7 +110,7 @@ LOOP:
             if (!space) goto WAIT_NEXT;
             content_length = atoi(space);
             if (content_length > MAX_JPEG_BUF_LEN) {
-                fprintf(stderr, "Buffer overflow!! %d > %d\n", content_length, MAX_JPEG_BUF_LEN);
+                fprintf(stderr, "Buffer overflow!! %lu > %d\n", content_length, MAX_JPEG_BUF_LEN);
                 exit(-1);
             }
             char *pos_n = strstr(space, "\n");
@@ -137,13 +161,14 @@ WAIT_NEXT:
 }
 int main(int argc, char **argv) {
     register_handler();
-    if(argc != 4)
+    if(argc != 5)
     {
-        cerr << endl << "Usage: mono_http_stream path_to_vocabulary path_to_settings http://mjpeg/stream/address" << endl;
+        cerr << endl << "Usage: mono_http_stream path_to_vocabulary path_to_settings http://mjpeg/stream/address updateMap(1|0)?" << endl;
         return 1;
     }
     stat = IDLE;
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
+    bool bUpdateMap = (int)atoi(argv[4]);
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true,bUpdateMap);
     CURL *curl;
     curl = curl_easy_init();
     curl_easy_setopt(curl, CURLOPT_URL, argv[3]);

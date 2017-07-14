@@ -178,7 +178,7 @@ LOOP:
             if (!space) goto WAIT_NEXT;
             content_length = atoi(space);
             if (content_length > MAX_JPEG_BUF_LEN) {
-                fprintf(stderr, "Buffer overflow!! %d > %d\n", content_length, MAX_JPEG_BUF_LEN);
+                fprintf(stderr, "Buffer overflow!! %lu > %d\n", content_length, MAX_JPEG_BUF_LEN);
                 exit(-1);
             }
             char *pos_n = strstr(space, "\n");
