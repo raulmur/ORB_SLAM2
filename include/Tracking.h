@@ -134,6 +134,9 @@ public:
     bool calculatePVelocity(); //my pVelocity calculator
         
     cv::Mat getMVelocity(); //my mVelocity calculator
+    
+    tf2_ros::Buffer tfBuffer; //this was originally protected
+    tf2_ros::TransformListener tfListener;
 
 protected:
 
@@ -233,9 +236,6 @@ protected:
     list<MapPoint*> mlpTemporalPoints;
 
     //ros::NodeHandle nh;
-    
-    tf2_ros::Buffer tfBuffer;
-    tf2_ros::TransformListener tfListener;
     
     bool TrackWithIMU(); //my IMU tracking function
 };

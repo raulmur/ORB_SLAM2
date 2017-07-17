@@ -111,6 +111,9 @@ public:
 
 
     static std::mutex mGlobalMutex;
+    
+     // Tracking counters (made public by ADR)
+     // using this to publish points tracked in a frame
 
 protected:    
 
@@ -129,7 +132,7 @@ protected:
      // Reference KeyFrame
      KeyFrame* mpRefKF;
 
-     // Tracking counters
+     //Tracking Counters
      int mnVisible;
      int mnFound;
 

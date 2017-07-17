@@ -38,12 +38,17 @@
 #include <iostream>
 #include <sstream>
 #include "std_msgs/Int8.h"
+#include "std_msgs/Float64.h"
 #include "sensor_msgs/Imu.h"
 #include "geometry_msgs/TransformStamped.h"
+#include <cmath>        // std::abs
 
 using namespace std;
 
 geometry_msgs::PoseStamped Vicon;
+double restartTimer;
+double timeToWait = 150;
+int cycles;
 
 class ImageGrabber
 {
@@ -53,6 +58,7 @@ public:
 
     void GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight);
     void init(ros::NodeHandle nh);
+    geometry_msgs::TransformStamped findTransform(string child, string parent);
 
     ORB_SLAM2::System* mpSLAM;
     bool do_rectify;
@@ -64,7 +70,13 @@ public:
     ros::Publisher p_pub; //pVelocity (my IMU change) publisher
     ros::Publisher v_pub; //world->vicon absolute state publisher
     ros::Publisher i_pub; //vicon->init_link semi-static transform publisher
-    
+    ros::Publisher t_pub; //framerate publisher
+    ros::Publisher xe_pub; //framerate publisher
+    ros::Publisher ye_pub; //framerate publisher
+    ros::Publisher ze_pub; //framerate publisher
+    ros::Publisher tv_pub; //framerate publisher
+    ros::Publisher tc_pub; //framerate publisher
+        
     ros::Subscriber sub;
     void callback(const geometry_msgs::TransformStamped& SubscribedTransform);
 
@@ -75,7 +87,82 @@ public:
     tf::TransformBroadcaster br;
     geometry_msgs::TransformStamped InitLink_to_World_Transform;
     
+    double startTime;
+    double loopTime;
+    double rate;
+    
+    geometry_msgs::TransformStamped WtV;
+    geometry_msgs::TransformStamped WtC;
+    
+    float xe;
+    float ye;
+    float ze;
 };
+/*
+// Load settings related to stereo calibration
+int LoadSettings(int argc, char **argv, ImageGrabber igb) {
+        cv::FileStorage fsSettings(argv[2], cv::FileStorage::READ);
+        if(!fsSettings.isOpened())
+        {
+            cerr << "ERROR: Wrong path to settings" << endl;
+            return -1;
+        }
+
+        cv::Mat K_l, K_r, P_l, P_r, R_l, R_r, D_l, D_r;
+        fsSettings["LEFT.K"] >> K_l;
+        fsSettings["RIGHT.K"] >> K_r;
+
+        fsSettings["LEFT.P"] >> P_l;
+        fsSettings["RIGHT.P"] >> P_r;
+
+        fsSettings["LEFT.R"] >> R_l;
+        fsSettings["RIGHT.R"] >> R_r;
+
+        fsSettings["LEFT.D"] >> D_l;
+        fsSettings["RIGHT.D"] >> D_r;
+
+        int rows_l = fsSettings["LEFT.height"];
+        int cols_l = fsSettings["LEFT.width"];
+        int rows_r = fsSettings["RIGHT.height"];
+        int cols_r = fsSettings["RIGHT.width"];
+
+        if(K_l.empty() || K_r.empty() || P_l.empty() || P_r.empty() || R_l.empty() || R_r.empty() || D_l.empty() || D_r.empty() ||
+                rows_l==0 || rows_r==0 || cols_l==0 || cols_r==0)
+        {
+            cerr << "ERROR: Calibration parameters to rectify stereo are missing!" << endl;
+            return -1;
+        }
+
+        cv::initUndistortRectifyMap(K_l,D_l,R_l,P_l.rowRange(0,3).colRange(0,3),cv::Size(cols_l,rows_l),CV_32F,igb.M1l,igb.M2l);
+        cv::initUndistortRectifyMap(K_r,D_r,R_r,P_r.rowRange(0,3).colRange(0,3),cv::Size(cols_r,rows_r),CV_32F,igb.M1r,igb.M2r);
+        
+        return 0; //added to dispel warning
+}
+
+
+void setupORBSLAM(int argc, char **argv, ImageGrabber igb) {
+
+    stringstream ss(argv[3]);
+	ss >> boolalpha >> igb.do_rectify;
+
+    if(igb.do_rectify)
+    {   
+        LoadSettings(argc, argv, igb);   
+    }
+
+    ros::NodeHandle nh;
+
+    message_filters::Subscriber<sensor_msgs::Image> left_sub(nh, "/camera/left/image_raw", 1);
+    message_filters::Subscriber<sensor_msgs::Image> right_sub(nh, "/camera/right/image_raw", 1);
+    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
+    message_filters::Synchronizer<sync_pol> sync(sync_pol(10), left_sub,right_sub);
+    sync.registerCallback(boost::bind(&ImageGrabber::GrabStereo,&igb,_1,_2));
+    
+    igb.init(nh);
+
+
+}
+*/
 
 int main(int argc, char **argv)
 {
@@ -160,6 +247,20 @@ int main(int argc, char **argv)
 }
 
 
+/*
+    cycles = 2;
+    if (argv[4]) { //running ORB_SLAM again
+        while (cycles > 0) {
+        cycles = cycles-1;
+        cerr << "Running Again..." << endl;
+        
+        //setupORBSLAM();
+        //how does ORB_SLAM know that it needs to start over?
+        //how does the bag restart? 
+        
+        }
+    }
+*/
 
 //my function for publishing various things (original)
 void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcaster br, string parent, string child, bool publishTransform) {
@@ -239,12 +340,38 @@ void ImageGrabber::init(ros::NodeHandle nh)
     p_pub = nh.advertise<geometry_msgs::PoseStamped>("pVelocity",1000);
     v_pub = nh.advertise<geometry_msgs::PoseStamped>("vicon/data",1000);
     i_pub = nh.advertise<geometry_msgs::TransformStamped>("vicon/init_link",1000);
+    t_pub = nh.advertise<std_msgs::Float64>("rate",1000);
+    xe_pub = nh.advertise<std_msgs::Float64>("error/x",1000);
+    ye_pub = nh.advertise<std_msgs::Float64>("error/y",1000);
+    ze_pub = nh.advertise<std_msgs::Float64>("error/z",1000);
+    tv_pub = nh.advertise<geometry_msgs::TransformStamped>("error/transV",1000);
+    tc_pub = nh.advertise<geometry_msgs::TransformStamped>("error/transC",1000);
+    
     
     sub = nh.subscribe("/vicon/firefly_sbx/firefly_sbx", 1, &ImageGrabber::callback, this);
 }
 
+//finding transform between two frames to find rms error
+geometry_msgs::TransformStamped ImageGrabber::findTransform(string child, string parent) {
+    geometry_msgs::TransformStamped transformStamped;
+    
+    try{
+      transformStamped = mpSLAM->mpTracker->tfBuffer.lookupTransform(child, parent, ros::Time(0));
+      return transformStamped;
+    }
+    catch (tf2::TransformException &ex) {
+      ROS_WARN("%s",ex.what());
+      ROS_INFO("Transform Exception!");
+      //return false; //this could be an issue
+      return transformStamped;
+    }
+
+}
+
 void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight)
 {
+    startTime = ros::Time::now().toSec();
+    
     // Copy the ros image message to cv::Mat.
     cv_bridge::CvImageConstPtr cv_ptrLeft;
     try
@@ -280,32 +407,45 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 	pose =  mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
 
+
     ////// Publishing pose, mVelocity, pVelocity ///////
     
-    //if (transformFound) { cerr << "Transform Found..." << endl; }
-    
     pubPose = true;
-    if (pose.empty()) {pubPose = false;} //skipping if pose is empty (ex. if tracking is lost) 
+    if (pose.empty()) {pubPose = false;} //publishing camera_pose
     if (pubPose) {
-    //cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();
     cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();
     publish(TWC, c_pub, br, "init_link", "camera_optical_frame", true);
     }
-    
-    /*
-    cv::Mat mVelocity = mpSLAM->mpTracker->getMVelocity(); //publishing mVelocity
-    publish(mVelocity, m_pub, br, "", "imu4", false);
-    //publish(mVelocity, m_pub2, br, "", "imu4", false);
-    
-    cv::Mat pVelocity = mpSLAM->mpTracker->calculatePVelocity(); //publishing pVelocity
-    publish(pVelocity, p_pub, br, "", "imu4", false);
-    */
     
     cv::Mat mVelocity = mpSLAM->mpTracker->mVelocity; //publishing mVelocity
     publish(mVelocity, m_pub, br, "", "imu4", false);
     
     cv::Mat pVelocity = mpSLAM->mpTracker->pVelocity; //publishing pVelocity
     publish(pVelocity, p_pub, br, "", "imu4", false);
+    
+    //calculating frame rate / delay and publishing it
+    loopTime = ros::Time::now().toSec() - startTime;
+    rate = 1/loopTime;
+    t_pub.publish(rate); //publishing framerate of ORB_SLAM2
+    
+    //////// getting rms error //////
+    WtV = ImageGrabber::findTransform("vicon/firefly_sbx/firefly_sbx", "world");
+    WtC = ImageGrabber::findTransform("camera_frame", "world");
+    
+    //xe = std::abs (WtC.transform.translation.x - WtV.transform.translation.x);
+    //ye = std::abs (WtC.transform.translation.y - WtV.transform.translation.y);
+    //ze = std::abs (WtC.transform.translation.z - WtV.transform.translation.z);
+    
+    xe = WtC.transform.translation.x - WtV.transform.translation.x;
+    ye = WtC.transform.translation.y - WtV.transform.translation.y;
+    ze = WtC.transform.translation.z - WtV.transform.translation.z;
+    
+    tv_pub.publish(WtV);
+    tc_pub.publish(WtV);
+    
+    xe_pub.publish(xe);
+    ye_pub.publish(ye);
+    ze_pub.publish(ze);
     
 } //end
 
