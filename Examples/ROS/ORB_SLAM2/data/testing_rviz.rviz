@@ -3,7 +3,9 @@ Panels:
     Help Height: 94
     Name: Displays
     Property Tree Widget:
-      Expanded: ~
+      Expanded:
+        - /TF1
+        - /TF1/Frames1
       Splitter Ratio: 0.5
     Tree Height: 304
   - Class: rviz/Selection
@@ -176,14 +178,14 @@ Visualization Manager:
       Show Names: true
       Tree:
         world:
-          init_link:
-            camera_optical_frame:
-              camera_frame:
-                {}
-            local:
-              odom:
-                imu4:
+          local:
+            init_link:
+              camera_optical_frame:
+                camera_frame:
                   {}
+            odom:
+              imu4:
+                {}
           vicon/firefly_sbx/firefly_sbx:
             {}
       Update Interval: 0

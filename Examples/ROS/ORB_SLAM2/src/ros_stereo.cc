@@ -59,10 +59,11 @@ public:
     cv::Mat M1l,M2l,M1r,M2r;
     
     //defining my publishers
-    ros::Publisher c_pub;
-    ros::Publisher m_pub;
-    ros::Publisher p_pub;
-    ros::Publisher v_pub;
+    ros::Publisher c_pub; //camera_pose publisher
+    ros::Publisher m_pub; //mVelocity (ORB_SLAM2 VO change) publisher
+    ros::Publisher p_pub; //pVelocity (my IMU change) publisher
+    ros::Publisher v_pub; //world->vicon absolute state publisher
+    ros::Publisher i_pub; //vicon->init_link semi-static transform publisher
     
     ros::Subscriber sub;
     void callback(const geometry_msgs::TransformStamped& SubscribedTransform);
@@ -213,17 +214,18 @@ void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTra
         InitLink_to_World_Transform = SubscribedTransform;
         
         InitLink_to_World_Transform.header.frame_id = "world";
-        InitLink_to_World_Transform.child_frame_id = "init_link";
+        InitLink_to_World_Transform.child_frame_id = "local";
         transformFound = true;
     }
     //cerr << "Transform Found..." << endl;
     //cerr << InitLink_to_World_Transform << endl;
     
     InitLink_to_World_Transform.header.stamp = SubscribedTransform.header.stamp;
-    //br.sendTransform(InitLink_to_World_Transform); //sending TF Transform (represents world->init_link)
+    br.sendTransform(InitLink_to_World_Transform); //sending semi-static TF Transform (represents world->init_link)
     
-    v_pub.publish(Vicon); //publishing pose;
+    i_pub.publish(InitLink_to_World_Transform); //publishing pose;
     
+    v_pub.publish(Vicon); //publishing absolute pose;
 	br.sendTransform(SubscribedTransform); //sending TF Transform (represents world->Vicon_pose)
 }
 
@@ -236,6 +238,7 @@ void ImageGrabber::init(ros::NodeHandle nh)
     m_pub = nh.advertise<geometry_msgs::PoseStamped>("mVelocity",1000);
     p_pub = nh.advertise<geometry_msgs::PoseStamped>("pVelocity",1000);
     v_pub = nh.advertise<geometry_msgs::PoseStamped>("vicon/data",1000);
+    i_pub = nh.advertise<geometry_msgs::TransformStamped>("vicon/init_link",1000);
     
     sub = nh.subscribe("/vicon/firefly_sbx/firefly_sbx", 1, &ImageGrabber::callback, this);
 }

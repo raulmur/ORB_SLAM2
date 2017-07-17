@@ -445,7 +445,7 @@ void Tracking::Track()
                 mVelocity = mCurrentFrame.mTcw*LastTwc;
                 
                 calculatePVelocity(); //replacing mVelocity with pVelocity, using IMU information
-                mVelocity = pVelocity;
+                //mVelocity = pVelocity;
                     
 
                 //ros::NodeHandle nh;
