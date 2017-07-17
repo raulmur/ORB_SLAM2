@@ -72,6 +72,7 @@ public:
     bool transformFound;
         
     tf::TransformBroadcaster br;
+    geometry_msgs::TransformStamped InitLink_to_World_Transform;
     
 };
 
@@ -209,19 +210,21 @@ void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTra
     //here I am publishing the transform between Init_Link and World, this transform was originally hard-coded but is now automatically set
     // Init_Link is where ORB_SLAM creates its first keyframe, which in stereo is typically the first frame.
     if (!transformFound) {
-        geometry_msgs::TransformStamped InitLink_to_World_Transform;
         InitLink_to_World_Transform = SubscribedTransform;
         
         InitLink_to_World_Transform.header.frame_id = "world";
         InitLink_to_World_Transform.child_frame_id = "init_link";
-        br.sendTransform(InitLink_to_World_Transform);
-        ROS_INFO("TRANSFORM SENT!");
         transformFound = true;
     }
+    //cerr << "Transform Found..." << endl;
+    //cerr << InitLink_to_World_Transform << endl;
+    
+    InitLink_to_World_Transform.header.stamp = SubscribedTransform.header.stamp;
+    //br.sendTransform(InitLink_to_World_Transform); //sending TF Transform (represents world->init_link)
     
     v_pub.publish(Vicon); //publishing pose;
     
-	br.sendTransform(SubscribedTransform); //sending TF Transform
+	br.sendTransform(SubscribedTransform); //sending TF Transform (represents world->Vicon_pose)
 }
 
 void ImageGrabber::init(ros::NodeHandle nh)
@@ -276,7 +279,7 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
 
     ////// Publishing pose, mVelocity, pVelocity ///////
     
-    if (transformFound) { cerr << "Transform Found..." << endl; }
+    //if (transformFound) { cerr << "Transform Found..." << endl; }
     
     pubPose = true;
     if (pose.empty()) {pubPose = false;} //skipping if pose is empty (ex. if tracking is lost) 

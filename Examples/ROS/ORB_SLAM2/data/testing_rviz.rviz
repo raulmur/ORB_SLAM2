@@ -3,9 +3,7 @@ Panels:
     Help Height: 94
     Name: Displays
     Property Tree Widget:
-      Expanded:
-        - /Global Options1
-        - /TF1
+      Expanded: ~
       Splitter Ratio: 0.5
     Tree Height: 304
   - Class: rviz/Selection
@@ -53,7 +51,7 @@ Visualization Manager:
       Axes Radius: 0.100000001
       Class: rviz/Pose
       Color: 0; 0; 255
-      Enabled: true
+      Enabled: false
       Head Length: 0.300000012
       Head Radius: 0.100000001
       Name: mVelocity
@@ -62,13 +60,13 @@ Visualization Manager:
       Shape: Arrow
       Topic: /mVelocity
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.100000001
       Class: rviz/Pose
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Head Length: 0.300000012
       Head Radius: 0.100000001
       Name: pVelocity
@@ -77,7 +75,7 @@ Visualization Manager:
       Shape: Arrow
       Topic: /pVelocity
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Class: rviz_plugin_tutorials/Imu
       Color: 204; 51; 204
@@ -178,14 +176,14 @@ Visualization Manager:
       Show Names: true
       Tree:
         world:
-          local:
-            init_link:
-              camera_optical_frame:
-                camera_frame:
-                  {}
-            odom:
-              imu4:
+          init_link:
+            camera_optical_frame:
+              camera_frame:
                 {}
+            local:
+              odom:
+                imu4:
+                  {}
           vicon/firefly_sbx/firefly_sbx:
             {}
       Update Interval: 0
@@ -214,7 +212,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 21.9820328
+      Distance: 6.08894062
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -228,10 +226,10 @@ Visualization Manager:
       Focal Shape Size: 0.0500000007
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.440013051
+      Pitch: 0.41001305
       Target Frame: world
       Value: Orbit (rviz)
-      Yaw: 1.08946347
+      Yaw: 1.92446351
     Saved:
       - Class: rviz/Orbit
         Distance: 12.164053
