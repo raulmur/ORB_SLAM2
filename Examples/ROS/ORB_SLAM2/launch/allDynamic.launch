@@ -12,7 +12,7 @@
 
 <node pkg="tf" type="static_transform_publisher" name="world_frame_publisher" args="0 0 0 .5 -.5 .5 -.5 local init_link 100" />
 
-<node pkg="tf" type="static_transform_publisher" name="imu4_frame_publisher" args="0 0 0 .5 .5 +.5 .5 local odom 100" />
+<node pkg="tf" type="static_transform_publisher" name="imu4_frame_publisher" args="0 0 0 .5 .5 .5 .5 local odom 100" />
 
 <node name="imu_filter_node" pkg="imu_filter_madgwick" type="imu_filter_node" args="_use_mag:=false"/>
 

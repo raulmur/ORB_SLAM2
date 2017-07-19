@@ -94,6 +94,7 @@ public:
     
     geometry_msgs::TransformStamped WtV;
     geometry_msgs::TransformStamped WtC;
+    geometry_msgs::TransformStamped WtI;
     
     float xe;
     float ye;
@@ -281,7 +282,7 @@ void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcast
     
     tf::Transform TF_Transform = tf::Transform(RotationMatrix, TranslationVector); 
     
-    if (publishTransform) {
+    if (publishTransform) {                             //change this to old frame time
 	br.sendTransform(tf::StampedTransform(TF_Transform, ros::Time::now(), parent, child)); //sending TF Transform
     }
     
@@ -330,6 +331,7 @@ void ImageGrabber::callback(const geometry_msgs::TransformStamped& SubscribedTra
     v_pub.publish(Vicon); //publishing absolute pose;
 	br.sendTransform(SubscribedTransform); //sending TF Transform (represents world->Vicon_pose)
 }
+
 
 void ImageGrabber::init(ros::NodeHandle nh)
 {
@@ -448,8 +450,17 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     ye_pub.publish(ye);
     ze_pub.publish(WtC.transform.translation.z);
     
-    cout << "translation..." << endl;
-    cout << WtC.transform.translation.z << endl;
+    //cout << "translation..." << endl;
+    //cout << WtC.transform.translation.z << endl;
+    
+    // publishing IMU info //
+    //WtV
+    WtI = ImageGrabber::findTransform("imu4", "world");
+    
+    WtI.child_frame_id = "imu5";
+    WtI.transform.translation = WtV.transform.translation;
+    
+    br.sendTransform(WtI);
     
 } //end
 

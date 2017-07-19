@@ -444,7 +444,7 @@ void Tracking::Track()
                 mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
                 mVelocity = mCurrentFrame.mTcw*LastTwc;
                 
-                calculatePVelocity(); //replacing mVelocity with pVelocity, using IMU information
+                //calculatePVelocity(); //replacing mVelocity with pVelocity, using IMU information
                 //mVelocity = pVelocity;
                     
 
