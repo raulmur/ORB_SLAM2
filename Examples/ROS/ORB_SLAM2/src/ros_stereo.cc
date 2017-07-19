@@ -39,6 +39,7 @@
 #include <sstream>
 #include "std_msgs/Int8.h"
 #include "std_msgs/Float64.h"
+#include "std_msgs/Float32.h"
 #include "sensor_msgs/Imu.h"
 #include "geometry_msgs/TransformStamped.h"
 #include <cmath>        // std::abs
@@ -267,7 +268,7 @@ void publish(cv::Mat toPublish, ros::Publisher Publisher, tf::TransformBroadcast
     if (toPublish.empty()) {return;}
     
     cv::Mat Rotation = toPublish.rowRange(0,3).colRange(0,3); //getting rotation matrix
-	cv::Mat Translation = toPublish.rowRange(0,3).col(3); //getting translation
+	cv::Mat Translation = toPublish.rowRange(0,3).col(3); //getting
 	
 	tf::Matrix3x3 RotationMatrix(Rotation.at<float>(0,0),Rotation.at<float>(0,1),Rotation.at<float>(0,2),
 		                         Rotation.at<float>(1,0),Rotation.at<float>(1,1),Rotation.at<float>(1,2),
@@ -343,7 +344,7 @@ void ImageGrabber::init(ros::NodeHandle nh)
     t_pub = nh.advertise<std_msgs::Float64>("rate",1000);
     xe_pub = nh.advertise<std_msgs::Float64>("error/x",1000);
     ye_pub = nh.advertise<std_msgs::Float64>("error/y",1000);
-    ze_pub = nh.advertise<std_msgs::Float64>("error/z",1000);
+    ze_pub = nh.advertise<std_msgs::Float32>("error/z",1000);
     tv_pub = nh.advertise<geometry_msgs::TransformStamped>("error/transV",1000);
     tc_pub = nh.advertise<geometry_msgs::TransformStamped>("error/transC",1000);
     
@@ -356,7 +357,7 @@ geometry_msgs::TransformStamped ImageGrabber::findTransform(string child, string
     geometry_msgs::TransformStamped transformStamped;
     
     try{
-      transformStamped = mpSLAM->mpTracker->tfBuffer.lookupTransform(child, parent, ros::Time(0));
+      transformStamped = mpSLAM->mpTracker->tfBuffer.lookupTransform(parent, child, ros::Time(0));
       return transformStamped;
     }
     catch (tf2::TransformException &ex) {
@@ -436,16 +437,19 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     //ye = std::abs (WtC.transform.translation.y - WtV.transform.translation.y);
     //ze = std::abs (WtC.transform.translation.z - WtV.transform.translation.z);
     
-    xe = WtC.transform.translation.x - WtV.transform.translation.x;
-    ye = WtC.transform.translation.y - WtV.transform.translation.y;
-    ze = WtC.transform.translation.z - WtV.transform.translation.z;
+    xe = WtC.transform.translation.x;
+    ye = WtV.transform.translation.y;
+    ze = WtC.transform.translation.z;
     
     tv_pub.publish(WtV);
-    tc_pub.publish(WtV);
+    tc_pub.publish(WtC);
     
     xe_pub.publish(xe);
     ye_pub.publish(ye);
-    ze_pub.publish(ze);
+    ze_pub.publish(WtC.transform.translation.z);
+    
+    cout << "translation..." << endl;
+    cout << WtC.transform.translation.z << endl;
     
 } //end
 
