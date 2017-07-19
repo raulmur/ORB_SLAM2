@@ -24,15 +24,27 @@
 #include<fstream>
 #include<chrono>
 
-#include<ros/ros.h>
+#include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
+#include "tf/transform_datatypes.h"
+#include <tf/transform_broadcaster.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
 #include<opencv2/core/core.hpp>
+#include<opencv2/features2d/features2d.hpp> //ADR may not need this
 
-#include"../../../include/System.h"
+#include"System.h"
+
+#include "std_msgs/Float32.h" //ADR
+#include "geometry_msgs/Pose.h" //ADR
+#include "geometry_msgs/TransformStamped.h"
+#include "tf/transform_datatypes.h"
+#include <tf/transform_broadcaster.h>
+
+ cv::Mat pose;
+ ros::Publisher pose_pub; 
 
 using namespace std;
 
@@ -71,6 +83,8 @@ int main(int argc, char **argv)
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub,depth_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabRGBD,&igb,_1,_2));
 
+    pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/camera_pose",1);
+	
     ros::spin();
 
     // Stop all threads
@@ -110,6 +124,41 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
     }
 
     mpSLAM->TrackRGBD(cv_ptrRGB->image,cv_ptrD->image,cv_ptrRGB->header.stamp.toSec());
+
+
+    //code that is used to publish pose
+
+    cv::Mat TWC = mpSLAM->mpTracker->mCurrentFrame.mTcw.inv();  
+    cv::Mat RWC = TWC.rowRange(0,3).colRange(0,3);  
+    cv::Mat tWC = TWC.rowRange(0,3).col(3);
+    
+    tf::Matrix3x3 M(RWC.at<float>(0,0),RWC.at<float>(0,1),RWC.at<float>(0,2),
+    	            RWC.at<float>(1,0),RWC.at<float>(1,1),RWC.at<float>(1,2),
+    	            RWC.at<float>(2,0),RWC.at<float>(2,1),RWC.at<float>(2,2));
+
+    tf::Vector3 V(tWC.at<float>(0), tWC.at<float>(1), tWC.at<float>(2));
+
+    tf::Quaternion q;
+    M.getRotation(q);
+    
+    static tf::TransformBroadcaster br;
+    tf::Transform transform = tf::Transform(M, V);
+    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "init_link", "camera_pose"));
+    
+    geometry_msgs::PoseStamped _pose;
+    _pose.pose.position.x = transform.getOrigin().x();
+    _pose.pose.position.y = transform.getOrigin().y();
+    _pose.pose.position.z = transform.getOrigin().z();
+    _pose.pose.orientation.x = transform.getRotation().x();
+    _pose.pose.orientation.y = transform.getRotation().y();
+    _pose.pose.orientation.z = transform.getRotation().z();
+    _pose.pose.orientation.w = transform.getRotation().w();
+    
+    _pose.header.stamp = ros::Time::now();
+    _pose.header.frame_id = "init_link";
+    pose_pub.publish(_pose);
+
 }
+
 
 

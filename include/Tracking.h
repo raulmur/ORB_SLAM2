@@ -40,6 +40,10 @@
 
 #include <mutex>
 
+#include "std_msgs/Int8.h"
+#include <ros/ros.h>
+#include <tf2_ros/transform_listener.h>
+
 namespace ORB_SLAM2
 {
 
@@ -67,13 +71,12 @@ public:
     void SetViewer(Viewer* pViewer);
 
     // Load new settings
-    // The focal lenght should be similar or scale prediction will fail when projecting points
+    // The focal length should be similar or scale prediction will fail when projecting points
     // TODO: Modify MapPoint::PredictScale to take into account focal lenght
     void ChangeCalibration(const string &strSettingPath);
 
     // Use this function if you have deactivated local mapping and you only want to localize the camera.
     void InformOnlyTracking(const bool &flag);
-
 
 public:
 
@@ -114,6 +117,26 @@ public:
     bool mbOnlyTracking;
 
     void Reset();
+    //void SoftReset();
+
+    void Callback();
+
+    //Motion Model from ORB-SLAM visual odometry
+    //I made this public so we can publish it
+    cv::Mat mVelocity;
+
+    //Motion Model from IMU + VO
+    cv::Mat pVelocity;
+
+    //variable for testing my subscriber
+    int my_variable;
+    
+    bool calculatePVelocity(); //my pVelocity calculator
+        
+    cv::Mat getMVelocity(); //my mVelocity calculator
+    
+    tf2_ros::Buffer tfBuffer; //this was originally protected
+    tf2_ros::TransformListener tfListener;
 
 protected:
 
@@ -207,14 +230,16 @@ protected:
     unsigned int mnLastKeyFrameId;
     unsigned int mnLastRelocFrameId;
 
-    //Motion Model
-    cv::Mat mVelocity;
-
     //Color order (true RGB, false BGR, ignored if grayscale)
     bool mbRGB;
 
     list<MapPoint*> mlpTemporalPoints;
+
+    //ros::NodeHandle nh;
+    
+    bool TrackWithIMU(); //my IMU tracking function
 };
+
 
 } //namespace ORB_SLAM
 

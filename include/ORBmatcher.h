@@ -43,21 +43,28 @@ public:
     // Computes the Hamming distance between two ORB descriptors
     static int DescriptorDistance(const cv::Mat &a, const cv::Mat &b);
 
+
+
+
     // Search matches between Frame keypoints and projected MapPoints. Returns number of matches
-    // Used to track the local map (Tracking)
+    // Used to track the local map (Tracking) (1) (found)
     int SearchByProjection(Frame &F, const std::vector<MapPoint*> &vpMapPoints, const float th=3);
 
     // Project MapPoints tracked in last frame into the current frame and search matches.
-    // Used to track from previous frame (Tracking)
+    // Used to track from previous frame (Tracking) (2) (found)
+    // This is the code I am interested in modifying
     int SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono);
 
     // Project MapPoints seen in KeyFrame into the Frame and search matches.
-    // Used in relocalisation (Tracking)
+    // Used in relocalisation (Tracking) (3) (found)
     int SearchByProjection(Frame &CurrentFrame, KeyFrame* pKF, const std::set<MapPoint*> &sAlreadyFound, const float th, const int ORBdist);
 
     // Project MapPoints using a Similarity Transformation and search matches.
-    // Used in loop detection (Loop Closing)
+    // Used in loop detection (Loop Closing) (4) (found)
      int SearchByProjection(KeyFrame* pKF, cv::Mat Scw, const std::vector<MapPoint*> &vpPoints, std::vector<MapPoint*> &vpMatched, int th);
+
+
+
 
     // Search matches between MapPoints in a KeyFrame and ORB in a Frame.
     // Brute force constrained to ORB that belong to the same vocabulary node (at a certain level)

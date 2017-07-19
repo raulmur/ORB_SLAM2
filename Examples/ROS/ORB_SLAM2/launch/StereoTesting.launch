@@ -1,0 +1,5 @@
+<launch>
+
+<node name="Stereo" pkg="ORB_SLAM2" type="Stereo" args="$(find ORB_SLAM2)/Vocabulary/ORBvoc.txt $(find ORB_SLAM2)/Examples/Stereo/EuRoC.yaml true true"/>
+
+</launch>

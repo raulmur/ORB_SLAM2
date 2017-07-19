@@ -34,9 +34,16 @@
 #include"PnPsolver.h"
 
 #include<iostream>
-
 #include<mutex>
 
+#include <ros/ros.h>
+#include "std_msgs/Int8.h"
+#include <message_filters/subscriber.h>
+
+#include <tf2_ros/transform_listener.h>
+#include <geometry_msgs/TransformStamped.h>
+#include "tf/transform_datatypes.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
 using namespace std;
 
@@ -46,7 +53,8 @@ namespace ORB_SLAM2
 Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(false), mbVO(false), mpORBVocabulary(pVoc),
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
-    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0)
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0),
+    tfBuffer(), tfListener(tfBuffer)
 {
     // Load camera parameters from settings file
 
@@ -147,6 +155,13 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     }
 
 }
+/*
+void chatterCallback(const std_msgs::Int8::ConstPtr& msg) //my subscriber
+{
+  ROS_INFO("I heard: [%d]", msg->data);
+  //testing = msg; //not declared in this scope
+}
+*/
 
 void Tracking::SetLocalMapper(LocalMapping *pLocalMapper)
 {
@@ -264,19 +279,20 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
     return mCurrentFrame.mTcw.clone();
 }
 
+//This is where heavy lifting is done for tracking once features are obtained
 void Tracking::Track()
 {
-    if(mState==NO_IMAGES_YET)
+    if(mState == NO_IMAGES_YET)
     {
         mState = NOT_INITIALIZED;
     }
 
-    mLastProcessedState=mState;
+    mLastProcessedState = mState;
 
     // Get Map Mutex -> Map cannot be changed
     unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
 
-    if(mState==NOT_INITIALIZED)
+    if(mState == NOT_INITIALIZED) //if system is not initialized...
     {
         if(mSensor==System::STEREO || mSensor==System::RGBD)
             StereoInitialization();
@@ -288,9 +304,9 @@ void Tracking::Track()
         if(mState!=OK)
             return;
     }
-    else
+    
+    else // System is initialized. Track Frame.
     {
-        // System is initialized. Track Frame.
         bool bOK;
 
         // Initial camera pose estimation using motion model or relocalization (if tracking is lost)
@@ -306,7 +322,7 @@ void Tracking::Track()
 
                 if(mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
                 {
-                    bOK = TrackReferenceKeyFrame();
+                    bOK = TrackReferenceKeyFrame(); 
                 }
                 else
                 {
@@ -417,7 +433,7 @@ void Tracking::Track()
         // Update drawer
         mpFrameDrawer->Update(this);
 
-        // If tracking were good, check if we insert a keyframe
+        // If tracking was good, check if we insert a keyframe
         if(bOK)
         {
             // Update motion model
@@ -427,6 +443,14 @@ void Tracking::Track()
                 mLastFrame.GetRotationInverse().copyTo(LastTwc.rowRange(0,3).colRange(0,3));
                 mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
                 mVelocity = mCurrentFrame.mTcw*LastTwc;
+                
+                //calculatePVelocity(); //replacing mVelocity with pVelocity, using IMU information
+                //mVelocity = pVelocity;
+                    
+
+                //ros::NodeHandle nh;
+                //ros::Subscriber sub = nh.subscribe("testing_sub", 1000, chatterCallback);
+
             }
             else
                 mVelocity = cv::Mat();
@@ -473,7 +497,7 @@ void Tracking::Track()
         {
             if(mpMap->KeyFramesInMap()<=5)
             {
-                cout << "Track lost soon after initialisation, reseting..." << endl;
+                cout << "Track lost soon after initialisation, resetting..." << endl;
                 mpSystem->Reset();
                 return;
             }
@@ -691,7 +715,7 @@ void Tracking::CreateInitialMapMonocular()
 
     if(medianDepth<0 || pKFcur->TrackedMapPoints(1)<100)
     {
-        cout << "Wrong initialization, reseting..." << endl;
+        cout << "Wrong initialization, resetting..." << endl;
         Reset();
         return;
     }
@@ -926,6 +950,213 @@ bool Tracking::TrackWithMotionModel()
 
     return nmatchesMap>=10;
 }
+
+//tf2_geometry_msgs (put this in my CMakeLists and package xml)
+//tf2::fromMsg          00000000000000
+//This is the modified version of TrackWithMotionModel() that uses IMU information
+bool Tracking::TrackWithIMU()
+{
+    ORBmatcher matcher(0.9,true);
+
+    // Update last frame pose according to its reference keyframe
+    // Create "visual odometry" points if in Localization Mode
+    UpdateLastFrame();
+    
+    //////// getting IMU information //////
+    geometry_msgs::TransformStamped transformStamped;
+    try{
+      transformStamped = tfBuffer.lookupTransform("imu4", ros::Time(mCurrentFrame.mTimeStamp), "imu4",
+                                ros::Time(mLastFrame.mTimeStamp), "odom", ros::Duration(.01));
+    }
+    catch (tf2::TransformException &ex) {
+      ROS_WARN("%s",ex.what());
+      ros::Duration(1.0).sleep();
+      return false;
+    }
+    
+    //converting from geometry msg to tf2 msg
+    tf2::Quaternion Q;
+    tf2::fromMsg(transformStamped.transform.rotation, Q); //comment this back, this is what is causing trouble
+    
+    
+    tf2::Matrix3x3 RotMatrix(Q); //converting from Quaternion to Rotation Matrix
+    
+    pVelocity = mVelocity.clone();
+    
+    //converting from 3x3 TF to cv::Mat
+    pVelocity.at<float>(0,0) = RotMatrix.getColumn(0).getX(); //replacing Rotation Matrix in pVelocity with IMU Rot Matrix
+    pVelocity.at<float>(0,1) = RotMatrix.getColumn(0).getY();
+    pVelocity.at<float>(0,2) = RotMatrix.getColumn(0).getZ();
+    pVelocity.at<float>(1,0) = RotMatrix.getColumn(1).getX();
+    pVelocity.at<float>(1,1) = RotMatrix.getColumn(1).getY();
+    pVelocity.at<float>(1,2) = RotMatrix.getColumn(1).getZ();
+    pVelocity.at<float>(2,0) = RotMatrix.getColumn(2).getX();
+    pVelocity.at<float>(2,1) = RotMatrix.getColumn(2).getY();
+    pVelocity.at<float>(2,2) = RotMatrix.getColumn(2).getZ();
+    
+    ///////             
+
+    mCurrentFrame.SetPose(pVelocity*mLastFrame.mTcw); //setting pose using IMU information
+
+    fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
+
+    // Project points seen in previous frame
+    int th;
+    if(mSensor!=System::STEREO)
+        th=15;
+    else
+        th=7;
+    int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
+
+    // If few matches, uses a wider window search
+    if(nmatches<20)
+    {
+        fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
+        nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR);
+    }
+
+    if(nmatches<20)
+        return false;
+
+    // Optimize frame pose with all matches
+    Optimizer::PoseOptimization(&mCurrentFrame);
+
+    // Discard outliers
+    int nmatchesMap = 0;
+    for(int i =0; i<mCurrentFrame.N; i++)
+    {
+        if(mCurrentFrame.mvpMapPoints[i])
+        {
+            if(mCurrentFrame.mvbOutlier[i])
+            {
+                MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
+
+                mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
+                mCurrentFrame.mvbOutlier[i]=false;
+                pMP->mbTrackInView = false;
+                pMP->mnLastFrameSeen = mCurrentFrame.mnId;
+                nmatches--;
+            }
+            else if(mCurrentFrame.mvpMapPoints[i]->Observations()>0)
+                nmatchesMap++;
+        }
+    }    
+
+    if(mbOnlyTracking)
+    {
+        mbVO = nmatchesMap<10;
+        return nmatches>20;
+    }
+
+    return nmatchesMap>=10;
+}
+
+
+//This is the modified version of TrackWithMotionModel() that uses IMU information
+bool Tracking::calculatePVelocity()
+{   
+
+      if (!((mVelocity.cols == 4) && (mVelocity.rows == 4)))
+    { ROS_INFO("mVelocity not initialized"); return false; }
+    
+    pVelocity = mVelocity.clone();
+    
+    //cv::Mat empty;
+    
+    ROS_INFO("Calculating pVelocity");
+    //////// getting IMU information //////
+    geometry_msgs::TransformStamped transformStamped;
+    try{
+      transformStamped = tfBuffer.lookupTransform("imu4", ros::Time(mCurrentFrame.mTimeStamp), "imu4",
+                                ros::Time(mLastFrame.mTimeStamp), "odom", ros::Duration(.01));
+    }
+    catch (tf2::TransformException &ex) {
+      ROS_WARN("%s",ex.what());
+      ROS_INFO("Transform Exception!");
+      ros::Duration(1.0).sleep();
+      //return false; //this could be an issue
+      return false;
+    }
+    
+    //converting from geometry quaternion --> tf2 quaternion
+    tf2::Quaternion Q;
+    tf2::fromMsg(transformStamped.transform.rotation, Q);
+    
+    
+    tf2::Matrix3x3 RotMatrix(Q); //converting from tf2 Quaternion --> tf2 Rotation Matrix
+    
+    //const double &var1 = RotMatrix.getRow(0).getX(); //getting info
+    
+    //converting from 3x3 TF to cv::Mat
+    
+    
+    pVelocity.at<float>(0,0) = RotMatrix.getRow(0).getX(); //replacing Rotation Matrix in pVelocity with IMU Rot Matrix
+    pVelocity.at<float>(0,1) = RotMatrix.getRow(0).getY();
+    pVelocity.at<float>(0,2) = RotMatrix.getRow(0).getZ();
+    pVelocity.at<float>(1,0) = RotMatrix.getRow(1).getX();
+    pVelocity.at<float>(1,1) = RotMatrix.getRow(1).getY();
+    pVelocity.at<float>(1,2) = RotMatrix.getRow(1).getZ();
+    pVelocity.at<float>(2,0) = RotMatrix.getRow(2).getX();
+    pVelocity.at<float>(2,1) = RotMatrix.getRow(2).getY();
+    pVelocity.at<float>(2,2) = RotMatrix.getRow(2).getZ();
+    
+    uchar depth = pVelocity.type() & CV_MAT_DEPTH_MASK;
+    
+    cout << "mVelocity" << endl;
+    cout << mVelocity << endl;
+    
+    cout << "pVelocity" << endl;
+    cout << pVelocity << endl;
+    
+    cout << "Depth: " << depth << endl;
+    
+    /*
+    double x = 0;
+    pVelocity.at<double>(0,0) = x; //replacing Rotation Matrix in pVelocity with dummy constants
+    pVelocity.at<double>(0,1) = x;
+    pVelocity.at<double>(0,2) = x;
+    */
+    
+    /*
+    pVelocity.at<double>(1,0) = x;
+    pVelocity.at<double>(1,1) = x;
+    pVelocity.at<double>(1,2) = x;
+    pVelocity.at<double>(2,0) = x;
+    pVelocity.at<double>(2,1) = x;
+    pVelocity.at<double>(2,2) = x;
+    */
+    
+    /*
+    pVelocity.at<double>(3,0) = x; //sets translation matrix to zero
+    pVelocity.at<double>(3,1) = x;
+    pVelocity.at<double>(3,2) = x;
+    */
+    
+    //ROS_INFO("pVelocity x translation is: [%d]", );
+    //ROS_INFO("pVelocity x translation is: [%d]", );
+    //ROS_INFO("pVelocity x translation is: [%d]", );
+    
+    /*
+    //ROS_INFO("mVelocity not initialized [%d]", ); return mVelocity;
+    pVelocity.at<double>(0,3) = 0;
+    pVelocity.at<double>(1,3) = 0;
+    pVelocity.at<double>(2,3) = 0;
+    pVelocity.at<double>(3,3) = 0;
+    
+    
+    */
+    //return pVelocity;
+    ///////   
+    
+    return true;          
+
+}
+
+cv::Mat Tracking::getMVelocity()
+{
+    return mVelocity.clone();
+}
+
 
 bool Tracking::TrackLocalMap()
 {
@@ -1501,10 +1732,10 @@ bool Tracking::Relocalization()
 
 }
 
-void Tracking::Reset()
+void Tracking::Reset() // original hard reset
 {
 
-    cout << "System Reseting" << endl;
+    cout << "System Hard Resetting" << endl;
     if(mpViewer)
     {
         mpViewer->RequestStop();
@@ -1513,17 +1744,17 @@ void Tracking::Reset()
     }
 
     // Reset Local Mapping
-    cout << "Reseting Local Mapper...";
+    cout << "Resetting Local Mapper...";
     mpLocalMapper->RequestReset();
     cout << " done" << endl;
 
     // Reset Loop Closing
-    cout << "Reseting Loop Closing...";
+    cout << "Resetting Loop Closing...";
     mpLoopClosing->RequestReset();
     cout << " done" << endl;
 
     // Clear BoW Database
-    cout << "Reseting Database...";
+    cout << "Resetting Database...";
     mpKeyFrameDB->clear();
     cout << " done" << endl;
 
@@ -1548,6 +1779,7 @@ void Tracking::Reset()
     if(mpViewer)
         mpViewer->Release();
 }
+
 
 void Tracking::ChangeCalibration(const string &strSettingPath)
 {
@@ -1590,3 +1822,5 @@ void Tracking::InformOnlyTracking(const bool &flag)
 
 
 } //namespace ORB_SLAM
+
+

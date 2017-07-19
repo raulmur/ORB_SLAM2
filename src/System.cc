@@ -30,9 +30,11 @@ namespace ORB_SLAM2
 {
 
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
-               const bool bUseViewer):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
+               const bool bUseViewer, bool do_multi):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
         mbDeactivateLocalizationMode(false)
 {
+    //mbSoftReset = false; //this should be removed at some point it is bad form
+
     // Output welcome message
     cout << endl <<
     "ORB-SLAM2 Copyright (C) 2014-2016 Raul Mur-Artal, University of Zaragoza." << endl <<
@@ -155,6 +157,17 @@ cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const
     }
     }
 
+    // Check soft reset
+    //{
+    //unique_lock<mutex> lock(mMutexSoftReset);
+    //if(mbSoftReset)
+    //{
+    //    mpTracker->SoftReset();
+    //    mbSoftReset = false;
+    //}
+    //}
+
+
     cv::Mat Tcw = mpTracker->GrabImageStereo(imLeft,imRight,timestamp);
 
     unique_lock<mutex> lock2(mMutexState);
@@ -205,6 +218,16 @@ cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const doub
         mbReset = false;
     }
     }
+
+    // Check soft reset
+    //{
+    //unique_lock<mutex> lock(mMutexSoftReset);
+    //if(mbSoftReset)
+    //{
+    //    mpTracker->SoftReset();
+    //    mbSoftReset = false;
+    //}
+    //}
 
     cv::Mat Tcw = mpTracker->GrabImageRGBD(im,depthmap,timestamp);
 
@@ -257,6 +280,16 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
     }
     }
 
+    // Check soft reset
+    //{
+    //unique_lock<mutex> lock(mMutexSoftReset);
+    //if(mbSoftReset)
+    //{
+    //    mpTracker->SoftReset();
+    //    mbSoftReset = false;
+    //}
+    //}
+
     cv::Mat Tcw = mpTracker->GrabImageMonocular(im,timestamp);
 
     unique_lock<mutex> lock2(mMutexState);
@@ -297,6 +330,12 @@ void System::Reset()
     unique_lock<mutex> lock(mMutexReset);
     mbReset = true;
 }
+
+//void System::SoftReset() //my soft reset
+//{
+//    unique_lock<mutex> lock(mMutexSoftReset);
+//    mbSoftReset = true;
+//}
 
 void System::Shutdown()
 {

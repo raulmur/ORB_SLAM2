@@ -1,14 +1,32 @@
 cmake_minimum_required(VERSION 2.8)
 project(ORB_SLAM2)
 
+
+find_package(catkin REQUIRED COMPONENTS
+	rospy
+	roscpp
+	sensor_msgs
+	cv_bridge
+    image_transport
+    tf
+    tf2
+    tf2_geometry_msgs
+    tf2_ros
+    geometry_msgs
+	)
+
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release)
 ENDIF()
 
+IF(CMAKE_BUILD_TYPE STREQUAL "Release")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3 -march=native")
+ENDIF()
+
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3 -march=native")
+
 
 # Check C++11 or C++0x support
 include(CheckCXXCompilerFlag)
@@ -28,25 +46,27 @@ endif()
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
-find_package(OpenCV 3.0 QUIET)
-if(NOT OpenCV_FOUND)
-   find_package(OpenCV 2.4.3 QUIET)
-   if(NOT OpenCV_FOUND)
-      message(FATAL_ERROR "OpenCV > 2.4.3 not found.")
-   endif()
-endif()
+find_package(OpenCV)
 
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
+
+catkin_package(
+#  INCLUDE_DIRS include
+#  LIBRARIES rtab
+#  CATKIN_DEPENDS roscpp rospy std_msgs
+#  DEPENDS system_lib
+)
+
 
 include_directories(
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
+${PROJECT_SOURCE_DIR}/Examples/ROS/ORB_SLAM2/src/AR
+${catkin_INCLUDE_DIRS}
 )
-
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 
 add_library(${PROJECT_NAME} SHARED
 src/System.cc
@@ -70,23 +90,28 @@ src/Initializer.cc
 src/Viewer.cc
 )
 
-target_link_libraries(${PROJECT_NAME}
-${OpenCV_LIBS}
+set(LIBS 
+${OpenCV_LIBS} 
 ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+${catkin_LIBRARIES}
+)
+
+target_link_libraries(${PROJECT_NAME}
+${LIBS}
 )
 
 # Build examples
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
 
 add_executable(rgbd_tum
 Examples/RGB-D/rgbd_tum.cc)
 target_link_libraries(rgbd_tum ${PROJECT_NAME})
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Stereo)
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Stereo)
 
 add_executable(stereo_kitti
 Examples/Stereo/stereo_kitti.cc)
@@ -97,7 +122,7 @@ Examples/Stereo/stereo_euroc.cc)
 target_link_libraries(stereo_euroc ${PROJECT_NAME})
 
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Monocular)
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Monocular)
 
 add_executable(mono_tum
 Examples/Monocular/mono_tum.cc)
@@ -111,3 +136,45 @@ add_executable(mono_euroc
 Examples/Monocular/mono_euroc.cc)
 target_link_libraries(mono_euroc ${PROJECT_NAME})
 
+
+
+# Node for monocular camera
+add_executable(Mono
+Examples/ROS/ORB_SLAM2/src/ros_mono.cc
+)
+
+target_link_libraries(Mono
+${LIBS}
+${PROJECT_NAME}
+)
+
+# Node for monocular camera (Augmented Reality Demo)
+#add_executable(MonoAR
+#src/AR/ros_mono_ar.cc
+#src/AR/ViewerAR.h
+#src/AR/ViewerAR.cc
+#)
+
+#target_link_libraries(MonoAR
+#${LIBS}
+#)
+
+# Node for stereo camera
+add_executable(Stereo
+Examples/ROS/ORB_SLAM2/src/ros_stereo.cc
+)
+
+target_link_libraries(Stereo
+${LIBS}
+${PROJECT_NAME}
+)
+
+# Node for RGB-D camera
+add_executable(RGBD
+Examples/ROS/ORB_SLAM2/src/ros_rgbd.cc
+)
+
+target_link_libraries(RGBD
+${LIBS}
+${PROJECT_NAME}
+)

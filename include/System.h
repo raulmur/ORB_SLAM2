@@ -59,7 +59,7 @@ public:
 public:
 
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true);
+    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true, bool do_multi = false);
 
     // Proccess the given stereo frame. Images must be synchronized and rectified.
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
@@ -88,6 +88,9 @@ public:
 
     // Reset the system (clear map)
     void Reset();
+
+    // Soft Reset the system (don't clear map)
+    //void SoftReset();
 
     // All threads will be requested to finish.
     // It waits until all threads have finished.
@@ -122,6 +125,11 @@ public:
     std::vector<MapPoint*> GetTrackedMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
+    // Tracker. It receives a frame and computes the associated camera pose.
+    // It also decides when to insert a new keyframe, create some new MapPoints and
+    // performs relocalization if tracking fails.
+    Tracking* mpTracker;
+
 private:
 
     // Input sensor
@@ -135,11 +143,6 @@ private:
 
     // Map structure that stores the pointers to all KeyFrames and MapPoints.
     Map* mpMap;
-
-    // Tracker. It receives a frame and computes the associated camera pose.
-    // It also decides when to insert a new keyframe, create some new MapPoints and
-    // performs relocalization if tracking fails.
-    Tracking* mpTracker;
 
     // Local Mapper. It manages the local map and performs local bundle adjustment.
     LocalMapping* mpLocalMapper;
@@ -163,6 +166,10 @@ private:
     // Reset flag
     std::mutex mMutexReset;
     bool mbReset;
+
+    // Soft Reset flag
+    //std::mutex mMutexSoftReset;
+    //bool mbSoftReset = false;
 
     // Change mode flags
     std::mutex mMutexMode;
