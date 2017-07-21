@@ -75,7 +75,11 @@ void Viewer::Run()
     pangolin::Var<bool> menuShowPoints("menu.Show Points",true,true);
     pangolin::Var<bool> menuShowKeyFrames("menu.Show KeyFrames",true,true);
     pangolin::Var<bool> menuShowGraph("menu.Show Graph",true,true);
+#ifdef FUNC_MAP_SAVE_LOAD
     pangolin::Var<bool> menuLocalizationMode("menu.Localization Mode",mbReuseMap,true);
+#else
+    pangolin::Var<bool> menuLocalizationMode("menu.Localization Mode",false,true);
+#endif
     pangolin::Var<bool> menuReset("menu.Reset",false,false);
 
     // Define Camera Render Object (for view / scene browsing)

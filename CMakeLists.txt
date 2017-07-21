@@ -77,7 +77,10 @@ ${Pangolin_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
 )
-if (USE_MAP_SAVE_LOAD)
+if (NOT DEFINED USE_MAP_SAVE_LOAD)
+    set(USE_MAP_SAVE_LOAD OFF)
+endif()
+if(USE_MAP_SAVE_LOAD)
     message(STATUS "Compile With map save/load function")
     find_library(BOOST_SERIALIZATION boost_serialization)
     if (NOT BOOST_SERIALIZATION)

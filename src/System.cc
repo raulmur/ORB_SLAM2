@@ -361,11 +361,12 @@ void System::Shutdown()
     {
         std::this_thread::sleep_for(std::chrono::microseconds(5000));
     }
-
     if(mpViewer)
         pangolin::BindToContext("ORB-SLAM2: Map Viewer");
+#ifdef FUNC_MAP_SAVE_LOAD
     if (is_save_map)
         SaveMap(mapfile);
+#endif
 }
 
 void System::SaveTrajectoryTUM(const string &filename)
