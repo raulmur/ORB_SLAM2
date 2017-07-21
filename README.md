@@ -256,13 +256,15 @@ PS: binary format is loaded faster and text format is more human-readable.
 
 #### Enable:
 
-You can enable this feature by define a new macro `USE_MAP_SAVE_LOAD` when running cmake.
+You can enable this feature by defining a new variable `USE_MAP_SAVE_LOAD` when running cmake.
 
-For example, you can change `cmake .. -DCMAKE_BUILD_TYPE=Release` to `cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_MAP_SAVE_LOAD=1`  after `echo "Configuring and building ORB_SLAM2 ..."` in `build.sh`.
+For example, you can change `cmake .. -DCMAKE_BUILD_TYPE=Release` to `cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_MAP_SAVE_LOAD=1` after `echo "Configuring and building ORB_SLAM2 ..."` in `build.sh`.
+
+But `CMakeCache.txt` should be deleted if you want to undefine this variable.
 
 #### Usage:
 
-This feature is integrated with `class System`. The path of mapfile is set in yaml setting file:  `Map.mapfile: map.bin`. See the last few line of `Example/settings_with_map.yaml`.
+This feature is integrated with `class System`. The path of mapfile can be set by adding `Map.mapfile: map.bin` to ORB_SLAM2's settings file. See the last few line of `Example/settings_with_map.yaml`.
 
 To save a map, you need construct `ORB_SLAM2::System` with the last parameter be `true`. Then the `System` will save map to mapfile specified in setting file when `ShutDown`.
 
