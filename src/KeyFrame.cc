@@ -719,17 +719,26 @@ void KeyFrame::serialize(Archive &ar, const unsigned int version)
     ar & const_cast<cv::Mat &>(mK);
 
     // mutex needed vars, but don't lock mutex in the save/load procedure
-    ar & Tcw & Twc & Ow & Cw;
-    ar & mvpMapPoints; // hope boost deal with the pointer graph well
+    {
+        unique_lock<mutex> lock_pose(mMutexPose);
+        ar & Tcw & Twc & Ow & Cw;
+    }
+    {
+        unique_lock<mutex> lock_feature(mMutexFeatures);
+        ar & mvpMapPoints; // hope boost deal with the pointer graph well
+    }
     // BoW
     ar & mpKeyFrameDB;
     // mpORBvocabulary restore elsewhere(see SetORBvocab)
-    // Grid related
-    ar & mGrid & mConnectedKeyFrameWeights & mvpOrderedConnectedKeyFrames & mvOrderedWeights;
-    // Spanning Tree and Loop Edges
-    ar & mbFirstConnection & mpParent & mspChildrens & mspLoopEdges;
-    // Bad flags
-    ar & mbNotErase & mbToBeErased & mbBad & mHalfBaseline;
+    {
+        // Grid related
+        unique_lock<mutex> lock_connection(mMutexConnections);
+        ar & mGrid & mConnectedKeyFrameWeights & mvpOrderedConnectedKeyFrames & mvOrderedWeights;
+        // Spanning Tree and Loop Edges
+        ar & mbFirstConnection & mpParent & mspChildrens & mspLoopEdges;
+        // Bad flags
+        ar & mbNotErase & mbToBeErased & mbBad & mHalfBaseline;
+    }
     // Map Points
     ar & mpMap;
     // don't save mutex
