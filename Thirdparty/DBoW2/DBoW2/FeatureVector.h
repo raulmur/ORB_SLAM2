@@ -15,10 +15,12 @@
 #include <vector>
 #include <iostream>
 
+#include "../DUtils/config.h"
+
 namespace DBoW2 {
 
 /// Vector of nodes with indexes of local features
-class FeatureVector: 
+class EXPORT FeatureVector: 
   public std::map<NodeId, std::vector<unsigned int> >
 {
 public:

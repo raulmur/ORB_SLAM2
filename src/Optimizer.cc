@@ -989,6 +989,9 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
     unique_lock<mutex> lock(pMap->mMutexMapUpdate);
 
     // SE3 Pose Recovering. Sim3:[sR t;0 1] -> SE3:[R t/s;0 1]
+    // LETS BEGIN HERE
+    int largestChangedKfId = 0;
+    // END
     for(size_t i=0;i<vpKFs.size();i++)
     {
         KeyFrame* pKFi = vpKFs[i];
@@ -1007,7 +1010,16 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
         cv::Mat Tiw = Converter::toCvSE3(eigR,eigt);
 
         pKFi->SetPose(Tiw);
+        // LETS BEGIN HERE
+        if(pKFi->mnId > largestChangedKfId)
+        {
+            largestChangedKfId = pKFi->mnId;
+        }
+        // END
     }
+    // LETS BEGIN HERE
+    pMap->newestChangedEssentialId = largestChangedKfId;
+    // END
 
     // Correct points. Transform to "non-optimized" reference keyframe pose and transform back with optimized pose
     for(size_t i=0, iend=vpMPs.size(); i<iend; i++)

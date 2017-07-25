@@ -14,6 +14,8 @@
 #include <map>
 #include <vector>
 
+#include "../DUtils/config.h"
+
 namespace DBoW2 {
 
 /// Id of words
@@ -26,23 +28,23 @@ typedef double WordValue;
 typedef unsigned int NodeId;
 
 /// L-norms for normalization
-enum LNorm
+EXPORT typedef enum LNorm
 {
   L1,
   L2
-};
+} LNorm;
 
 /// Weighting type
-enum WeightingType
+EXPORT typedef enum WeightingType
 {
   TF_IDF,
   TF,
   IDF,
   BINARY
-};
+} WeightingType;
 
 /// Scoring type
-enum ScoringType
+EXPORT typedef enum ScoringType
 {
   L1_NORM,
   L2_NORM,
@@ -50,10 +52,11 @@ enum ScoringType
   KL,
   BHATTACHARYYA,
   DOT_PRODUCT,
-};
+} ScoringType;
 
 /// Vector of words to represent images
-class BowVector: 
+/// stl的map结构，key为wordId，value为tfidf中的tf
+class EXPORT BowVector: 
 	public std::map<WordId, WordValue>
 {
 public:

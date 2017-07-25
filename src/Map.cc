@@ -27,6 +27,10 @@ namespace ORB_SLAM2
 
 Map::Map():mnMaxKFid(0),mnBigChangeIdx(0)
 {
+    // LETS BEGIN
+    newestChangedKeyFrameId = 0;
+    newestChangedEssentialId = 0;
+    // END
 }
 
 void Map::AddKeyFrame(KeyFrame *pKF)
@@ -129,5 +133,60 @@ void Map::clear()
     mvpReferenceMapPoints.clear();
     mvpKeyFrameOrigins.clear();
 }
+
+// LETS BEGIN HERE
+std::vector<KeyFrame*> Map::GetKeyFramesIdNoLesserThan(int minId)
+{
+    unique_lock<mutex> lock(mMutexMap);
+    std::vector<KeyFrame*> vKfs;
+    for(auto crit = mspKeyFrames.crbegin(); crit != mspKeyFrames.crend(); crit++)
+    {
+        KeyFrame* kf = *crit;
+        if((int)(kf->mnId) >= minId)
+        {
+            vKfs.push_back(kf);
+        } else
+        {
+            break;
+        }
+    }
+    std::sort(vKfs.begin(), vKfs.end(), KeyFrame::lId);
+    return vKfs;
+}
+
+KeyFrame* Map::GetKeyFrameById(int id)
+{
+    unique_lock<mutex> lock(mMutexMap);
+    for(auto crit = mspKeyFrames.crbegin(); crit != mspKeyFrames.crend(); crit++)
+    {
+        KeyFrame* kf = *crit;
+        if((int)(kf->mnId) == id)
+        {
+            return kf;
+        }
+    }
+    return static_cast<KeyFrame*>(nullptr);
+}
+
+KeyFrame* Map::GetLastestKeyFrameIdLessThan(long unsigned int id)
+{
+    unique_lock<mutex> lock(mMutexMap);
+    for(auto crit = mspKeyFrames.crbegin(); crit != mspKeyFrames.crend(); crit++)
+    {
+        KeyFrame* kf = *crit;
+        if(kf->mnId < id)
+        {
+            return kf;
+        }
+    }
+    return static_cast<KeyFrame*>(nullptr);
+}
+
+bool Map::KfIdLess::operator ()(const KeyFrame* kf1, const KeyFrame* kf2) const
+{
+    return kf1->mnId < kf2->mnId;
+}
+
+// END
 
 } //namespace ORB_SLAM

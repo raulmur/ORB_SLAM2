@@ -572,6 +572,21 @@ void LoopClosing::CorrectLoop()
     mpMatchedKF->AddLoopEdge(mpCurrentKF);
     mpCurrentKF->AddLoopEdge(mpMatchedKF);
 
+
+//    // LETS BEGIN HERE
+//    std::vector<KeyFrame*> vKfsToAdjust = mpMap->GetKeyFramesIdNoLesserThan(mpMap->newestChangedEssentialId);
+//    for(int i = 1, iend = vKfsToAdjust.size(); i < iend; i++)
+//    {
+//        KeyFrame* kfi = vKfsToAdjust[i-1];
+//        KeyFrame* kfj = vKfsToAdjust[i];
+//        kfj->SetPoseByOdomTo(kfi);
+//    }
+//    if(!std::count(vKfsToAdjust.begin(), vKfsToAdjust.end(), mpCurrentKF))
+//    {
+//        mpCurrentKF->SetPoseByOdomTo(vKfsToAdjust.back());
+//    }
+//    // END
+
     // Launch a new thread to perform Global Bundle Adjustment
     mbRunningGBA = true;
     mbFinishedGBA = false;
@@ -676,6 +691,7 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
             // Correct keyframes starting at map first keyframe
             list<KeyFrame*> lpKFtoCheck(mpMap->mvpKeyFrameOrigins.begin(),mpMap->mvpKeyFrameOrigins.end());
 
+            int largestChangedId = 0;
             while(!lpKFtoCheck.empty())
             {
                 KeyFrame* pKF = lpKFtoCheck.front();
@@ -697,7 +713,10 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
                 pKF->mTcwBefGBA = pKF->GetPose();
                 pKF->SetPose(pKF->mTcwGBA);
                 lpKFtoCheck.pop_front();
+                if((int)(pKF->mnId) > largestChangedId)
+                    largestChangedId = pKF->mnId;
             }
+            mpMap->newestChangedKeyFrameId = largestChangedId;
 
             // Correct MapPoints
             const vector<MapPoint*> vpMPs = mpMap->GetAllMapPoints();

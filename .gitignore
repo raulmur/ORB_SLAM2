@@ -1,4 +1,5 @@
 CMakeLists.txt.user
+Examples/OdomMono/odom_mono_nv
 Examples/Monocular/mono_euroc
 Examples/Monocular/mono_kitti
 Examples/Monocular/mono_tum
@@ -21,4 +22,4 @@ Vocabulary/ORBvoc.txt
 build/
 *~
 lib/
-
+Debug/

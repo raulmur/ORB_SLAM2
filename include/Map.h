@@ -26,8 +26,8 @@
 #include <set>
 
 #include <mutex>
-
-
+#include <atomic>
+#include <vector>
 
 namespace ORB_SLAM2
 {
@@ -59,16 +59,33 @@ public:
 
     void clear();
 
-    vector<KeyFrame*> mvpKeyFrameOrigins;
+    std::vector<KeyFrame*> mvpKeyFrameOrigins;
 
     std::mutex mMutexMapUpdate;
 
     // This avoid that two points are created simultaneously in separate threads (id conflict)
     std::mutex mMutexPointCreation;
 
+    // LETS BEGIN
+    std::atomic_int newestChangedKeyFrameId;
+    std::atomic_int newestChangedEssentialId;
+    std::vector<KeyFrame*> GetKeyFramesIdNoLesserThan(int minId);
+    KeyFrame* GetLastestKeyFrameIdLessThan(unsigned long id);
+    KeyFrame* GetKeyFrameById(int id);
+    // END
+
 protected:
+
+    // LETS BEGIN HERE
+    struct KfIdLess
+    {
+        bool operator() (const KeyFrame* kf1, const KeyFrame* kf2) const;
+
+    };
+    // END
+
     std::set<MapPoint*> mspMapPoints;
-    std::set<KeyFrame*> mspKeyFrames;
+    std::set<KeyFrame*, KfIdLess> mspKeyFrames;
 
     std::vector<MapPoint*> mvpReferenceMapPoints;
 

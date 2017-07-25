@@ -58,9 +58,9 @@ public:
              KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor);
 
     // Preprocess the input and call Track(). Extract features and performs stereo matching.
-    cv::Mat GrabImageStereo(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp);
-    cv::Mat GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const double &timestamp);
     cv::Mat GrabImageMonocular(const cv::Mat &im, const double &timestamp);
+
+    cv::Mat GrabImageOdomMono(const cv::Mat &im, const Se2 &odo, const double timestamp);
 
     void SetLocalMapper(LocalMapping* pLocalMapper);
     void SetLoopClosing(LoopClosing* pLoopClosing);
@@ -120,9 +120,6 @@ protected:
     // Main tracking function. It is independent of the input sensor.
     void Track();
 
-    // Map initialization for stereo and RGB-D
-    void StereoInitialization();
-
     // Map initialization for monocular
     void MonocularInitialization();
     void CreateInitialMapMonocular();
@@ -131,6 +128,12 @@ protected:
     bool TrackReferenceKeyFrame();
     void UpdateLastFrame();
     bool TrackWithMotionModel();
+
+    // LETS BEGIN HERE
+    bool TrackWithMotionModelOdom();
+    bool TrackReferenceKeyFrameOdom();
+    int lastNewestChangedKeyFrameId = 0;
+    // END
 
     bool Relocalization();
 
@@ -181,6 +184,10 @@ protected:
     //Map
     Map* mpMap;
 
+    // Camera Extrinsics
+    cv::Mat mTbc;
+    cv::Mat mTcb;
+
     //Calibration matrix
     cv::Mat mK;
     cv::Mat mDistCoef;
@@ -209,6 +216,11 @@ protected:
 
     //Motion Model
     cv::Mat mVelocity;
+
+    // LETS BEGIN HERE
+    cv::Mat mVelocityOdom;
+
+    // END
 
     //Color order (true RGB, false BGR, ignored if grayscale)
     bool mbRGB;

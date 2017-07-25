@@ -43,6 +43,10 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
     mpORBvocabulary(F.mpORBvocabulary), mbFirstConnection(true), mpParent(NULL), mbNotErase(false),
     mbToBeErased(false), mbBad(false), mHalfBaseline(F.mb/2), mpMap(pMap)
 {
+    odom = F.odom;
+    F.Tbc.copyTo(Tbc);
+
+
     mnId=nNextId++;
 
     mGrid.resize(mnGridCols);
@@ -82,6 +86,15 @@ void KeyFrame::SetPose(const cv::Mat &Tcw_)
     cv::Mat center = (cv::Mat_<float>(4,1) << mHalfBaseline, 0 , 0, 1);
     Cw = Twc*center;
 }
+
+// LETS BEGIN HERE
+void KeyFrame::SetPoseByOdomTo(KeyFrame *refKF)
+{
+    Se2 dOdom = refKF->odom - odom;
+    cv::Mat dCvOdom = Tbc.inv() * dOdom.toCvSE3() * Tbc;
+    SetPose(dCvOdom * refKF->GetPose());
+}
+// END
 
 cv::Mat KeyFrame::GetPose()
 {
@@ -321,7 +334,22 @@ void KeyFrame::UpdateConnections()
 
     // This should not happen
     if(KFcounter.empty())
-        return;
+    {
+        // LETS BEGIN HERE
+        //return;
+        // END
+    }
+
+    // LETS BEGIN HERE
+
+    mpLastKF = mpMap->GetLastestKeyFrameIdLessThan(mnId);
+
+    if(mnId != 0 && !KFcounter.count(mpLastKF))
+    {
+        KFcounter[mpLastKF] = 0;
+    }
+    // END
+
 
     //If the counter is greater than threshold add connection
     //In case no keyframe counter is over threshold add the one with maximum counter
@@ -338,18 +366,28 @@ void KeyFrame::UpdateConnections()
             nmax=mit->second;
             pKFmax=mit->first;
         }
-        if(mit->second>=th)
+        // LETS BEGIN HERE
+        if(mit->second>=th || mit->first->mnId == mpLastKF->mnId)
         {
             vPairs.push_back(make_pair(mit->second,mit->first));
             (mit->first)->AddConnection(this,mit->second);
         }
+        // END
     }
 
+    // LETS BEGIN HERE
+    // This should not happen.
     if(vPairs.empty())
     {
-        vPairs.push_back(make_pair(nmax,pKFmax));
-        pKFmax->AddConnection(this,nmax);
+        // LETS BEGIN HERE
+        if(pKFmax)
+        {
+            vPairs.push_back(make_pair(nmax,pKFmax));
+            pKFmax->AddConnection(this,nmax);
+        }
+        // END
     }
+    // END
 
     sort(vPairs.begin(),vPairs.end());
     list<KeyFrame*> lKFs;
@@ -464,7 +502,20 @@ void KeyFrame::SetBadFlag()
     }
 
     for(map<KeyFrame*,int>::iterator mit = mConnectedKeyFrameWeights.begin(), mend=mConnectedKeyFrameWeights.end(); mit!=mend; mit++)
-        mit->first->EraseConnection(this);
+    {
+        //  LETS BEGIN HERE
+        KeyFrame* other = mit->first;
+        other->EraseConnection(this);
+        if(other->mnId == 0)
+            continue;
+        if(other->mpLastKF->mnId == mnId)
+        {
+            other->mpLastKF = mpLastKF;
+            other->AddConnection(mpLastKF, other->GetWeight(mpLastKF));
+            mpLastKF->AddConnection(other, mpLastKF->GetWeight(other));
+        }
+        // END
+    }
 
     for(size_t i=0; i<mvpMapPoints.size(); i++)
         if(mvpMapPoints[i])
