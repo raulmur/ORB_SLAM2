@@ -21,7 +21,7 @@
 #include <boost/serialization/split_free.hpp>
 #include <boost/serialization/base_object.hpp>
 // base object needed by DBoW2::BowVector and DBoW2::FeatureVector
-#include <opencv2/core.hpp>
+#include <opencv2/core/core.hpp>
 
 #include "Thirdparty/DBoW2/DBoW2/BowVector.h"
 #include "Thirdparty/DBoW2/DBoW2/FeatureVector.h"
