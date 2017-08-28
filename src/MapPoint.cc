@@ -416,7 +416,6 @@ int MapPoint::PredictScale(const float &currentDist, Frame* pF)
     return nScale;
 }
 
-#ifdef FUNC_MAP_SAVE_LOAD
 MapPoint::MapPoint():
     nObs(0), mnTrackReferenceForFrame(0),
     mnLastFrameSeen(0), mnBALocalForKF(0), mnFuseCandidateForKF(0), mnLoopPointForKF(0), mnCorrectedByKF(0),
@@ -454,6 +453,6 @@ void MapPoint::serialize(Archive &ar, const unsigned int version)
 }
 template void MapPoint::serialize(boost::archive::binary_iarchive&, const unsigned int);
 template void MapPoint::serialize(boost::archive::binary_oarchive&, const unsigned int);
-#endif
+
 
 } //namespace ORB_SLAM

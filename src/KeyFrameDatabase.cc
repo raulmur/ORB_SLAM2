@@ -308,7 +308,6 @@ vector<KeyFrame*> KeyFrameDatabase::DetectRelocalizationCandidates(Frame *F)
     return vpRelocCandidates;
 }
 
-#ifdef FUNC_MAP_SAVE_LOAD
 template<class Archive>
 void KeyFrameDatabase::serialize(Archive &ar, const unsigned int version)
 {
@@ -319,5 +318,5 @@ void KeyFrameDatabase::serialize(Archive &ar, const unsigned int version)
 }
 template void KeyFrameDatabase::serialize(boost::archive::binary_iarchive&, const unsigned int);
 template void KeyFrameDatabase::serialize(boost::archive::binary_oarchive&, const unsigned int);
-#endif
+
 } //namespace ORB_SLAM

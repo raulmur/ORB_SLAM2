@@ -661,7 +661,7 @@ float KeyFrame::ComputeSceneMedianDepth(const int q)
 
     return vDepths[(vDepths.size()-1)/q];
 }
-#ifdef FUNC_MAP_SAVE_LOAD
+
 // Default serializing Constructor
 KeyFrame::KeyFrame():
     mnFrameId(0),  mTimeStamp(0.0), mnGridCols(FRAME_GRID_COLS), mnGridRows(FRAME_GRID_ROWS),
@@ -745,5 +745,5 @@ void KeyFrame::serialize(Archive &ar, const unsigned int version)
 }
 template void KeyFrame::serialize(boost::archive::binary_iarchive&, const unsigned int);
 template void KeyFrame::serialize(boost::archive::binary_oarchive&, const unsigned int);
-#endif
+
 } //namespace ORB_SLAM

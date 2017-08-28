@@ -30,9 +30,7 @@
 #include "ORBVocabulary.h"
 
 #include<mutex>
-#ifdef FUNC_MAP_SAVE_LOAD
 #include "BoostArchiver.h"
-#endif
 
 namespace ORB_SLAM2
 {
@@ -58,7 +56,7 @@ public:
 
    // Relocalization
    std::vector<KeyFrame*> DetectRelocalizationCandidates(Frame* F);
-#ifdef FUNC_MAP_SAVE_LOAD
+
 public:
    // for serialization
    KeyFrameDatabase() {}
@@ -68,7 +66,7 @@ private:
    friend class boost::serialization::access;
    template<class Archive>
    void serialize(Archive &ar, const unsigned int version);
-#endif
+
 protected:
 
   // Associated vocabulary

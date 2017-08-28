@@ -256,11 +256,7 @@ PS: binary format is loaded faster and text format is more human-readable.
 
 #### Enable:
 
-You can enable this feature by defining a new variable `USE_MAP_SAVE_LOAD` when running cmake.
-
-For example, you can change `cmake .. -DCMAKE_BUILD_TYPE=Release` to `cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_MAP_SAVE_LOAD=1` after `echo "Configuring and building ORB_SLAM2 ..."` in `build.sh`.
-
-But `CMakeCache.txt` should be deleted if you want to undefine this variable.
+Considering this feature doesn't hurt performance, and it is annonying to deal with conditional compilation flags, so this feature will be enabled unconditionally.
 
 #### Usage:
 

@@ -27,9 +27,7 @@
 
 #include<opencv2/core/core.hpp>
 #include<mutex>
-#ifdef FUNC_MAP_SAVE_LOAD
 #include "BoostArchiver.h"
-#endif
 
 namespace ORB_SLAM2
 {
@@ -84,7 +82,6 @@ public:
     int PredictScale(const float &currentDist, KeyFrame*pKF);
     int PredictScale(const float &currentDist, Frame* pF);
 
-#ifdef FUNC_MAP_SAVE_LOAD
 public:
     // for serialization
     MapPoint();
@@ -93,7 +90,6 @@ private:
     friend class boost::serialization::access;
     template<class Archive>
     void serialize(Archive &ar, const unsigned int version);
-#endif
 
 public:
     long unsigned int mnId;

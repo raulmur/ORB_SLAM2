@@ -30,9 +30,8 @@
 #include "KeyFrameDatabase.h"
 
 #include <mutex>
-#ifdef FUNC_MAP_SAVE_LOAD
 #include "BoostArchiver.h"
-#endif
+
 namespace ORB_SLAM2
 {
 
@@ -117,7 +116,7 @@ public:
     static bool lId(KeyFrame* pKF1, KeyFrame* pKF2){
         return pKF1->mnId<pKF2->mnId;
     }
-#ifdef FUNC_MAP_SAVE_LOAD
+
 public:
     // for serialization
     KeyFrame(); // Default constructor for serialization, need to deal with const member
@@ -127,7 +126,6 @@ private:
     friend class boost::serialization::access;
     template<class Archive>
     void serialize(Archive &ar, const unsigned int version);
-#endif
 
     // The following variables are accesed from only 1 thread or never change (no mutex needed).
 public:
