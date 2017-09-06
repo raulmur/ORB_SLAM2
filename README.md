@@ -88,6 +88,12 @@ chmod +x build.sh
 
 This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono_tum**, **mono_kitti**, **rgbd_tum**, **stereo_kitti**, **mono_euroc** and **stereo_euroc** in *Examples* folder.
 
+for Windows:
+we provide a script `build_win.bat` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
+```
+cd ORB_SLAM2
+build_win.bat [platform] [toolsset] [configuration] (e.g-> build_win.bat x64 v141 Release)
+ 
 # 4. Monocular Examples
 
 ## TUM Dataset
