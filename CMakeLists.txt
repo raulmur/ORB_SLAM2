@@ -1,10 +1,18 @@
 cmake_minimum_required(VERSION 2.8)
-project(ORB_SLAM2)
+project(orb-slam2)
+
+SET(ORBSLAM2_LIB_TYPE SHARED)
+option( BUILD_EXAMPLES "Build Examples" ON )
+option( ORBSLAM2_STATIC_LIB "Orb-slam lib type" OFF )
 
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release)
 ENDIF()
 
+if(ORBSLAM2_STATIC_LIB)
+	SET(ORBSLAM2_LIB_TYPE STATIC)
+endif()
+	
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
@@ -22,11 +30,20 @@ elseif(COMPILER_SUPPORTS_CXX0X)
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
    add_definitions(-DCOMPILEDWITHC0X)
    message(STATUS "Using flag -std=c++0x.")
-else()
-   message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+#else()
+#   message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
+
+IF(WIN32)
+	add_definitions("-DNOMINMAX")
+	add_definitions("-DWINDOWS")
+	add_definitions("-DORBSLAM_EXPORT")
+	add_definitions(-DCOMPILEDWITHC11)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -bigobj")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -bigobj")
+ENDIF()
 
 find_package(OpenCV 3.0 QUIET)
 if(NOT OpenCV_FOUND)
@@ -45,10 +62,19 @@ ${PROJECT_SOURCE_DIR}/include
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 )
-
+add_subdirectory(Thirdparty/DBoW2)
+add_subdirectory(Thirdparty/g2o)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
+set(ORB_SLAM_G2O_LIBRARIES ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so)
+set(ORB_SLAM_DBoW2_LIBRARIES ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so)
 
-add_library(${PROJECT_NAME} SHARED
+IF(WIN32)
+set(ORB_SLAM_G2O_LIBRARIES ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/bin/${CMAKE_BUILD_TYPE}/g2o.lib)
+set(ORB_SLAM_DBoW2_LIBRARIES ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/${CMAKE_BUILD_TYPE}/DBoW2.lib)
+set(ORM_THIRD_PARTY_LIB ${ORB_SLAM_G2O_LIBRARIES} ${ORB_SLAM_DBoW2_LIBRARIES})
+ENDIF()
+
+add_library(${PROJECT_NAME} ${ORBSLAM2_LIB_TYPE}
 src/System.cc
 src/Tracking.cc
 src/LocalMapping.cc
@@ -74,40 +100,40 @@ target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
 ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
-${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
-${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+${ORB_SLAM_G2O_LIBRARIES}
+${ORB_SLAM_DBoW2_LIBRARIES}
 )
 
 # Build examples
-
+if(BUILD_EXAMPLES)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
 
 add_executable(rgbd_tum
 Examples/RGB-D/rgbd_tum.cc)
-target_link_libraries(rgbd_tum ${PROJECT_NAME})
+target_link_libraries(rgbd_tum ${PROJECT_NAME} ${ORM_THIRD_PARTY_LIB})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Stereo)
 
 add_executable(stereo_kitti
 Examples/Stereo/stereo_kitti.cc)
-target_link_libraries(stereo_kitti ${PROJECT_NAME})
+target_link_libraries(stereo_kitti ${PROJECT_NAME} ${ORM_THIRD_PARTY_LIB})
 
 add_executable(stereo_euroc
 Examples/Stereo/stereo_euroc.cc)
-target_link_libraries(stereo_euroc ${PROJECT_NAME})
+target_link_libraries(stereo_euroc ${PROJECT_NAME} ${ORM_THIRD_PARTY_LIB})
 
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Monocular)
 
 add_executable(mono_tum
 Examples/Monocular/mono_tum.cc)
-target_link_libraries(mono_tum ${PROJECT_NAME})
+target_link_libraries(mono_tum ${PROJECT_NAME} ${ORM_THIRD_PARTY_LIB})
 
 add_executable(mono_kitti
 Examples/Monocular/mono_kitti.cc)
-target_link_libraries(mono_kitti ${PROJECT_NAME})
+target_link_libraries(mono_kitti ${PROJECT_NAME} ${ORM_THIRD_PARTY_LIB})
 
 add_executable(mono_euroc
 Examples/Monocular/mono_euroc.cc)
-target_link_libraries(mono_euroc ${PROJECT_NAME})
-
+target_link_libraries(mono_euroc ${PROJECT_NAME} ${ORM_THIRD_PARTY_LIB})
+endif()
