@@ -4,6 +4,7 @@ project(orb-slam2)
 SET(ORBSLAM2_LIB_TYPE SHARED)
 option( BUILD_EXAMPLES "Build Examples" ON )
 option( ORBSLAM2_STATIC_LIB "Orb-slam lib type" OFF )
+option( BUILD_THIRDPARTY_LIB "Build Thirdparty Lib" OFF )
 
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release)
@@ -62,8 +63,10 @@ ${PROJECT_SOURCE_DIR}/include
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 )
+if(BUILD_THIRDPARTY_LIB)
 add_subdirectory(Thirdparty/DBoW2)
 add_subdirectory(Thirdparty/g2o)
+endif()
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 set(ORB_SLAM_G2O_LIBRARIES ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so)
 set(ORB_SLAM_DBoW2_LIBRARIES ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so)
