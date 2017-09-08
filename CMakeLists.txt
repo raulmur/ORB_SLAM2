@@ -46,15 +46,17 @@ IF(WIN32)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -bigobj")
 ENDIF()
 
-find_package(OpenCV 3.0 QUIET)
-if(NOT OpenCV_FOUND)
-   find_package(OpenCV 2.4.3 QUIET)
-   if(NOT OpenCV_FOUND)
-      message(FATAL_ERROR "OpenCV > 2.4.3 not found.")
-   endif()
+find_package(OpenCV REQUIRED)
+
+if("${OpenCV_VERSION}" VERSION_LESS "2.4.3")
+	message(FATAL_ERROR "OpenCV > 2.4.3 not found.")
 endif()
 
-find_package(Eigen3 3.1.0 REQUIRED)
+find_package(Eigen3 REQUIRED)
+
+if("${EIGEN3_VERSION}" VERSION_LESS "3.1.0")
+	message(FATAL_ERROR "Eigen3 > 3.1.0 not found.")
+endif()
 find_package(Pangolin REQUIRED)
 
 include_directories(
