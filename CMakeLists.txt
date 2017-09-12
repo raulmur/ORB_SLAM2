@@ -17,6 +17,7 @@ IF(WIN32)
     add_definitions("-DWINDOWS")
     add_definitions("-DORBSLAM_EXPORT")
     add_definitions("-DCOMPILEDWITHC11")
+    add_compile_options("/MP")
 ENDIF()
 
 find_package(OpenCV REQUIRED)
