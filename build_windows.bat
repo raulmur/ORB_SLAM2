@@ -2,13 +2,8 @@
 
 setlocal
 
-set "OrbSlamPlatform=x86"
-set "OrbSlamToolset=v140"
-set "Buildtype=Release"
-
-if NOT "%~1"=="" set "OrbSlamPlatform=%~1"
-if NOT "%~2"=="" set "OrbSlamToolset=%~2"
-if NOT "%~3"=="" set "Buildtype=%~3"
+call "%~dp0bootstrap_windows.bat" %*
+if errorlevel 1 echo Bootstrapping error, bailing out & exit /b 1
 
 set "OrbSlamCMakeGeneratorName=Visual Studio 14 2015"
 
@@ -22,20 +17,12 @@ if "%OrbSlamPlatform%"=="x64" (
     if "%OrbSlamToolset%"=="v141" set "OrbSlamCMakeGeneratorName=Visual Studio 15 2017 Win64"
 )
 
-rem set ORB_3RD_PARTY_LIB_DIR for opencv and pangolin library path
-if "%ORB_SLAM_3RD_PARTY_LIB_DIR%"=="" (
-set "ORB_SLAM_3RD_PARTY_LIB_DIR=%USERPROFILE%\Software\lib\%OrbSlamPlatform%-windows-%OrbSlamToolset%"
-)
+set "OrbSlamBuildDir=%~dp0\products\cmake.msbuild.windows.%OrbSlamPlatform%.%OrbSlamToolset%"
+if not exist "%OrbSlamBuildDir%" mkdir "%OrbSlamBuildDir%"
+cd "%OrbSlamBuildDir%"
 
-if NOT EXIST "%ORB_SLAM_3RD_PARTY_LIB_DIR%" echo "OrbSlam dependant lib path is not set correctly", bailing out & exit /b 0
-
-set "CMAKE_PREFIX_PATH=%ORB_SLAM_3RD_PARTY_LIB_DIR%;%CMAKE_PREFIX_PATH%"
-
-rem creating and build orb-slam project
-set "BuildDir=%~dp0\products\windows-%OrbSlamPlatform%-%OrbSlamToolset%"-%Buildtype%
-if not exist "%BuildDir%" mkdir %BuildDir%
-cd "%BuildDir%"
+echo:& echo Invoking cmake like this as: cmake.exe -G "%OrbSlamCMakeGeneratorName%" -DORBSLAM2_STATIC_LIB=ON -DG2O_STATIC_LIB=ON -DDBOW2_STATIC_LIB=ON -DBUILD_EXAMPLES=ON -DBUILD_THIRDPARTY_LIB=ON "%~dp0" & echo.
 
 call cmake.exe -G "%OrbSlamCMakeGeneratorName%" -DORBSLAM2_STATIC_LIB=ON -DG2O_STATIC_LIB=ON -DDBOW2_STATIC_LIB=ON -DBUILD_EXAMPLES=ON -DBUILD_THIRDPARTY_LIB=ON "%~dp0"
-call cmake.exe --build . --config %Buildtype%
+rem call cmake.exe --build . --config %OrbSlamBuildtype%
 endlocal
