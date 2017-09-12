@@ -7,9 +7,6 @@ option( DBOW2_STATIC_LIB "Orb-slam lib type" OFF )
 if(DBOW2_STATIC_LIB)
 	SET(DBOW2_LIB_TYPE STATIC)
 endif()
-	
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native")
 
 set(HDRS_DBOW2
   DBoW2/BowVector.h
@@ -38,8 +35,6 @@ if(NOT OpenCV_FOUND)
       message(FATAL_ERROR "OpenCV > 2.4.3 not found.")
    endif()
 endif()
-
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
 add_library(DBoW2 ${DBOW2_LIB_TYPE} ${SRCS_DBOW2} ${SRCS_DUTILS})
