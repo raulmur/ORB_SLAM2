@@ -17,8 +17,6 @@ IF(WIN32)
     add_definitions("-DWINDOWS")
     add_definitions("-DORBSLAM_EXPORT")
     add_definitions("-DCOMPILEDWITHC11")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -bigobj")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -bigobj")
 ENDIF()
 
 find_package(OpenCV REQUIRED)
