@@ -11,12 +11,11 @@ if(ORBSLAM2_STATIC_LIB)
 endif()
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
-
+add_definitions("-DCOMPILEDWITHC11")
 IF(WIN32)
     add_definitions("-DNOMINMAX")
     add_definitions("-DWINDOWS")
-    add_definitions("-DORBSLAM_EXPORT")
-    add_definitions("-DCOMPILEDWITHC11")
+    add_definitions("-DORBSLAM_EXPORT")    
     add_compile_options("/MP")
 ENDIF()
 
