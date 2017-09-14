@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.8)
 project(orb-slam2)
 
 SET(ORBSLAM2_LIB_TYPE SHARED)
@@ -17,6 +17,8 @@ IF(WIN32)
     add_definitions("-DWINDOWS")
     add_definitions("-DORBSLAM_EXPORT")    
     add_compile_options("/MP")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -bigobj")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -bigobj")
 ENDIF()
 
 find_package(OpenCV REQUIRED)
@@ -81,7 +83,14 @@ target_link_libraries(${PROJECT_NAME}
     DBoW2
     g2o
 )
-
+target_include_directories(orb-slam2 INTERFACE $<INSTALL_INTERFACE:include>)
+install(TARGETS orb-slam2 EXPORT orb-slam2Config    
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include/orbslam2 CONFIGURATIONS Release)
+install(EXPORT orb-slam2Config DESTINATION share/orb-slam2)
 # Build examples
 if(BUILD_EXAMPLES)
     add_executable(rgbd_tum 
