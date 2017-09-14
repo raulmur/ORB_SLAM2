@@ -159,3 +159,12 @@ g2o/stuff/string_tools.cpp
 g2o/stuff/property.cpp       
 g2o/stuff/property.h       
 )
+
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/g2o/ DESTINATION include/orbslam2/Thirdparty/g2o/g2o CONFIGURATIONS Release)
+install(FILES ${PROJECT_SOURCE_DIR}/config.h DESTINATION include/orbslam2/Thirdparty/g2o CONFIGURATIONS Release)
+
+install(TARGETS g2o EXPORT orb-slam2Config    
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+)
