@@ -2,7 +2,7 @@
 
 wget -N https://cmake.org/files/v3.9/cmake-3.9.2-Linux-x86_64.sh -P /usr/
 chmod 755 /usr/cmake-3.9.2-Linux-x86_64.sh
-sh /usr/cmake-3.9.2-Linux-x86_64.sh --skip-license
+/usr/cmake-3.9.2-Linux-x86_64.sh --skip-license --prefix=/usr/
 
 apt-get update && apt-get install -y \
     build-essential g++ autotools-dev cmake git doxygen \
@@ -34,7 +34,7 @@ cd build
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
 make -j $(($(nproc) + 1))
 make install
-sh -c 'echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf'
+echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf
 ldconfig
 apt-get update
 cd ../..
