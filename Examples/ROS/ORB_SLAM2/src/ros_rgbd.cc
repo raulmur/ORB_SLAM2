@@ -33,9 +33,11 @@
 #include<opencv2/core/core.hpp>
 
 #include"../../../include/System.h"
+#include"../../../include/MapPoint.h"
 
-#include "sensor_msgs/PointCloud2.h"
-#include "geometry_msgs/Pose.h"
+#include "sensor_msgs/PointCloud.h"
+#include "geometry_msgs/PoseStamped.h"
+#include "geometry_msgs/Point32.h"
 #include "tf/transform_datatypes.h"
 #include <tf/transform_broadcaster.h>
 
@@ -47,7 +49,7 @@ class ImageGrabber
 public:
     ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){}
 
-    void GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const sensor_msgs::ImageConstPtr& msgD, ros::Publisher pos_pub);
+    void GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const sensor_msgs::ImageConstPtr& msgD, ros::Publisher pos_pub, ros::Publisher cloud_pub);
 
     ORB_SLAM2::System* mpSLAM;
 };
@@ -74,21 +76,14 @@ int main(int argc, char **argv)
 
     message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nh, "/camera/rgb/image_raw", 1);
     message_filters::Subscriber<sensor_msgs::Image> depth_sub(nh, "camera/depth_registered/image_raw", 1);
-    ros::Publisher cloud_pub = nh.advertise<sensor_msgs::PointCloud2>("/slam/pointcloud", 1);
-    ros::Publisher pos_pub = nh.advertise<geometry_msgs::Pose>("/slam/pos", 1);
+    ros::Publisher cloud_pub = nh.advertise<sensor_msgs::PointCloud>("/slam/pointcloud", 1);
+    ros::Publisher pos_pub = nh.advertise<geometry_msgs::PoseStamped>("/slam/pos", 1);
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub,depth_sub);
-    sync.registerCallback(boost::bind(&ImageGrabber::GrabRGBD,&igb,_1,_2, pos_pub));
+    sync.registerCallback(boost::bind(&ImageGrabber::GrabRGBD,&igb,_1,_2, pos_pub, cloud_pub));
 
 
     while (ros::ok()) {
-	    // Get POS
-	    // Get cloud
-
-	    // Publish
-	    //pos_pub.publish(pos);
-	    //cloud_pub.publish(cloud);
-
 	    // Spin
 	    ros::spinOnce();
 
@@ -107,7 +102,7 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const sensor_msgs::ImageConstPtr& msgD, ros::Publisher pos_pub)
+void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const sensor_msgs::ImageConstPtr& msgD, ros::Publisher pos_pub, ros::Publisher cloud_pub)
 {
     // Copy the ros image message to cv::Mat.
     cv_bridge::CvImageConstPtr cv_ptrRGB;
@@ -134,8 +129,11 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
 
     cv::Mat pose = mpSLAM->TrackRGBD(cv_ptrRGB->image,cv_ptrD->image,cv_ptrRGB->header.stamp.toSec());
 
+
+    // CAMERA POSE
+
     if (pose.empty()) {
-	    return;
+            return;
     }
     // transform into right handed camera frame
     tf::Matrix3x3 rh_cameraPose(  - pose.at<float>(0,0),   pose.at<float>(0,1),   pose.at<float>(0,2),
@@ -150,22 +148,41 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
                                     0,-1, 0);
 
     //publish right handed, x forward, y right, z down (NED)
-//  static tf::TransformBroadcaster br;
-//  tf::Transform transformCoordSystem = tf::Transform(rotation270degZX,tf::Vector3(0.0, 0.0, 0.0));
-//  br.sendTransform(tf::StampedTransform(transformCoordSystem, ros::Time::now(), "camera_link", "camera_pose"));
 
-//  tf::Transform transformCamera = tf::Transform(rh_cameraPose,rh_cameraTranslation);
-//  br.sendTransform(tf::StampedTransform(transformCamera, ros::Time::now(), "camera_pose", "pose"));
-    geometry_msgs::Pose p;
-    p.position.x = rh_cameraTranslation[0];
-    p.position.y = rh_cameraTranslation[1];
-    p.position.z = rh_cameraTranslation[2];
-    p.orientation.x = 0;
-    p.orientation.y = 0;
-    p.orientation.z = 0;
-    p.orientation.w = 1;
+    tf::Quaternion q;
+    rh_cameraPose.getRotation(q);
+    geometry_msgs::PoseStamped p;
+    p.header.frame_id = "world";
+    p.pose.position.x = rh_cameraTranslation[0];
+    p.pose.position.y = rh_cameraTranslation[1];
+    p.pose.position.z = rh_cameraTranslation[2];
+    p.pose.orientation.x = q[0];
+    p.pose.orientation.y = q[1];
+    p.pose.orientation.z = q[2];
+    p.pose.orientation.w = q[3];
 
     pos_pub.publish(p);
+
+    // POINT CLOUD
+    sensor_msgs::PointCloud cloud;
+    cloud.header.frame_id = "world";
+    std::vector<geometry_msgs::Point32> geo_points;
+    std::vector<ORB_SLAM2::MapPoint*> points = mpSLAM->GetTrackedMapPoints();
+    cout << points.size() << endl;
+    for (std::vector<int>::size_type i = 0; i != points.size(); i++) {
+	    if (points[i]) {
+		    cv::Mat coords = points[i]->GetWorldPos();
+		    geometry_msgs::Point32 pt;
+		    pt.x = coords.at<float>(0);
+		    pt.y = coords.at<float>(1);
+		    pt.z = coords.at<float>(2);
+		    geo_points.push_back(pt);
+	    } else {
+	    }
+    }
+    cout << geo_points.size() << endl;
+    cloud.points = geo_points;
+    cloud_pub.publish(cloud);
 }
 
 
