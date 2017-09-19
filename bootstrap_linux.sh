@@ -2,11 +2,14 @@
 
 wget -N https://cmake.org/files/v3.9/cmake-3.9.2-Linux-x86_64.sh -P /usr/
 chmod 755 /usr/cmake-3.9.2-Linux-x86_64.sh
-/usr/cmake-3.9.2-Linux-x86_64.sh --skip-license --prefix=/usr/
+mkdir -p /opt/cmake-3.9.2
+/usr/cmake-3.9.2-Linux-x86_64.sh --skip-license --prefix=/opt/cmake-3.9.2
+ln -s /opt/cmake-3.9.2/bin/cmake /usr/local/bin/cmake
 
 apt-get update && apt-get install -y \
-    build-essential g++ autotools-dev cmake git doxygen \
+    build-essential g++ autotools-dev git doxygen \
     python-dev \
+    python-numpy \
     libglew-dev \
     ffmpeg \
     libavcodec-dev \
@@ -19,13 +22,15 @@ apt-get update && apt-get install -y \
     libpng12-dev \
     libtiff5-dev \
     libopenexr-dev \
-    libeigen3-dev
-
-apt-get install -y \
-	build-essential \
-	cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev \
-	python-dev python-numpy libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev libjasper-dev libdc1394-22-dev
-
+    libeigen3-dev \
+    libgtk2.0-dev \
+    pkg-config \
+    libtbb2 \
+    libtbb-dev \
+    libpng-dev \
+    libtiff-dev \
+    libjasper-dev
+	
 
 git clone https://github.com/opencv/opencv.git
 cd opencv

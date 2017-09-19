@@ -88,12 +88,23 @@ chmod +x build.sh
 
 This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono_tum**, **mono_kitti**, **rgbd_tum**, **stereo_kitti**, **mono_euroc** and **stereo_euroc** in *Examples* folder.
 
+There is also scripts that automate building of orb-slam2 and its dependencies
 for Windows:
-we provide a script `build_win.bat` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
+we provide a script `build_windows.bat` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
 ```
 cd ORB_SLAM2
-build_win.bat [platform] [toolsset] [configuration] (e.g-> build_win.bat x64 v141 Release)
- 
+build_windows.bat [platform] [toolsset] [configuration] (e.g-> build_windows.bat x64 v141 Release)
+notes:
+ run build_windows.bat with no parameter will build orb-slam2 with x86 platform and v140 toolset present in the system with Release mode
+for linux:
+we provide a script `build_linux.sh` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
+```
+cd ORB_SLAM2
+build_linux.sh [platform] [toolsset] [configuration] (e.g-> build_linux.sh x86-x64 5.4.0 Release)
+notes:
+ platform -> to get current platform information (type in terminal -> uname -m)
+ toolsset -> to get current toolset information (type in terminal  -> gcc -dumpversion)
+ run build_linux.sh with no parameter will build orb-slam2 with defaul platform and default toolset present in the system with Release mode
 # 4. Monocular Examples
 
 ## TUM Dataset
