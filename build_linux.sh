@@ -5,7 +5,7 @@ source ${CurDir}/bootstrap_linux.sh "$@"
 
 OrbSlamPlatform=`uname -m`
 OrbSlamToolset=gcc.`gcc -dumpversion`
-Buildtype=Release
+OrbSlamBuildtype=Release
 
 if [ ! -z "$1" ] 
 then
@@ -19,7 +19,7 @@ fi
 
 if [ ! -z "$3" ] 
 then
-    Buildtype="$3"
+    OrbSlamBuildtype="$3"
 fi
 
 echo "Uncompress vocabulary ..."
@@ -37,6 +37,6 @@ fi
 
 cd ${BuildDir}
 
-cmake ../.. -DCMAKE_BUILD_TYPE=Release -DORBSLAM2_STATIC_LIB=ON -DG2O_STATIC_LIB=ON -DDBOW2_STATIC_LIB=ON -DBUILD_EXAMPLES=ON -DBUILD_THIRDPARTY_LIB=ON
+cmake ../.. -DCMAKE_BUILD_TYPE=${OrbSlamBuildtype} -DORBSLAM2_STATIC_LIB=ON -DG2O_STATIC_LIB=ON -DDBOW2_STATIC_LIB=ON -DBUILD_EXAMPLES=ON -DBUILD_THIRDPARTY_LIB=ON
 
 cmake --build .
