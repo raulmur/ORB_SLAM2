@@ -548,10 +548,14 @@ bool System::LoadMap(const string &filename)
     cout << " ...done" << std::endl;
     cout << "Map Reconstructing" << flush;
     vector<ORB_SLAM2::KeyFrame*> vpKFS = mpMap->GetAllKeyFrames();
+    unsigned long mnFrameId = 0;
     for (auto it:vpKFS) {
         it->SetORBvocabulary(mpVocabulary);
         it->ComputeBoW();
+        if (it->mnFrameId > mnFrameId)
+            mnFrameId = it->mnFrameId;
     }
+    Frame::nNextId = mnFrameId;
     cout << " ...done" << endl;
     in.close();
     return true;
