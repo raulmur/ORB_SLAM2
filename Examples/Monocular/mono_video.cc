@@ -1,67 +1,61 @@
 #include "System.h"
 
-#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/highgui/highgui.hpp>
 
+#include <chrono>
 #include <iostream>
 #include <string>
-#include <chrono>
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-    const int SUCCESS{0};
-    const int FAILURE{-1};
+    enum class status : int
+    {
+        success = 0,
+        failure = -1
+    };
 
-    int retVal{SUCCESS};
+    int ret_val{static_cast<int>(status::success)};
 
     if (4 == argc)
     {
-        std::string videoFile{argv[1]};
-        std::string vocabularyFile{argv[2]};
-        std::string settingsFile{argv[3]};
+        std::string video_file{argv[1]};
+        std::string vocabulary_file{argv[2]};
+        std::string settings_file{argv[3]};
 
-        cv::VideoCapture videoCapture(videoFile);
+        cv::VideoCapture video_capture(video_file);
 
-        if (true == videoCapture.isOpened())
+        if (true == video_capture.isOpened())
         {
-            ORB_SLAM2::System SLAM(vocabularyFile, settingsFile, ORB_SLAM2::System::MONOCULAR);
-
-            bool readValue{true};
-            while (true == readValue)
+            ORB_SLAM2::System slam(vocabulary_file, settings_file,
+                                   ORB_SLAM2::System::MONOCULAR);
+            cv::Mat frame;
+            while (video_capture.read(frame))
             {
-                cv::Mat frame;
-
-                readValue = videoCapture.read(frame);
-                if (true == readValue)
-                {
-                    auto currentVideoTime = videoCapture.get(CV_CAP_PROP_POS_MSEC);
-                    SLAM.TrackMonocular(frame, currentVideoTime);
-                    std::this_thread::sleep_for(std::chrono::milliseconds(30));
-                }
-                else
-                {
-                    readValue = false;
-                }
+                auto current_video_time = video_capture.get(CV_CAP_PROP_POS_MSEC);
+                slam.TrackMonocular(frame, current_video_time);
+                std::this_thread::sleep_for(std::chrono::milliseconds(30));
             }
 
-            SLAM.Shutdown();
-            SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+            slam.Shutdown();
+            slam.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
         }
         else
         {
-            std::cerr << "Cannot open the video file " << videoFile << '\n';
-            retVal = FAILURE;
+            std::cerr << "Cannot open the video file " << video_file << '\n';
+            ret_val = static_cast<int>(status::failure);
         }
     }
     else
     {
         std::cerr << "Invalid input\n";
-        std::cerr << "Usage: mono_video VideoFile VocabularyFile SettingsFile\n";
+        std::cerr
+            << "Usage: mono_video VideoFile VocabularyFile SettingsFile\n";
         std::cerr << "Example: /ORB_SLAM2/Examples/Monocular/mono_video "
                   << "/ORB_SLAM2/Examples/video.mp4 "
                   << "/ORB_SLAM2/Vocabulary/ORBVoc.txt "
                   << "/ORB_SLAM2/Examples/Monocular/TUM1.yaml\n";
-        retVal = FAILURE;
+        ret_val = static_cast<int>(status::failure);
     }
 
-    return retVal;
+    return ret_val;
 }
