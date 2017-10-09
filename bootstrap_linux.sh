@@ -4,7 +4,8 @@ wget -N https://cmake.org/files/v3.9/cmake-3.9.2-Linux-x86_64.sh -P /usr/
 chmod 755 /usr/cmake-3.9.2-Linux-x86_64.sh
 mkdir -p /opt/cmake-3.9.2
 /usr/cmake-3.9.2-Linux-x86_64.sh --skip-license --prefix=/opt/cmake-3.9.2
-ln -s /opt/cmake-3.9.2/bin/cmake /usr/local/bin/cmake
+#ln -s /opt/cmake-3.9.2/bin/cmake /usr/local/bin/cmake
+cmake_latest=/opt/cmake-3.9.2/bin/cmake
 
 apt-get update && apt-get install -y \
     build-essential g++ autotools-dev git doxygen \

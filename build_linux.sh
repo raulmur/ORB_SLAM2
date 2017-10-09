@@ -1,6 +1,7 @@
 #!/bin/bash
 
 CurDir=$(dirname $0)
+
 source ${CurDir}/bootstrap_linux.sh "$@"
 
 OrbSlamPlatform=`uname -m`
@@ -35,8 +36,13 @@ then
 	mkdir -p "${BuildDir}"
 fi
 
-cd ${BuildDir}
+cd ${cmake_latest}
 
-cmake ../.. -DCMAKE_BUILD_TYPE=${OrbSlamBuildtype} -DORBSLAM2_STATIC_LIB=ON -DG2O_STATIC_LIB=ON -DDBOW2_STATIC_LIB=ON -DBUILD_EXAMPLES=ON -DBUILD_THIRDPARTY_LIB=ON
+if [ ! -e ${cmake_latest} ] 
+then 
+	cmake_latest=cmake
+fi
+
+${cmake_latest} "../.." -DCMAKE_BUILD_TYPE=${OrbSlamBuildtype} -DORBSLAM2_STATIC_LIB=ON -DG2O_STATIC_LIB=ON -DDBOW2_STATIC_LIB=ON -DBUILD_EXAMPLES=ON -DBUILD_THIRDPARTY_LIB=ON
 
 cmake --build .
