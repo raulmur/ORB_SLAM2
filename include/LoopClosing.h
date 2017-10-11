@@ -21,6 +21,9 @@
 #ifndef LOOPCLOSING_H
 #define LOOPCLOSING_H
 
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "KeyFrame.h"
 #include "LocalMapping.h"
 #include "Map.h"

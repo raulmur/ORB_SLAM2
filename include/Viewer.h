@@ -26,6 +26,9 @@
 #include "MapDrawer.h"
 #include "Tracking.h"
 #include "System.h"
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include <mutex>
 
