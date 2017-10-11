@@ -40,6 +40,12 @@ class MapPoint;
 class Frame;
 class KeyFrameDatabase;
 
+/** \brief KeyFrame containing a MapPoint list, bag of words representation and covisibility graph.
+*
+* Tracking produces a new KeyFrame when required. This class maintains a covisibility 
+* graph that links to other KeyFrames that share points. This allows Tracking
+* and LocalMapping to operate on local rather than global data.
+**/
 class KeyFrame
 {
 public:
@@ -54,7 +60,7 @@ public:
     cv::Mat GetRotation();
     cv::Mat GetTranslation();
 
-    // Bag of Words Representation
+    /// Bag of Words Representation
     void ComputeBoW();
 
     // Covisibility graph functions
@@ -94,7 +100,7 @@ public:
     std::vector<size_t> GetFeaturesInArea(const float &x, const float  &y, const float  &r) const;
     cv::Mat UnprojectStereo(int i);
 
-    // Image
+    /// Image
     bool IsInImage(const float &x, const float &y) const;
 
     // Enable/Disable bad flag changes
@@ -105,7 +111,7 @@ public:
     void SetBadFlag();
     bool isBad();
 
-    // Compute Scene Depth (q=2 median). Used in monocular.
+    /// Compute Scene Depth (q=2 median). Used in monocular.
     float ComputeSceneMedianDepth(const int q);
 
     static bool weightComp( int a, int b){
@@ -117,7 +123,7 @@ public:
     }
 
 
-    // The following variables are accesed from only 1 thread or never change (no mutex needed).
+    // The following variables are accessed from only 1 thread or never change (no mutex needed).
 public:
 
     static long unsigned int nNextId;
@@ -153,10 +159,10 @@ public:
     cv::Mat mTcwBefGBA;
     long unsigned int mnBAGlobalForKF;
 
-    // Calibration parameters
+    /// Calibration parameters
     const float fx, fy, cx, cy, invfx, invfy, mbf, mb, mThDepth;
 
-    // Number of KeyPoints
+    /// Number of KeyPoints
     const int N;
 
     // KeyPoints, stereo coordinate and descriptors (all associated by an index)
@@ -170,7 +176,7 @@ public:
     DBoW2::BowVector mBowVec;
     DBoW2::FeatureVector mFeatVec;
 
-    // Pose relative to parent (this is computed when bad flag is activated)
+    /// Pose relative to parent (this is computed when bad flag is activated)
     cv::Mat mTcp;
 
     // Scale
@@ -197,9 +203,9 @@ protected:
     cv::Mat Twc;
     cv::Mat Ow;
 
-    cv::Mat Cw; // Stereo middel point. Only for visualization
+    cv::Mat Cw; ///< Stereo middel point. Only for visualization
 
-    // MapPoints associated to keypoints
+    /// MapPoints associated to keypoints
     std::vector<MapPoint*> mvpMapPoints;
 
     // BoW
@@ -224,7 +230,7 @@ protected:
     bool mbToBeErased;
     bool mbBad;    
 
-    float mHalfBaseline; // Only for visualization
+    float mHalfBaseline; ///< Only for visualization
 
     Map* mpMap;
 

@@ -30,6 +30,7 @@
 namespace ORB_SLAM2
 {
 
+///\brief Utility functions to convert OpenCV/g2o/Eigen matrices, etc.
 class Converter
 {
 public:

@@ -28,6 +28,7 @@
 namespace ORB_SLAM2
 {
 
+/// ORB vocabulary used for place recognition and feature matching.
 typedef DBoW2::TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB>
   ORBVocabulary;
 

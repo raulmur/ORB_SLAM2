@@ -50,34 +50,56 @@ class LocalMapping;
 class LoopClosing;
 class System;
 
+/** \brief Tracker. It receives a frame and computes the associated camera pose.
+*
+* Tracker is one of the main threads of System (it runs within the main thread).
+* It also decides when to insert a new keyframe, create some new MapPoints and
+* performs relocalization if tracking fails. Relocalization is important if tracking
+* is lost due to sudden large motions or reinitialization of the system. The
+* Tracking thread produces a KeyFrame when it is required.
+*
+* Whenever a frame is grabbed from the camera, the main stages in tracking are:
+* * Pre-process input to get ORB features and triangulate points, where possible (implemented in Frame)
+* * Camera position estimation or relocation (Tracking::Track)
+**/
 class Tracking
-{  
+{
 
 public:
+    /// Constructor
     Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
              KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor);
 
-    // Preprocess the input and call Track(). Extract features and performs stereo matching.
+    /// Preprocess the stereo input and call Track(). Extract features and performs stereo matching. Perform tracking.
     cv::Mat GrabImageStereo(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp);
+
+    /// Preprocess the RGB-D input and call Track(). Extracts features. Perform tracking.
     cv::Mat GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const double &timestamp);
+
+    /** \brief Preprocess the monocular input and call Track(). Extracts features, does feature point matching. Perform tracking.
+    * 
+    * Monocular cameras are simple but cannot produce the initial map from the first frame. Techniques
+    * are needed to triangule features based on multiple frames. Monocular cameras can also suffer from 
+    * scale drift. **/
     cv::Mat GrabImageMonocular(const cv::Mat &im, const double &timestamp);
 
     void SetLocalMapper(LocalMapping* pLocalMapper);
     void SetLoopClosing(LoopClosing* pLoopClosing);
     void SetViewer(Viewer* pViewer);
 
-    // Load new settings
-    // The focal lenght should be similar or scale prediction will fail when projecting points
-    // TODO: Modify MapPoint::PredictScale to take into account focal lenght
+    /** \brief Load new settings
+    *
+    * The focal lenght should be similar or scale prediction will fail when projecting points
+    * TODO: Modify MapPoint::PredictScale to take into account focal length **/
     void ChangeCalibration(const string &strSettingPath);
 
-    // Use this function if you have deactivated local mapping and you only want to localize the camera.
+    /// Use this function if you have deactivated local mapping and you only want to localize the camera.
     void InformOnlyTracking(const bool &flag);
 
 
 public:
 
-    // Tracking states
+    /// Tracking states
     enum eTrackingState{
         SYSTEM_NOT_READY=-1,
         NO_IMAGES_YET=0,
@@ -86,13 +108,14 @@ public:
         LOST=3
     };
 
+    /// Current tracking state
     eTrackingState mState;
     eTrackingState mLastProcessedState;
 
-    // Input sensor
+    /// Input sensor type
     int mSensor;
 
-    // Current Frame
+    /// Current Frame
     Frame mCurrentFrame;
     cv::Mat mImGray;
 
@@ -110,75 +133,141 @@ public:
     list<double> mlFrameTimes;
     list<bool> mlbLost;
 
-    // True if local mapping is deactivated and we are performing only localization
+    /// True if local mapping is deactivated and we are performing only localization
     bool mbOnlyTracking;
 
     void Reset();
 
 protected:
 
-    // Main tracking function. It is independent of the input sensor.
+    /** \brief Main tracking function. It is independent of the input sensor.
+    *
+    * This is called whenever a new frame is grabbed. The tracking procedure is:
+    * * Update camera position based on motion model, if available (Tracking::TrackWithMotionModel)
+    * * Refine camera position based on all matches between mCurrentFrame and mLastFrame, identify outliers (Tracking::TrackWithMotionModel)
+    * * Refine camera position camera position relative to reference frame by BoW matched points (Tracking::TrackReferenceKeyFrame)
+    * * Refine the camera position based on local mapping data (Tracking::TrackLocalMap)
+    * * Check if we need to add a new KeyFrame (Tracking::NeedNewKeyFrame)
+    * If tracking fails, fall back to relocalization.
+    **/
     void Track();
 
-    // Map initialization for stereo and RGB-D
+    /// Map initialization for stereo and RGB-D
     void StereoInitialization();
 
-    // Map initialization for monocular
+    /// Map initialization for monocular
     void MonocularInitialization();
     void CreateInitialMapMonocular();
 
+    ///Check if the last frame's MapPoints have been modified by LocalMapping
     void CheckReplacedInLastFrame();
+
+    ///Check current frame is similar to reference frame, estimate camera position from BoW matched points
     bool TrackReferenceKeyFrame();
+
+    /// \brief Update last frame pose according to its reference keyframe, and select "visual odometery" points
+    ///
+    /// Visual odometery points are all track points with distance < mThDepth. If there are less than 100 points,
+    /// select the nearest 100.
     void UpdateLastFrame();
+
+	/// \brief Initial pose estimation from motion and previous frame
+    ///
+    /// Apply motion model, find feature matches from last frame, estimate new camera position, idenfity outliers.
     bool TrackWithMotionModel();
 
+    /// Relocalization based on bag of words is performed when tracking is lost
     bool Relocalization();
 
+    /// \brief Determine which KeyFrames and MapPoints are currently local to our camera position
+    ///
+    /// Used by Tracking::TrackLocalMap
     void UpdateLocalMap();
+
+    /// \brief Determine which MapPoints are local, based on the current local key frames
+    ///
+    /// This updates Tracking::mvpLocalMapPoints
     void UpdateLocalPoints();
+
+    /// \brief Determine which KeyFrames are currently local to our camera position.
+    ///
+    /// This updates Tracking::mvpLocalKeyFrames
     void UpdateLocalKeyFrames();
 
+    /** \brief Estimate new camera position based on local map by minimizing reprojection error.
+    *
+    * We have an estimation of the camera pose and some map points tracked in the frame.
+    * We retrieve the local map and try to find matches to points in the local map.
+    *
+    * The procedure is:
+    * * Find local key frames and map points. (Tracking::UpdateLocalMap)
+    * * Project local points to camera space, discard any that are not expected to be in view of the camera, perform matching. (Tracking::SearchLocalPoints)
+    * * Estimate camera pose (Optimizer::PoseOptimization)
+    * * Update MapPoint statistics.
+    * * Check if tracking is OK
+    */
     bool TrackLocalMap();
+
+    /** \brief Determine local points which should be currently visible to the camera and perform matching.
+    *
+    * Used by Tracking::TrackLocalMap. The procedure is:
+    * * Skip points already matched
+    * * Compute angle between mean viewing ray and camera direction. Discard points with oblique view. (Frame::isInFrustum)
+    * * Compute distance to points. Discard those outside the scale invariance range of ORB descriptor. (Frame::isInFrustum)
+    * * Compute expected scale of map point (Frame::isInFrustum)
+    * * Match points based on ORB descriptor
+    **/
     void SearchLocalPoints();
 
+    /** \brief Check if a new key frame should be inserted
+    *
+    * The system uses the approach of frequently adding key frames, which are later culled
+    * in LocalMapping::KeyFrameCulling. A key frame is added if the number of close points
+    * drops below 100 and at least 70 new close points could be added. If required,
+    * Tracking::CreateNewKeyFrame is called.
+    */
     bool NeedNewKeyFrame();
+
+    /// Create a new KeyFrame based on Tracking::mCurrentFrame and insert with LocalMapping::InsertKeyFrame
     void CreateNewKeyFrame();
 
-    // In case of performing only localization, this flag is true when there are no matches to
-    // points in the map. Still tracking will continue if there are enough matches with temporal points.
-    // In that case we are doing visual odometry. The system will try to do relocalization to recover
-    // "zero-drift" localization to the map.
+    /// In case of performing only localization, this flag is true when there are no matches to
+    /// points in the map. Still tracking will continue if there are enough matches with temporal points.
+    /// In that case we are doing visual odometry. The system will try to do relocalization to recover
+    /// "zero-drift" localization to the map.
     bool mbVO;
 
     //Other Thread Pointers
     LocalMapping* mpLocalMapper;
     LoopClosing* mpLoopClosing;
 
-    //ORB
+    //ORB extractors
     ORBextractor* mpORBextractorLeft, *mpORBextractorRight;
     ORBextractor* mpIniORBextractor;
 
-    //BoW
+    ///BoW voculabulary
     ORBVocabulary* mpORBVocabulary;
+
+    ///Database of KeyFrames
     KeyFrameDatabase* mpKeyFrameDB;
 
-    // Initalization (only for monocular)
+    /// Initalization (only for monocular)
     Initializer* mpInitializer;
 
     //Local Map
-    KeyFrame* mpReferenceKF;
-    std::vector<KeyFrame*> mvpLocalKeyFrames;
-    std::vector<MapPoint*> mvpLocalMapPoints;
+    KeyFrame* mpReferenceKF; ///< Current local map reference KeyFrame
+    std::vector<KeyFrame*> mvpLocalKeyFrames; ///< Current local map KeyFrames, found by Tracking::UpdateLocalKeyFrames
+    std::vector<MapPoint*> mvpLocalMapPoints; ///< Current local map MapPoint, found by Tracking::UpdateLocalPoints
     
-    // System
+    /// System
     System* mpSystem;
     
-    //Drawers
-    Viewer* mpViewer;
-    FrameDrawer* mpFrameDrawer;
-    MapDrawer* mpMapDrawer;
+    //Drawers for visualization
+    Viewer* mpViewer; ///< Visualization GUI
+    FrameDrawer* mpFrameDrawer; ///< Visualization of current frame
+    MapDrawer* mpMapDrawer; ///< Visualization of current map
 
-    //Map
+    ///Current map
     Map* mpMap;
 
     //Calibration matrix
@@ -190,27 +279,28 @@ protected:
     int mMinFrames;
     int mMaxFrames;
 
-    // Threshold close/far points
-    // Points seen as close by the stereo/RGBD sensor are considered reliable
-    // and inserted from just one frame. Far points requiere a match in two keyframes.
+    /// \brief Threshold to separate close/far points
+    ///
+    /// Points seen as close by the stereo/RGBD sensor are considered reliable
+    /// and inserted from just one frame. Far points requiere a match in two keyframes.
     float mThDepth;
 
-    // For RGB-D inputs only. For some datasets (e.g. TUM) the depthmap values are scaled.
+    /// For RGB-D inputs only. For some datasets (e.g. TUM) the depthmap values are scaled.
     float mDepthMapFactor;
 
-    //Current matches in frame
+    /// Current matches in frame
     int mnMatchesInliers;
 
-    //Last Frame, KeyFrame and Relocalisation Info
+    // Last Frame, KeyFrame and Relocalisation Info
     KeyFrame* mpLastKeyFrame;
     Frame mLastFrame;
     unsigned int mnLastKeyFrameId;
     unsigned int mnLastRelocFrameId;
 
-    //Motion Model
+    /// Motion Model
     cv::Mat mVelocity;
 
-    //Color order (true RGB, false BGR, ignored if grayscale)
+    /// Color order (true RGB, false BGR, ignored if grayscale)
     bool mbRGB;
 
     list<MapPoint*> mlpTemporalPoints;

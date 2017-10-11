@@ -37,18 +37,34 @@ class Tracking;
 class LoopClosing;
 class Map;
 
+/** \brief Local Mapper. It manages the local map and performs local bundle adjustment.
+* 
+* LocalMapping is one of the main threads of System.
+* LocalMapping takes new KeyFrames and integrates them into LocalMapping using local 
+* bundle adjustment. The main stages of the process are:
+* * KeyFrame insertion (LocalMapping::InsertKeyFrame)
+* * Recent MapPoint culling (LocalMapping::MapPointCulling)
+* * New Points Creation (LocalMapping::CreateNewMapPoints)
+* * Local bundle adjustment (Optimizer::LocalBundleAdjustment)
+* * Local KeyFrames Culling (LocalMapping::KeyFrameCulling)
+* 
+**/
 class LocalMapping
 {
 public:
+    /// Constructor
     LocalMapping(Map* pMap, const float bMonocular);
 
     void SetLoopCloser(LoopClosing* pLoopCloser);
 
     void SetTracker(Tracking* pTracker);
 
-    // Main function
+    /// Main function
     void Run();
 
+    /// Insert a new key frame from Tracking thread
+    ///
+    /// This is called from Tracking::CreateNewKeyFrame
     void InsertKeyFrame(KeyFrame* pKF);
 
     // Thread Synch

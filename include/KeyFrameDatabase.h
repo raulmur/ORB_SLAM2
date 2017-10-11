@@ -38,12 +38,12 @@ namespace ORB_SLAM2
 class KeyFrame;
 class Frame;
 
-
+///KeyFrame database for place recognition (relocalization and loop detection).
 class KeyFrameDatabase
 {
 public:
 
-    KeyFrameDatabase(const ORBVocabulary &voc);
+   KeyFrameDatabase(const ORBVocabulary &voc);
 
    void add(KeyFrame* pKF);
 
@@ -51,21 +51,25 @@ public:
 
    void clear();
 
-   // Loop Detection
+   /// \brief Find KeyFrame candidates for loop detection
+   ///
+   /// Called by LoopClosing::DetectLoop
    std::vector<KeyFrame *> DetectLoopCandidates(KeyFrame* pKF, float minScore);
 
-   // Relocalization
+   /// \brief Find KeyFrame candidates for relocalization
+   ///
+   /// Called by Tracking::Relocalization
    std::vector<KeyFrame*> DetectRelocalizationCandidates(Frame* F);
 
 protected:
 
-  // Associated vocabulary
+  /// Associated ORB vocabulary
   const ORBVocabulary* mpVoc;
 
-  // Inverted file
+  /// Inverted file
   std::vector<list<KeyFrame*> > mvInvertedFile;
 
-  // Mutex
+  /// Mutex
   std::mutex mMutex;
 };
 

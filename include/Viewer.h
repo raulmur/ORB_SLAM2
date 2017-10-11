@@ -37,13 +37,15 @@ class FrameDrawer;
 class MapDrawer;
 class System;
 
+///\brief Visualize tracking and model. Draw points, keyframes, the current camera pose and the last processed frame. 
+///
+///Drawing is refreshed according to the camera fps. We use Pangolin as the drawing backend.
 class Viewer
 {
 public:
     Viewer(System* pSystem, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Tracking *pTracking, const string &strSettingPath);
 
-    // Main thread function. Draw points, keyframes, the current camera pose and the last processed
-    // frame. Drawing is refreshed according to the camera fps. We use Pangolin.
+    /// Main thread function.
     void Run();
 
     void RequestFinish();
@@ -65,7 +67,7 @@ private:
     MapDrawer* mpMapDrawer;
     Tracking* mpTracker;
 
-    // 1/fps in ms
+    /// Time to wait between frames, 1/fps in ms
     double mT;
     float mImageWidth, mImageHeight;
 

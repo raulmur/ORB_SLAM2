@@ -58,6 +58,9 @@
 namespace ORB_SLAM2
 {
 
+///\brief Efficient Perspective-n-Point (EPnP) solver for estimating camera pose based on observed feature points
+///
+///PnPsolver is used by Tracking::Relocalization to estimate the camera position based on BoW selected candidates
 class PnPsolver {
  public:
   PnPsolver(const Frame &F, const vector<MapPoint*> &vpMapPointMatches);
@@ -136,59 +139,59 @@ class PnPsolver {
 
   vector<MapPoint*> mvpMapPointMatches;
 
-  // 2D Points
+  /// 2D Points
   vector<cv::Point2f> mvP2D;
   vector<float> mvSigma2;
 
-  // 3D Points
+  /// 3D Points
   vector<cv::Point3f> mvP3Dw;
 
-  // Index in Frame
+  /// Index in Frame
   vector<size_t> mvKeyPointIndices;
 
-  // Current Estimation
+  /// Current Estimation
   double mRi[3][3];
   double mti[3];
   cv::Mat mTcwi;
   vector<bool> mvbInliersi;
   int mnInliersi;
 
-  // Current Ransac State
+  /// Current Ransac State
   int mnIterations;
   vector<bool> mvbBestInliers;
   int mnBestInliers;
   cv::Mat mBestTcw;
 
-  // Refined
+  /// Refined
   cv::Mat mRefinedTcw;
   vector<bool> mvbRefinedInliers;
   int mnRefinedInliers;
 
-  // Number of Correspondences
+  /// Number of Correspondences
   int N;
 
-  // Indices for random selection [0 .. N-1]
+  /// Indices for random selection [0 .. N-1]
   vector<size_t> mvAllIndices;
 
-  // RANSAC probability
+  /// RANSAC probability
   double mRansacProb;
 
-  // RANSAC min inliers
+  /// RANSAC min inliers
   int mRansacMinInliers;
 
-  // RANSAC max iterations
+  /// RANSAC max iterations
   int mRansacMaxIts;
 
-  // RANSAC expected inliers/total ratio
+  /// RANSAC expected inliers/total ratio
   float mRansacEpsilon;
 
-  // RANSAC Threshold inlier/outlier. Max error e = dist(P1,T_12*P2)^2
+  /// RANSAC Threshold inlier/outlier. Max error e = dist(P1,T_12*P2)^2
   float mRansacTh;
 
-  // RANSAC Minimun Set used at each iteration
+  /// RANSAC Minimun Set used at each iteration
   int mRansacMinSet;
 
-  // Max square error associated with scale level. Max error = th*th*sigma(level)*sigma(level)
+  /// Max square error associated with scale level. Max error = th*th*sigma(level)*sigma(level)
   vector<float> mvMaxError;
 
 };
