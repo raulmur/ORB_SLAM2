@@ -47,8 +47,12 @@ if you use ORB-SLAM2 (Stereo or RGB-D) in an academic work, please cite:
     @article{murORB2,
       title={{ORB-SLAM2}: an Open-Source {SLAM} System for Monocular, Stereo and {RGB-D} Cameras},
       author={Mur-Artal, Ra\'ul and Tard\'os, Juan D.},
-      journal={arXiv preprint arXiv:1610.06475},
-      year={2016}
+      journal={IEEE Transactions on Robotics},
+      volume={33},
+      number={5},
+      pages={1255--1262},
+      doi = {10.1109/TRO.2017.2705103},
+      year={2017}
      }
 
 # 2. Prerequisites
