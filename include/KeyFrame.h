@@ -115,7 +115,8 @@ public:
     static bool lId(KeyFrame* pKF1, KeyFrame* pKF2){
         return pKF1->mnId<pKF2->mnId;
     }
-
+    // Flag to ensure completion of traversal
+    bool mbVisited;
 
     // The following variables are accesed from only 1 thread or never change (no mutex needed).
 public:
