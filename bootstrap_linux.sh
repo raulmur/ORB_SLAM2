@@ -1,11 +1,14 @@
 #!/bin/bash
 
-wget -N https://cmake.org/files/v3.9/cmake-3.9.2-Linux-x86_64.sh -P /usr/
-chmod 755 /usr/cmake-3.9.2-Linux-x86_64.sh
-mkdir -p /opt/cmake-3.9.2
-/usr/cmake-3.9.2-Linux-x86_64.sh --skip-license --prefix=/opt/cmake-3.9.2
-#ln -s /opt/cmake-3.9.2/bin/cmake /usr/local/bin/cmake
 cmake_latest=/opt/cmake-3.9.2/bin/cmake
+if [ ! -f ${cmake_latest} ] 
+then 
+	wget -N https://cmake.org/files/v3.9/cmake-3.9.2-Linux-x86_64.sh -P /usr/
+	chmod 755 /usr/cmake-3.9.2-Linux-x86_64.sh
+	mkdir -p /opt/cmake-3.9.2
+	/usr/cmake-3.9.2-Linux-x86_64.sh --skip-license --prefix=/opt/cmake-3.9.2
+fi
+
 
 apt-get update && apt-get install -y \
     build-essential g++ autotools-dev git doxygen \
@@ -32,23 +35,28 @@ apt-get update && apt-get install -y \
     libtiff-dev \
     libjasper-dev
 	
+if [ ! -d "/usr/local/share/OpenCV" ]
+then 
+	git clone https://github.com/opencv/opencv.git
+	cd opencv
+	mkdir -p build
+	cd build
+	cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
+	make -j $(($(nproc) + 1))
+	make install
+	echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf
+	ldconfig
+	apt-get update
+	cd ../..
+fi
 
-git clone https://github.com/opencv/opencv.git
-cd opencv
-mkdir -p build
-cd build
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
-make -j $(($(nproc) + 1))
-make install
-echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf
-ldconfig
-apt-get update
-cd ../..
-
-git clone https://github.com/stevenlovegrove/Pangolin.git
-cd Pangolin
-mkdir -p build
-cd build
-cmake ..
-cmake --build .
-cd ../..
+if [ ! -d "/usr/local/lib/cmake/Pangolin" ]
+then
+	git clone https://github.com/stevenlovegrove/Pangolin.git
+	cd Pangolin
+	mkdir -p build
+	cd build
+	${cmake_latest} .. -DCMAKE_INSTALL_PREFIX=/usr/local
+	${cmake_latest} --build . --target install
+	cd ../..
+fi

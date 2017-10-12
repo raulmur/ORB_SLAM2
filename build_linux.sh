@@ -3,10 +3,10 @@
 CurDir=$(dirname $0)
 
 source ${CurDir}/bootstrap_linux.sh "$@"
-
+cd ${CurDir}
 OrbSlamPlatform=`uname -m`
 OrbSlamToolset=gcc.`gcc -dumpversion`
-OrbSlamBuildtype=Release
+OrbSlamBuildtype=Debug
 
 if [ ! -z "$1" ] 
 then
@@ -36,13 +36,11 @@ then
 	mkdir -p "${BuildDir}"
 fi
 
-cd ${cmake_latest}
-
 if [ ! -e ${cmake_latest} ] 
 then 
 	cmake_latest=cmake
 fi
 
-${cmake_latest} "../.." -DCMAKE_BUILD_TYPE=${OrbSlamBuildtype} -DORBSLAM2_STATIC_LIB=ON -DG2O_STATIC_LIB=ON -DDBOW2_STATIC_LIB=ON -DBUILD_EXAMPLES=ON -DBUILD_THIRDPARTY_LIB=ON
+${cmake_latest} . -B${BuildDir} -DCMAKE_BUILD_TYPE=${OrbSlamBuildtype} -DORBSLAM2_STATIC_LIB=OFF -DG2O_STATIC_LIB=OFF -DDBOW2_STATIC_LIB=OFF -DBUILD_EXAMPLES=OFF -DBUILD_THIRDPARTY_LIB=ON -DCMAKE_INSTALL_PREFIX=/usr/local
+${cmake_latest} --build ${BuildDir} --target install
 
-cmake --build .
