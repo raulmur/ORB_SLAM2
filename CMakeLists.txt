@@ -89,7 +89,7 @@ install(TARGETS orb-slam2 EXPORT orb-slam2Config
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
 )
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include/orbslam2 CONFIGURATIONS Release)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include/orbslam2)
 install(EXPORT orb-slam2Config DESTINATION share/orb-slam2)
 # Build examples
 if(BUILD_EXAMPLES)
