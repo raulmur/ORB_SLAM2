@@ -42,8 +42,8 @@ then
 	mkdir -p build
 	cd build
 	cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
-	make -j $(($(nproc) + 1))
-	make install
+	${cmake_latest} -j $(($(nproc) + 1))
+	${cmake_latest} install
 	echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf
 	ldconfig
 	apt-get update
