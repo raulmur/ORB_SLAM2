@@ -9,9 +9,7 @@ then
 	/usr/cmake-3.9.2-Linux-x86_64.sh --skip-license --prefix=/opt/cmake-3.9.2
 fi
 
-sudo apt-get -y update
-
-sudo apt-get install -y \
+sudo apt-get -y update && sudo apt-get install -y \
     build-essential g++ autotools-dev git doxygen \
     python-dev \
     python-numpy \
