@@ -14,7 +14,7 @@ sudo apt-get -y upgrade
 sudo apt-get -y dist-upgrade
 sudo apt-get -y autoremove
 
-apt-get install -y \
+sudo apt-get install -y \
     build-essential g++ autotools-dev git doxygen \
     python-dev \
     python-numpy \
