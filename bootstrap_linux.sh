@@ -22,7 +22,6 @@ sudo apt-get -y update && sudo apt-get install -y \
     libdc1394-22-dev \
     libraw1394-dev \
     libjpeg-dev \
-    libpng12-dev \
     libtiff5-dev \
     libopenexr-dev \
     libeigen3-dev \
@@ -31,8 +30,7 @@ sudo apt-get -y update && sudo apt-get install -y \
     libtbb2 \
     libtbb-dev \
     libpng-dev \
-    libtiff-dev \
-    libjasper-dev
+    libtiff-dev
 	
 if [ ! -d "/usr/local/share/OpenCV" ]
 then 
