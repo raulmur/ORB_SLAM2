@@ -11,7 +11,7 @@ fi
 
 
 apt-get update && apt-get install -y \
-    build-essential g++ autotools-dev git doxygen \
+    build-essential cmake g++ autotools-dev git doxygen \
     python-dev \
     python-numpy \
     libglew-dev \
@@ -41,9 +41,9 @@ then
 	cd opencv
 	mkdir -p build
 	cd build
-	cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
-	${cmake_latest} -j $(($(nproc) + 1))
-	${cmake_latest} install
+	${cmake_latest} -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
+	make -j $(($(nproc) + 1))
+	make install
 	echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf
 	ldconfig
 	apt-get update
