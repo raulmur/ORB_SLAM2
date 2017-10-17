@@ -83,14 +83,51 @@ Clone the repository:
 git clone https://github.com/raulmur/ORB_SLAM2.git ORB_SLAM2
 ```
 
-We provide a script `build.sh` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
+## 3.1 Building on Windows
+
+We use `vcpkg` package manager to install the dependencies. The script `bootstrap_windows.bat` assumes that `vcpkg` is installed from https://github.com/paul-michalik/vcpkg in `\Software\vcpkg\vcpkg`. Please follow the instructions in [Readme](https://github.com/paul-michalik/vcpkg/blob/master/README.md) to install `vcpkg` and modify `bootstrap_windows.bat` if other installation folder is used.
+
+There is a script that automates building of orb-slam2 and its dependencies
+for Windows. We provide a script `build_windows.bat` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
 ```
 cd ORB_SLAM2
-chmod +x build.sh
-./build.sh
+build_windows.bat
+```
+ 
+`build_windows.bat` takes following (optional) parameters:
+- Platform: `x86` or `x64`
+- Toolset: `v140`, `v141`
+- Configuration: `Debug`, `Release`
+
+Defaults correspond to:
+``` 
+build_windows.bat x86 v141 Debug
 ```
 
-This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono_tum**, **mono_kitti**, **rgbd_tum**, **stereo_kitti**, **mono_euroc** and **stereo_euroc** in *Examples* folder.
+`build_windows.bat` invokes `bootstrap_windows.bat` which installs all required dependencies via `vcpkg`. Please install `vcpkg` according to  
+
+## 3.2 Building on Ubuntu Linux
+
+We use `apt-get` package manager to install the dependencies. The script `bootstrap_linux.sh` will download and install all packages required to build the project.
+
+We provide a script `build_linux.sh` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
+
+```
+cd ORB_SLAM2
+build_linux.sh
+```
+
+`build_linux.sh` takes following (optional) parameters:
+
+- Platform 
+- Toolset
+- Configuration
+
+Defaults correspond to:
+
+```
+build_linux.sh `uname -m` gcc.`gcc -dumpversion` Debug
+```
 
 # 4. Monocular Examples
 
