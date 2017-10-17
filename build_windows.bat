@@ -21,8 +21,7 @@ set "OrbSlamBuildDir=%~dp0\products\cmake.msbuild.windows.%OrbSlamPlatform%.%Orb
 if not exist "%OrbSlamBuildDir%" mkdir "%OrbSlamBuildDir%"
 cd "%OrbSlamBuildDir%"
 
-echo:& echo Invoking cmake like this as: cmake.exe -G "%OrbSlamCMakeGeneratorName%" -DORBSLAM2_STATIC_LIB=ON -DG2O_STATIC_LIB=ON -DDBOW2_STATIC_LIB=ON -DBUILD_EXAMPLES=ON -DBUILD_THIRDPARTY_LIB=ON "%~dp0" & echo.
+call cmake.exe -G "%OrbSlamCMakeGeneratorName%" -DBUILD_EXAMPLES=ON "%~dp0"
+call cmake.exe --build . --config %OrbSlamBuildType%
 
-call cmake.exe -G "%OrbSlamCMakeGeneratorName%" -DORBSLAM2_STATIC_LIB=ON -DG2O_STATIC_LIB=ON -DDBOW2_STATIC_LIB=ON -DBUILD_EXAMPLES=ON -DBUILD_THIRDPARTY_LIB=ON "%~dp0"
-rem call cmake.exe --build . --config %OrbSlamBuildtype%
 endlocal

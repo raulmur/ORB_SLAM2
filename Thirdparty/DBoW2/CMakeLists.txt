@@ -1,12 +1,7 @@
 cmake_minimum_required(VERSION 3.8)
 project(DBoW2)
 
-SET (DBOW2_LIB_TYPE SHARED)
-option( DBOW2_STATIC_LIB "Orb-slam lib type" OFF )
-
-if(DBOW2_STATIC_LIB)
-	SET(DBOW2_LIB_TYPE STATIC)
-endif()
+SET (DBOW2_LIB_TYPE STATIC)
 
 set(HDRS_DBOW2
   DBoW2/BowVector.h

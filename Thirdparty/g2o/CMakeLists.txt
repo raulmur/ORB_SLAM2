@@ -4,12 +4,7 @@ PROJECT(g2o)
 
 SET(g2o_C_FLAGS)
 SET(g2o_CXX_FLAGS)
-SET (G2O_LIB_TYPE SHARED)
-option( G2O_STATIC_LIB "Orb-slam lib type" OFF )
-
-if(G2O_STATIC_LIB)
-	SET(G2O_LIB_TYPE STATIC)
-endif()
+SET (G2O_LIB_TYPE STATIC)
 
 # There seems to be an issue with MSVC8
 # see http://eigen.tuxfamily.org/bz/show_bug.cgi?id=83

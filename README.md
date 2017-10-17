@@ -79,32 +79,52 @@ Clone the repository:
 git clone https://github.com/raulmur/ORB_SLAM2.git ORB_SLAM2
 ```
 
-We provide a script `build.sh` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
+## 3.1 Building on Windows
+
+We use `vcpkg` package manager to install the dependencies. The script `bootstrap_windows.bat` assumes that `vcpkg` is installed from https://github.com/paul-michalik/vcpkg in `\Software\vcpkg\vcpkg`. Please follow the instructions in [Readme](https://github.com/paul-michalik/vcpkg/blob/master/README.md) to install `vcpkg` and modify `bootstrap_windows.bat` if other installation folder is used.
+
+There is a script that automates building of orb-slam2 and its dependencies
+for Windows. We provide a script `build_windows.bat` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
 ```
 cd ORB_SLAM2
-chmod +x build.sh
-./build.sh
+build_windows.bat
+```
+ 
+`build_windows.bat` takes following (optional) parameters:
+- Platform: `x86` or `x64`
+- Toolset: `v140`, `v141`
+- Configuration: `Debug`, `Release`
+
+Defaults correspond to:
+``` 
+build_windows.bat x86 v141 Debug
 ```
 
-This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono_tum**, **mono_kitti**, **rgbd_tum**, **stereo_kitti**, **mono_euroc** and **stereo_euroc** in *Examples* folder.
+`build_windows.bat` invokes `bootstrap_windows.bat` which installs all required dependencies via `vcpkg`. Please install `vcpkg` according to  
 
-There is also scripts that automate building of orb-slam2 and its dependencies
-for Windows:
-we provide a script `build_windows.bat` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
+## 3.2 Building on Ubuntu Linux
+
+We use `apt-get` package manager to install the dependencies. The script `bootstrap_linux.sh` will download and install all packages required to build the project.
+
+We provide a script `build_linux.sh` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
+
 ```
 cd ORB_SLAM2
-build_windows.bat [platform] [toolsset] [configuration] (e.g-> build_windows.bat x64 v141 Release)
-notes:
- run build_windows.bat with no parameter will build orb-slam2 with x86 platform and v140 toolset present in the system with Release mode
-for linux:
-we provide a script `build_linux.sh` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
+build_linux.sh
 ```
-cd ORB_SLAM2
-build_linux.sh [platform] [toolsset] [configuration] (e.g-> build_linux.sh x86-x64 5.4.0 Release)
-notes:
- platform -> to get current platform information (type in terminal -> uname -m)
- toolsset -> to get current toolset information (type in terminal  -> gcc -dumpversion)
- run build_linux.sh with no parameter will build orb-slam2 with defaul platform and default toolset present in the system with Release mode
+
+`build_linux.sh` takes following (optional) parameters:
+
+- Platform 
+- Toolset
+- Configuration
+
+Defaults correspond to:
+
+```
+build_linux.sh `uname -m` gcc.`gcc -dumpversion` Debug
+```
+
 # 4. Monocular Examples
 
 ## TUM Dataset
