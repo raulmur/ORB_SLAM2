@@ -1,14 +1,8 @@
 cmake_minimum_required(VERSION 3.8)
 project(orb-slam2)
 
-SET(ORBSLAM2_LIB_TYPE SHARED)
+SET(ORBSLAM2_LIB_TYPE STATIC)
 option( BUILD_EXAMPLES "Build Examples" ON )
-option( ORBSLAM2_STATIC_LIB "Orb-slam lib type" OFF )
-option( BUILD_THIRDPARTY_LIB "Build Thirdparty Lib" OFF )
-
-if(ORBSLAM2_STATIC_LIB)
-	SET(ORBSLAM2_LIB_TYPE STATIC)
-endif()
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 add_definitions("-DCOMPILEDWITHC11")
