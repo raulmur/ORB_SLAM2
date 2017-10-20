@@ -33,7 +33,7 @@ int main(int argc, char** argv)
             {
                 auto current_video_time = video_capture.get(CV_CAP_PROP_POS_MSEC);
                 slam.TrackMonocular(frame, current_video_time);
-                std::this_thread::sleep_for(std::chrono::milliseconds(30));
+                //std::this_thread::sleep_for(std::chrono::milliseconds(30));
             }
 
             slam.Shutdown();
