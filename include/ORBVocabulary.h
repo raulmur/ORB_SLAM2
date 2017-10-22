@@ -28,8 +28,14 @@
 namespace ORB_SLAM2
 {
 
-typedef DBoW2::TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB>
-  ORBVocabulary;
+	class ORBVocabulary : public DBoW2::TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB> {
+		typedef DBoW2::TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB> super;
+	public:
+		void saveBinary(std::string fileName);
+		void loadBinary(std::string fileName);
+		bool loadFromTextFile2(const std::string &filename);
+
+	};
 
 } //namespace ORB_SLAM
 

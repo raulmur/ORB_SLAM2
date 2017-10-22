@@ -1,0 +1,22 @@
+syntax = "proto2";
+//option optimize_for = LITE_RUNTIME;
+
+message header_t {
+	required int32 m_k = 1;
+	required int32 m_L = 2;
+    required int32 m_scoring = 3;
+    required int32 m_weighting = 4;
+}
+
+message record_t {
+	required uint32 id = 1;
+	required uint32 parent = 2;
+//    required bool is_leaf = 3;
+    required double weight = 4;
+	required bytes data = 5;
+}
+
+message file_t {
+    required header_t header = 1;
+    repeated record_t nodes = 2;
+}
