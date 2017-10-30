@@ -21,4 +21,6 @@ Vocabulary/ORBvoc.txt
 build/
 *~
 lib/
+products/
 
+.vs/
