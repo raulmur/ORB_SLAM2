@@ -11,6 +11,8 @@ then
     exit 1
 fi
 
+export artificial_kp=enable
+export artificial_kp_path=./Examples/Monocular/artificial_kp/
 ${CurDir}/${BuildDir}/mono_video \
     ${1} \
     ${CurDir}/Vocabulary/ORBvoc.txt \

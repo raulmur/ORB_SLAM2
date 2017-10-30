@@ -468,6 +468,8 @@ ORBextractor::ORBextractor(int _nfeatures, float _scaleFactor, int _nlevels,
         umax[v] = v0;
         ++v0;
     }
+    
+    read_artificial_kp();
 }
 
 static void computeOrientation(const Mat& image, vector<KeyPoint>& keypoints, const vector<int>& umax)
@@ -763,6 +765,66 @@ vector<cv::KeyPoint> ORBextractor::DistributeOctTree(const vector<cv::KeyPoint>&
     return vResultKeys;
 }
 
+void ORBextractor::read_artificial_kp()
+{
+    _insert_artifical_kp = false;
+
+    auto artificial_kp = std::getenv("artificial_kp");
+    if (nullptr != artificial_kp && strcmp(artificial_kp, "enable") == 0)
+        _insert_artifical_kp = true;
+    if (false == _insert_artifical_kp)
+        return;
+
+    auto artificial_kp_path = std::getenv("artificial_kp_path");
+    std::string kp_folder;
+    if (nullptr != artificial_kp_path)
+        kp_folder = std::string(artificial_kp_path);
+    for (auto level = 0; level < nlevels; ++level)
+    {
+        std::vector<cv::KeyPoint> &key_points_new = _artifical_kps[level];
+        std::string file = std::to_string(level) + ".csv";
+        auto filename = kp_folder + file;
+        std::ifstream ifile(filename);
+        if (false == ifile.good())
+        {
+            std::cerr << "Unable to open " << filename << std::endl;
+            return;
+        }
+        std::string line;
+        std::getline(ifile, line); // first line is header
+        while (std::getline(ifile, line))
+        {
+            std::stringstream ss(line);
+            std::string value;
+            std::vector<std::string> values;
+            while (std::getline(ss, value, ','))
+            {
+                values.push_back(value);
+            }
+
+            if (7 != values.size())
+                throw std::runtime_error("Invalid columns from file " + filename);
+
+            float x = std::stof(values[0]);
+            float y = std::stof(values[1]);
+            float size = std::stof(values[2]);
+            float angle = std::stof(values[3]);
+            float response = std::stof(values[4]);
+            int octave = std::stoi(values[5]);
+            int class_id = std::stoi(values[6]);
+            cv::KeyPoint artifical_kp{x, y, size, angle,
+                                      response, octave, class_id};
+            key_points_new.push_back(artifical_kp);
+        }
+    }
+}
+
+void ORBextractor::add_new_keypoints(const int level, std::vector<cv::KeyPoint> &key_points)
+{
+    key_points.insert(key_points.end(), _artifical_kps[level].begin(),
+                      _artifical_kps[level].end());
+}
+
 void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoints)
 {
     allKeypoints.resize(nlevels);
@@ -829,6 +891,9 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
             }
         }
 
+        if (_insert_artifical_kp)
+            add_new_keypoints(level, vToDistributeKeys);
+        
         vector<KeyPoint> & keypoints = allKeypoints[level];
         keypoints.reserve(nfeatures);
 
