@@ -23,6 +23,9 @@
 
 #include <vector>
 #include <list>
+#include <fstream>
+#include <iostream>
+#include <map>
 #include <opencv/cv.h>
 
 
@@ -85,7 +88,8 @@ public:
     std::vector<cv::Mat> mvImagePyramid;
 
 protected:
-
+    void add_new_keypoints(const int level, std::vector<cv::KeyPoint> &key_points);
+    void read_artificial_kp();
     void ComputePyramid(cv::Mat image);
     void ComputeKeyPointsOctTree(std::vector<std::vector<cv::KeyPoint> >& allKeypoints);    
     std::vector<cv::KeyPoint> DistributeOctTree(const std::vector<cv::KeyPoint>& vToDistributeKeys, const int &minX,
@@ -108,6 +112,9 @@ protected:
     std::vector<float> mvInvScaleFactor;    
     std::vector<float> mvLevelSigma2;
     std::vector<float> mvInvLevelSigma2;
+    
+    std::map<int, std::vector<cv::KeyPoint>> _artifical_kps;
+    bool _insert_artifical_kp;
 };
 
 } //namespace ORB_SLAM

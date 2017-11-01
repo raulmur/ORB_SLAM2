@@ -1,0 +1,152 @@
+ORB-SLAM2
+	Threads
+		Tracking(main)
+			Find Homography (Transient)
+			Find Fundamental (Transient)
+		Local Mapping
+		Loop Closing
+			Global Bundle Adjustment (Transient)
+		Viewer
+	Detailed View
+		Construction
+			Read settings file
+				Camera calibration and distortion parameters
+				ORB parameters
+				Viewer parameters
+			Read vocabulary file
+			Create threads like Local Mapping, Loop Closing, Viewer
+		Initialization
+			Grab image from input stream
+			Create frame out of image
+				Frame is an internal object representing a image
+					Image Matrix
+					Key-points
+					Un-distorted key-points
+					Key-point descriptor
+					Camera Pose
+					BoW representation
+				Each image is processed, Key-points(ORB Features) and descriptors are extracted
+				Key-points are then un-distorted using camera calibration parameters which is provided in settings file
+				Un-distorted features are stored in Grid to speed up feature matching
+			Monocular Initialization
+				During the initialization phase, every frame is evaluated to see if it can be used as reference frame
+				Reference frame should have more than 100 key-points
+				Using the reference frame next incoming frame is evaluated to see if initialization can be done. Initialization can be done only if number of correspondence is more than 100
+				More key points( 2* ORBExtractor.nfeatures ) the extracted until the initialization is finished. Once the system is initialized ORBExtractor.nfeatures is only extracted
+				If the initialization cannot be done, then whole data is cleared and initialization processes restarts from finding a new reference frame
+				If more than 100 matches are found then, reference frame and incoming frame are used to calculate camera pose and initial map
+				Homography and fundamental matrices are calculated concurrently, along with a heuristic value 
+				If heuristic value is greater than 0.40 homography is selected as reconstruction method
+				If reconstruction using a particular model(homography or fundamental) fails then initialization process is restarted
+				Create Initial Map
+					Two frames will be used to create initial map, current frame and the initial reference frame
+					Create key-frames using current frame and initial frame
+					Compute BoW representation of key-frames. BoW is stored inside key-frame object
+					Insert both key-frames to map
+					Create map-point
+						Map-point
+							Mean normal vector from center of key-frames
+							World Position
+							Matched features between two frames
+							Descriptors with least median distance
+					Bi-directional association is maintained between map-point and key-frame. Map-point is added to key-frame. And each map-point also knows which all key-frames are observing it
+					Perform global bundle adjustment
+					If after global bundle adjustment there are less than 100 tracked points then all the data are cleared and initialization process is restarted
+		Tracking
+			Tracking means processing incoming frames and provide the key-frames to local mapping if mapping is enabled, or performs localization if local mapping is disabled
+			Tracking basically uses key-point matches between current frame and last frame and performs pose optimization. If not enough matches are found, then wider search area will be used
+			Pose optimization is performed and the outliers are discarded
+			Check if new key-frame needs to be inserted
+				Local-Mapping thread should be active
+				Enough frames should have passed from last re-localization
+				More than "Max-frames" (fps) have passed from last key-frame insertion - A
+				More than "Min-frames" (0) have passed and Local Mapping is idle - B
+				Tracking is weak - C [Not applicable for monocular]
+				Few tracked points compared to reference key-frame (current frame has less than 75% of matches with reference frame)- D
+				if( (A or B or C) and D ) is true
+					Accept new key-frames if local-mapping is idle
+					if local-mapping is busy, then interrupt local-mapper's bundle adjustment
+					if number of key-frames in queue is less than 3, then new key-frame can be inserted
+			If the frame creating conditions are satisfied, new key-frame will be created, reference frame is set to new key-frame
+			Re-localization is performed if tracking is lost
+				Compute BoW for current frame
+				Query Key-frame Database for key-frame candidates for re-localisation
+					Search all key-frames that share a word with current frame
+					Only compare against those keyframes that share enough words
+					Compute similarity score
+					Accumulate score by co-visibility
+					Return all those key-frames with a score higher than 0.75*best-score
+				Set up PnP solver, which calculates camera pose
+					Set up ORB Matcher
+					Search for matches between current frame and re-localization candidates using BoW
+					If the number of matches is less than 15 discard the frame
+					Set up new PnP solver for more than 15 matches are found
+				Perform P4P RANSAC iterations until we find a camera pose supported by enough inliers
+				Optimize camera pose
+				If few inliers, search by projection in a coarse window and optimize again
+				If still not enough inliers, search by projection again in a narrower window and optimize pose
+		Local Mapping
+			Set local mapping thread as busy
+			Process new key-frames
+				Compute BoW
+				Associate the map-points to the new key-frame
+				Update co-visibility graph and spanning tree with new key-frame
+				Add new key-frame to map
+			Map point culling, removing of the map points to reduce the data
+				Map point is removed if it's found ratio is less than 25%
+					Map point is retained if map point is visible from more than 25% of the frames from where the map point was found
+				Map point is removed if number of key-frames observing the current map point is less than 3
+			Create new map points
+				Get the neighboring key-frames from co-visibility graph
+				Map points are created by triangulating ORB matches from neighboring key-frames
+				Matches are also found which fulfills the epipolar constraint
+				Map points are triangulated after correcting re-projection errors
+				Create new map point and update the map
+			Local bundle adjustment
+			Key-frame culling
+				A key-frame is considered redundant if the 90% of the map points it sees, are seen in at least other 3 key-frames
+			Inform loop closing thread with newly inserted key-frame
+			Set local mapping as not-busy
+		Loop Closing
+			Detect loop
+				Make current key-frame non-erasable so that it will be not be culled by Local Mapping
+				Loop will not be detected, If the map contains less than 10 key-frames or less than 10 key frames have passed from last loop detection
+				Compute reference BoW similarity score. This is the lowest score to a connected key-frame in the co-visibility graph. We will impose loop candidates to have a higher similarity than this
+				Query the key-frame database for loop candidates imposing the minimum score
+				If there are no loop candidates, just add new key-frame to key-frame database and return false
+				For each loop candidate check consistency with previous loop candidates. key-frames connected to the loop candidate in the co-visibility graph are used for comparison
+				A group is consistent with a previous group if they share at least a key-frame
+				Loop  will not be detected if consistent group is empty
+			Compute similarity transformation
+				Helps in correcting pose due to scale errors, drift etc and validate geometry
+			Correct loop
+				Pause local mapping
+				Stop global bundle adjustment
+				Retrieve keyframes connected to the current keyframe and compute corrected Sim3(Similarity transformation) pose by propagation
+				Correct all MapPoints observed by current keyframe and neighbors, so that they align with the other side of the loop
+				Update keyframe pose with corrected Sim3
+				Update keyframe connections
+				Project MapPoints observed in the neighborhood of the loop keyframe into the current keyframe using corrected poses
+				Fuse map-point duplication
+				After the MapPoint fusion, new links in the co-visibility graph will be added to attach loop
+				Optimize essential graph
+				Launch a new thread to perform Global Bundle Adjustment, to propagate the correction through the spanning tree
+				Resume Local Mapping
+	Overview
+		Tracking
+			ORB Extraction
+			Initial Pose Estimation from Previous Frame
+			Initial Pose Estimation via Global Re-localization
+			Track Local Map
+			New Key-Frame Decision
+		Local Mapping
+			Key-Frame Insertion
+			Recent Map Points Culling
+			New Map Point Creation
+			Local Bundle Adjustment
+			Local Key-Frame Culling
+		Loop Closing
+			Loop Candidates Detection
+			Compute the Similarity Transformation
+			Loop Fusion
+			Essential Graph Optimization
