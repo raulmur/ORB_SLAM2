@@ -3,14 +3,15 @@
 CurDir=$(dirname $0)
 OrbSlamPlatform=`uname -m`
 OrbSlamToolset=gcc.`gcc -dumpversion`
-BuildDir="products/cmake.make.linux.${OrbSlamPlatform}.${OrbSlamToolset}"
+OrbSlamBuildtype=Debug
+
+BuildDir="products/cmake.make.linux.${OrbSlamPlatform}.${OrbSlamToolset}.${OrbSlamBuildtype}"
 
 if [ "$1" = "" ]
 then
     echo "Provide video path"
     exit 1
 fi
-
 
 cd Vocabulary
 if [ ! -e ORBvoc.txt ]

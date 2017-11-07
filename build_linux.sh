@@ -4,6 +4,7 @@ CurDir=$(dirname $0)
 cd ${CurDir}
 OrbSlamPlatform=`uname -m`
 OrbSlamToolset=gcc.`gcc -dumpversion`
+OrbSlamBuildtype=Debug
 
 if [ ! -z "$1" ] 
 then
@@ -22,7 +23,7 @@ fi
 
 echo "Configuring and building Thirdparty/DBoW2 Thirdparty/g2o ORB_SLAM2 ..."
 
-BuildDir="products/cmake.make.linux.${OrbSlamPlatform}.${OrbSlamToolset}"
+BuildDir="products/cmake.make.linux.${OrbSlamPlatform}.${OrbSlamToolset}.${OrbSlamBuildtype}"
 if [ ! -e ${BuildDir} ] 
 then 
 	mkdir -p "${BuildDir}"
