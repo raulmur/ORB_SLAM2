@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.7)
 project(orb-slam2)
 
 SET(ORBSLAM2_LIB_TYPE STATIC)
@@ -64,11 +64,12 @@ target_sources(${PROJECT_NAME} PRIVATE
     bootstrap_windows.bat
     build_windows.bat
     bootstrap_linux.sh
-    build.sh
     build_linux.sh
     build_ros.sh)
-
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
+if(CMAKE_COMPILER_IS_GNUCXX)
+    set(options -O3 -march=native)
+    add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${options}>")
+endif()
 
 target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}

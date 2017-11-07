@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.7)
 project(DBoW2)
 
 SET (DBOW2_LIB_TYPE STATIC)

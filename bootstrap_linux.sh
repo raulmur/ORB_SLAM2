@@ -1,59 +1,112 @@
 #!/bin/bash
 
-cmake_latest=/opt/cmake-3.9.2/bin/cmake
-if [ ! -f ${cmake_latest} ] 
-then 
-	wget -N https://cmake.org/files/v3.9/cmake-3.9.2-Linux-x86_64.sh -P /usr/
-	chmod 755 /usr/cmake-3.9.2-Linux-x86_64.sh
-	mkdir -p /opt/cmake-3.9.2
-	/usr/cmake-3.9.2-Linux-x86_64.sh --skip-license --prefix=/opt/cmake-3.9.2
-fi
-
-sudo apt-get -y update && sudo apt-get install -y \
-    build-essential g++ autotools-dev git doxygen \
-    python-dev \
-    python-numpy \
-    libglew-dev \
-    ffmpeg \
-    libavcodec-dev \
-    libavutil-dev \
-    libavformat-dev \
-    libswscale-dev \
-    libdc1394-22-dev \
-    libraw1394-dev \
-    libjpeg-dev \
-    libtiff5-dev \
-    libopenexr-dev \
-    libeigen3-dev \
-    libgtk2.0-dev \
-    pkg-config \
-    libtbb2 \
-    libtbb-dev \
-    libpng-dev \
-    libtiff-dev
-	
-if [ ! -d "/usr/local/share/OpenCV" ]
-then 
-	git clone https://github.com/opencv/opencv.git
-	cd opencv
-	mkdir -p build
-	cd build
-	${cmake_latest} -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
-	make -j $(($(nproc) + 1))
-	make install
-	echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf
-	ldconfig
-	apt-get update
-	cd ../..
-fi
-
-if [ ! -d "/usr/local/lib/cmake/Pangolin" ]
+if [ ! "${EUID}" = "0" ]
 then
-	git clone https://github.com/stevenlovegrove/Pangolin.git
-	cd Pangolin
-	mkdir -p build
-	cd build
-	${cmake_latest} .. -DCMAKE_INSTALL_PREFIX=/usr/local
-	${cmake_latest} --build . --target install
-	cd ../..
+   echo "ERROR: ${0} must be run as root" 
+   exit 1
 fi
+
+cores=$(nproc)
+packages_dir=/root/packages
+install_dir=/usr/local
+mkdir -p ${packages_dir}
+
+install_dependencies() {
+    apt-get -y update 
+    apt-get install -y \
+        build-essential \
+        g++ \
+        autotools-dev \
+        git \
+        doxygen \
+        python-dev \
+        python-numpy \
+        python3-dev \
+        python3-numpy \
+        libglew-dev \
+        ffmpeg \
+        libavcodec-dev \
+        libavutil-dev \
+        libavformat-dev \
+        libswscale-dev \
+        libdc1394-22-dev \
+        libraw1394-dev \
+        libjpeg-dev \
+        libtiff5-dev \
+        libopenexr-dev \
+        libeigen3-dev \
+        libgtk2.0-dev \
+        pkg-config \
+        libtbb2 \
+        libtbb-dev \
+        libpng-dev \
+        libtiff-dev \
+        cmake \
+        apt-utils \
+        wget
+}
+
+download_file() {
+    cd ${packages_dir}
+    folder=${packages_dir}/${1}
+    url=${2}
+
+    mkdir -p ${folder}
+    cd ${folder}
+    wget -N ${url}
+    cd ${packages_dir}
+}
+
+download_packages() {
+    opencv_url=https://github.com/opencv/opencv/archive/3.3.1.tar.gz
+    pangolin_url=https://github.com/stevenlovegrove/Pangolin/archive/v0.5.tar.gz
+
+    download_file opencv ${opencv_url}
+    download_file pangolin ${pangolin_url}
+}
+
+install_opencv() {
+    cd ${packages_dir}/opencv
+    extracted_folder=opencv-3.3.1
+    archive_file=3.3.1.tar.gz
+    
+    if [ ! -e ${extracted_folder} ]
+    then
+        tar xzf ${archive_file}
+    fi
+    
+    cd ${extracted_folder}
+    mkdir -p release
+    cd release
+    cmake -D CMAKE_BUILD_TYPE=release -D CMAKE_INSTALL_PREFIX=${install_dir} ..
+    make -j${cores}
+    make install
+}
+
+install_pangolin() {
+    cd ${packages_dir}/pangolin
+    extracted_folder=Pangolin-0.5
+    archive_file=v0.5.tar.gz
+    if [ ! -e ${extracted_folder} ]
+    then
+        tar xzf ${archive_file}
+    fi
+    cd ${extracted_folder}
+    mkdir -p release
+    cd release
+    cmake -D CMAKE_BUILD_TYPE=release -D CMAKE_INSTALL_PREFIX=${install_dir} ..
+    make -j${cores}
+    make install
+}
+
+cleanup() {
+    apt-get -y autoremove
+    apt-get -y autoclean
+    rm -rf /var/lib/apt/lists/*
+}
+
+install_dependencies
+download_packages
+install_opencv
+install_pangolin
+cleanup
