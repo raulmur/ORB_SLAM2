@@ -1,0 +1,9 @@
+sudo: required
+language: cpp
+services:
+  - docker
+before_install:
+  - docker pull shanmukhananda/orb-slam2:1.0
+  - chmod -R 777 *
+script:
+  - docker run -it --rm -v $(pwd):/root/orb-slam2 shanmukhananda/orb-slam2:1.0 /bin/bash -c /root/orb-slam2/build_linux.sh
