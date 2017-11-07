@@ -35,12 +35,8 @@ then
 fi
 
 cmake . -B${BuildDir} \
--DCMAKE_BUILD_TYPE=${OrbSlamBuildtype} \
--DORBSLAM2_STATIC_LIB=ON \
--DG2O_STATIC_LIB=ON \
--DDBOW2_STATIC_LIB=ON \
--DBUILD_EXAMPLES=ON \
--DBUILD_THIRDPARTY_LIB=ON \
--DCMAKE_INSTALL_PREFIX=/usr/local
+    -DCMAKE_BUILD_TYPE=${OrbSlamBuildtype} \
+    -DBUILD_EXAMPLES=ON \
+    -DCMAKE_INSTALL_PREFIX=/usr/local
 
 cmake --build ${BuildDir} --target install
