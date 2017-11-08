@@ -3,7 +3,7 @@ language: cpp
 services:
   - docker
 before_install:
-  - docker pull shanmukhananda/orb-slam2:1.0
   - chmod -R 777 *
+  - docker build --compress --tag=orb-slam2 --file ./Dockerfile .
 script:
-  - docker run -it --rm -v $(pwd):/root/orb-slam2 shanmukhananda/orb-slam2:1.0 /bin/bash -c /root/orb-slam2/build_linux.sh
+  - docker run -it --rm -v $(pwd):/root/orb-slam2 orb-slam2 /bin/bash -c /root/orb-slam2/build_linux.sh
