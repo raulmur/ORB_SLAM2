@@ -86,7 +86,7 @@ install_opencv() {
 
 install_pangolin() {
     cd ${packages_dir}/pangolin
-    extracted_folder=Pangolin-0.5
+    extracted_folder=pangolin-0.5
     archive_file=v0.5.tar.gz
     if [ ! -e ${extracted_folder} ]
     then
