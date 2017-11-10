@@ -12,7 +12,7 @@ install_dir=/usr/local
 mkdir -p ${packages_dir}
 
 install_dependencies() {
-    apt-get -y update 
+    apt-get update 
     apt-get install -y \
         build-essential \
         g++ \
@@ -72,7 +72,8 @@ install_opencv() {
     
     if [ ! -e ${extracted_folder} ]
     then
-        tar xzf ${archive_file}
+        mkdir -p ${extracted_folder}
+        tar xzf ${archive_file} --directory=${extracted_folder} --strip-components=1
     fi
     
     cd ${extracted_folder}
@@ -89,7 +90,8 @@ install_pangolin() {
     archive_file=v0.5.tar.gz
     if [ ! -e ${extracted_folder} ]
     then
-        tar xzf ${archive_file}
+        mkdir -p ${extracted_folder}
+        tar xzf ${archive_file} --directory=${extracted_folder} --strip-components=1
     fi
     cd ${extracted_folder}
     mkdir -p release
