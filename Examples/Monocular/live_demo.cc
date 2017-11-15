@@ -17,7 +17,7 @@ using namespace std;
 
 #define SET_CLOCK(t0)
   std::chrono::monotonic_clock::time_point t0 = std::chrono::monotonic_clock::now();
-
+#endif
 #define TIME_DIFF(t0, t1)
   std::chrono::duration_cast<std::chrono::duration<double>>(t1-t0).count();
 
