@@ -21,10 +21,10 @@ using namespace std;
 #define TIME_DIFF(t0, t1)
   std::chrono::duration_cast<std::chrono::duration<double>>(t1-t0).count();
 
-int main(int argc, char **argv[])
+int main(int argc, char **argv)
 {
   //Check if the command-line arguments are given correctly
-  if (!argc=4)
+  if (argc != 4)
   {  
     cerr<<argv[0]<<"required path to vocabulary;path to settings;number of seconds";
   }
