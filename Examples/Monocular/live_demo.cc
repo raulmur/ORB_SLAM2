@@ -68,6 +68,9 @@ int main(int argc, char **argv[])
   cout<<"Mean Tracking time:"<<nof/timetorun;
   //Saving the keyframe trajectories
   SLAM.SaveKeyFrameTrajectoryTUM("Trajectory.txt");   
+  return 0;
+}
+
 
 //if(frame.empty())
 //{
