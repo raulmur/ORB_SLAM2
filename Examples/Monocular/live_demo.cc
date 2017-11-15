@@ -10,16 +10,16 @@ using namespace std;
 
 
 #ifdef COMPILEDWITHC11
-#define SET_CLOCK(t0)
+#define SET_CLOCK(t0) \
   std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
 
 #else
 
-#define SET_CLOCK(t0)
+#define SET_CLOCK(t0) \
   std::chrono::monotonic_clock::time_point t0 = std::chrono::monotonic_clock::now();
 #endif
-#define TIME_DIFF(t0, t1)
-  std::chrono::duration_cast<std::chrono::duration<double>>(t1-t0).count();
+#define TIME_DIFF(t0, t1) \
+  (std::chrono::duration_cast<std::chrono::duration<double>>((t1) - (t0)).count())
 
 int main(int argc, char **argv)
 {
@@ -42,7 +42,11 @@ int main(int argc, char **argv)
   double timetorun=atof(argv[3]);
   //Initialising number of frames to 0
   int nof=0;
-  SET_CLOCK(t0); 
+  SET_CLOCK(t0);
+  cout <<"Start processing sequence..."<<endl;
+  cout<<"Reading input images from the video stream..."<<endl;
+  cout<<"Reading input frame by frame..."<<endl;
+
   while(true)
   {
      cap.grab();
@@ -53,9 +57,7 @@ int main(int argc, char **argv)
      {
        break;
      }
-     cout <<"Start processing sequence..."<<endl;
-     cout<<"Reading input images from the video stream..."<<endl;
-     cout<<"Reading input frame by frame..."<<endl;
+     
      //Start the slam process
      SLAM.TrackMonocular(frame,tframe);
      SET_CLOCK(t2);
@@ -71,12 +73,5 @@ int main(int argc, char **argv)
   return 0;
 }
 
-
-//if(frame.empty())
-//{
-//cout<<"No frames available";
-//}
-//else
-//{
 
 
