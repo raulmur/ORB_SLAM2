@@ -39,7 +39,7 @@ int main(int argc, char **argv)
   //initializing threads for the slam process
   ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true); // argv[1] is the vocabulary file and argv[2] is the settings file 
   cv::Mat frame;
-  timetorun=atof(argv[3]);
+  double timetorun=atof(argv[3]);
   //Initialising number of frames to 0
   int nof=0;
   SET_CLOCK(t0); 
@@ -59,7 +59,7 @@ int main(int argc, char **argv)
      //Start the slam process
      SLAM.TrackMonocular(frame,tframe);
      SET_CLOCK(t2);
-     double tdf=TIME_DIFF(t1,t2);
+     //double tdf=TIME_DIFF(t1,t2);
      //To get a count of the number of frames
      nof++; 
   }
