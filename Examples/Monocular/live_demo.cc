@@ -37,7 +37,7 @@ int main(int argc, char **argv)
     cout<<"Video not available.. Video stream not available";
   }
   //initializing threads for the slam process
-  ORB_SLAM2::System SLAM(argv[1],argv[2],ORBSLAM2::System::MONOCULAR,true); // argv[1] is the vocabulary file and argv[2] is the settings file 
+  ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true); // argv[1] is the vocabulary file and argv[2] is the settings file 
   cv::Mat frame;
   timetorun=atof(argv[3]);
   //Initialising number of frames to 0
