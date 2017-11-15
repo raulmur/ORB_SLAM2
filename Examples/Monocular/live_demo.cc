@@ -26,7 +26,7 @@ int main(int argc, char **argv[])
   //Check if the command-line arguments are given correctly
   if (!argc=4)
   {  
-    cerr<<"required path to vocabulary;path to settings;number of seconds";
+    cerr<<argv[0]<<"required path to vocabulary;path to settings;number of seconds";
   }
 
   //Capture video from webcam
@@ -40,13 +40,15 @@ int main(int argc, char **argv[])
   ORB_SLAM2::System SLAM(argv[1],argv[2],ORBSLAM2::System::MONOCULAR,true); // argv[1] is the vocabulary file and argv[2] is the settings file 
   cv::Mat frame;
   timetorun=atof(argv[3]);
+  //Initialising number of frames to 0
+  int nof=0;
   SET_CLOCK(t0); 
   while(true)
   {
      cap.grab();
      cap>>frame;
      SET_CLOCK(t1);
-     tframe=TIME_DIFF(t0,t1);
+     double tframe=TIME_DIFF(t0,t1);
      if(tframe>timetorun)
      {
        break;
@@ -54,6 +56,18 @@ int main(int argc, char **argv[])
      cout <<"Start processing sequence..."<<endl;
      cout<<"Reading input images from the video stream..."<<endl;
      cout<<"Reading input frame by frame..."<<endl;
+     //Start the slam process
+     SLAM.TrackMonocular(frame,tframe);
+     SET_CLOCK(t2);
+     double tdf=TIME_DIFF(t1,t2);
+     //To get a count of the number of frames
+     nof++; 
+  }
+
+  SLAM.Shutdown();
+  cout<<"Mean Tracking time:"<<nof/timetorun;
+  //Saving the keyframe trajectories
+  SLAM.SaveKeyFrameTrajectoryTUM("Trajectory.txt");   
 
 //if(frame.empty())
 //{
