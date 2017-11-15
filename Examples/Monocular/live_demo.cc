@@ -30,7 +30,7 @@ int main(int argc, char **argv[])
   }
 
   //Capture video from webcam
-  VideoCapture cap(0);
+  cv::VideoCapture cap(0);
   if(!cap.isOpened())
   {
     //Throw an error message if there is no video stream
