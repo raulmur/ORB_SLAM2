@@ -4,6 +4,6 @@ services:
 before_install:
   - chmod -R 777 *
   - sudo apt-get update 
-  - sudo apt-get install coreutils
+  - sudo apt-get install -y realpath
 script:
   - ./docker/linux/build-from-docker.sh
