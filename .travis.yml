@@ -3,6 +3,7 @@ services:
   - docker
 before_install:
   - chmod -R 777 *
-  - apt-get install coreutils
+  - sudo apt-get update 
+  - sudo apt-get install coreutils
 script:
   - ./docker/linux/build-from-docker.sh
