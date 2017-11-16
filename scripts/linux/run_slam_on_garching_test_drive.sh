@@ -1,6 +1,9 @@
 #!/bin/bash
 
-CurDir=$(dirname $0)
+CurDir=$(realpath $(dirname $0))
+ProjectDir=$(realpath ${CurDir}/../..)
+cd ${ProjectDir}
+
 OrbSlamPlatform=`uname -m`
 OrbSlamToolset=gcc.`gcc -dumpversion`
 OrbSlamBuildtype=Debug
@@ -21,7 +24,7 @@ then
 fi
 cd ..
 
-${CurDir}/${BuildDir}/mono_video \
+${ProjectDir}/${BuildDir}/mono_video \
     ${1} \
-    ${CurDir}/Vocabulary/ORBvoc.txt \
-    ${CurDir}/Examples/Monocular/Garching-Test-Drive.yaml
+    ${ProjectDir}/Vocabulary/ORBvoc.txt \
+    ${ProjectDir}/Examples/Monocular/Garching-Test-Drive.yaml
