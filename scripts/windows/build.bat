@@ -2,9 +2,8 @@
 
 setlocal
 
-set "OrbSlamPlatform=x86"
-set "OrbSlamToolset=v141"
-set "OrbSlamBuildType=Debug"
+call "%~dp0bootstrap.bat" %*
+if errorlevel 1 echo Bootstrapping error, bailing out & exit /b 1
 
 if NOT "%~1"=="" set "OrbSlamPlatform=%~1"
 if NOT "%~2"=="" set "OrbSlamToolset=%~2"
