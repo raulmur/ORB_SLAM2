@@ -60,12 +60,6 @@ src/Initializer.cc
 src/Viewer.cc
 )
 
-target_sources(${PROJECT_NAME} PRIVATE 
-    bootstrap_windows.bat
-    build_windows.bat
-    bootstrap_linux.sh
-    build_linux.sh
-    build_ros.sh)
 if(CMAKE_COMPILER_IS_GNUCXX)
     set(options -O3 -march=native)
     add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${options}>")

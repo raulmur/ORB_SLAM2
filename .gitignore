@@ -22,5 +22,4 @@ build/
 *~
 lib/
 products/
-
-.vs/
+.*/

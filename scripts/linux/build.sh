@@ -1,7 +1,9 @@
 #!/bin/bash
 
 CurDir=$(dirname $0)
-cd ${CurDir}
+ProjectDir=${CurDir}/../..
+cd ${ProjectDir}
+
 OrbSlamPlatform=`uname -m`
 OrbSlamToolset=gcc.`gcc -dumpversion`
 OrbSlamBuildtype=Debug
