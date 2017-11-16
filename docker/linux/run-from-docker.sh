@@ -1,7 +1,7 @@
 #!/bin/bash
 
-CurDir=$(realpath $(dirname $0))
-ProjectDir=$(realpath ${CurDir}/../..)
+CurDir=$(dirname $0)
+ProjectDir=${CurDir}/../..
 cd ${ProjectDir}
 
 if [ "$1" = "" ]
