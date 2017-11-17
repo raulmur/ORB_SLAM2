@@ -778,7 +778,11 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
 
         vector<cv::KeyPoint> vToDistributeKeys;
         vToDistributeKeys.reserve(nfeatures*10);
-
+		if ( (maxBorderX <= minBorderX) ||(maxBorderY <= minBorderY))
+		{
+			nlevels = level;
+			break;
+		}
         const float width = (maxBorderX-minBorderX);
         const float height = (maxBorderY-minBorderY);
 
@@ -1040,6 +1044,58 @@ static void computeDescriptors(const Mat& image, vector<KeyPoint>& keypoints, Ma
     for (size_t i = 0; i < keypoints.size(); i++)
         computeOrbDescriptor(keypoints[i], image, &pattern[0], descriptors.ptr((int)i));
 }
+ void ORBextractor::LinearTransform(std::vector<cv::KeyPoint> &vKeys,cv::Rect &CropArea)
+ {
+	for(int Index = 0;Index<vKeys.size();Index++)
+	{
+
+		vKeys[Index].pt.x = CropArea.x + vKeys[Index].pt.x;
+		vKeys[Index].pt.y = CropArea.y + vKeys[Index].pt.y;
+
+	}
+ }
+
+ void ORBextractor::operator()(InputArray _image,vector <Rect> &RoiList,vector<KeyPoint>& _keypoints,OutputArray _descriptors)
+ {
+    if(_image.empty())
+        return;
+
+    Mat image = _image.getMat();
+    assert(image.type() == CV_8UC1 );
+	
+	vector<KeyPoint> SubImageAllKeypoints;
+	cv::Mat SubImageAllDescriptors;
+	
+	vector<KeyPoint> ImageKeypoints;
+	cv::Mat ImageDescriptors;
+
+
+	for(int SubImageIndex = 0;SubImageIndex<RoiList.size();SubImageIndex++)
+	{
+		vector<KeyPoint> SubImageKeypoints;
+		cv::Mat SubImageDescriptors;
+	
+		Mat subimage(image(RoiList[SubImageIndex]));
+		operator()(subimage,cv::Mat(),SubImageKeypoints,SubImageDescriptors);
+		LinearTransform(SubImageKeypoints,RoiList[SubImageIndex]);
+		
+		SubImageAllKeypoints.insert(SubImageAllKeypoints.end(), SubImageKeypoints.begin(), SubImageKeypoints.end());
+		cv::vconcat( SubImageDescriptors, SubImageAllDescriptors );
+	}
+	operator()(image,cv::Mat(),ImageKeypoints,ImageDescriptors);
+	
+	 _keypoints.clear();
+    _keypoints.reserve(ImageKeypoints.size()+SubImageAllKeypoints.size());
+	
+	_keypoints.insert(_keypoints.end(), ImageKeypoints.begin(), ImageKeypoints.end());
+	
+	if(SubImageAllKeypoints.size())
+	{
+		_keypoints.insert(_keypoints.end(), SubImageAllKeypoints.begin(), SubImageAllKeypoints.end());
+		cv::vconcat( ImageDescriptors,SubImageAllDescriptors, _descriptors );
+	}
+	 
+ }
 
 void ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPoint>& _keypoints,
                       OutputArray _descriptors)

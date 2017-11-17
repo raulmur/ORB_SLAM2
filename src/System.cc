@@ -514,4 +514,25 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
     return mTrackedKeyPointsUn;
 }
 
+std::map<long unsigned int, std::vector<Traficsign> >& System::GetAllInterestedObject()
+{
+	return mInterestedObject;
+}
+
+void System::GetInterestedObject(std::vector<cv::Rect> &RoiList, long unsigned int frameid)
+{
+
+	if (mInterestedObject.find(frameid) != mInterestedObject.end())
+	{
+		for (int Index = 0; Index < mInterestedObject[frameid].size(); Index++)
+		{
+			RoiList.push_back(mInterestedObject[frameid][Index].Roi);
+		}
+		cout << "GetInterestedObject FormID =:" << frameid << mInterestedObject[frameid].size() << "," << RoiList.size() << endl;
+	}
+}
+void System::SetInterestedObject(std::map<long unsigned int, std::vector<Traficsign> > &InterestedObject)
+{
+	mInterestedObject = InterestedObject;
+}
 } //namespace ORB_SLAM

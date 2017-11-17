@@ -36,6 +36,12 @@
 #include "ORBVocabulary.h"
 #include "Viewer.h"
 
+struct Traficsign
+{
+   int classid;
+  float confidence;
+   cv::Rect Roi;
+};
 namespace ORB_SLAM2
 {
 
@@ -121,7 +127,10 @@ public:
     int GetTrackingState();
     std::vector<MapPoint*> GetTrackedMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
-
+	
+	static std::map<long unsigned int, std::vector<Traficsign> >& GetAllInterestedObject();
+	static void GetInterestedObject(std::vector<cv::Rect> &RoiList, long unsigned int frameid);
+	static void SetInterestedObject(std::map<long unsigned int, std::vector<Traficsign> > &InterestedObject);
 private:
 
     // Input sensor
@@ -174,6 +183,7 @@ private:
     std::vector<MapPoint*> mTrackedMapPoints;
     std::vector<cv::KeyPoint> mTrackedKeyPointsUn;
     std::mutex mMutexState;
+	static std::map<long unsigned int, std::vector<Traficsign> > mInterestedObject;
 };
 
 }// namespace ORB_SLAM

@@ -22,7 +22,10 @@ if("${OpenCV_VERSION}" VERSION_LESS "2.4.3")
 endif()
 
 find_package(Eigen3 REQUIRED)
-
+find_package(Boost REQUIRED
+    filesystem
+    serialization
+)
 if("${EIGEN3_VERSION}" VERSION_LESS "3.1.0")
 	message(FATAL_ERROR "Eigen3 > 3.1.0 not found.")
    endif()
@@ -109,6 +112,13 @@ target_link_libraries(mono_euroc ${PROJECT_NAME})
 add_executable(mono_video
 Examples/Monocular/mono_video.cc)
 target_link_libraries(mono_video ${PROJECT_NAME})
+
+add_executable(semantic_monocular 
+Examples/Monocular/semantic_monocular.cc
+Examples/Monocular/ParseJson.cc
+Examples/Monocular/ParseJson.h)
+
+target_link_libraries(semantic_monocular ${PROJECT_NAME} ${Boost_LIBRARIES})
 endif()
 
 # Build tools
