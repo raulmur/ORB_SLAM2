@@ -6,7 +6,7 @@ cd ${ProjectDir}
 
 if [ "$1" = "" ]
 then
-    echo "Provide video path"
+    echo "Provide command to run"
     exit 1
 fi
 
@@ -21,5 +21,4 @@ docker run -it \
     --volume="$(pwd):/root/orb-slam2" \
     shanmukhananda/orb-slam2:latest \
     /bin/bash -c \
-    "/root/orb-slam2/run_slam_on_garching_test_drive.sh \
-    ${1}"
+    "${1}"

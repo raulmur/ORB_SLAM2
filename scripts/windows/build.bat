@@ -2,7 +2,7 @@
 
 setlocal
 
-call "%~dp0bootstrap_windows.bat" %*
+call "%~dp0bootstrap.bat" %*
 if errorlevel 1 echo Bootstrapping error, bailing out & exit /b 1
 
 set "OrbSlamCMakeGeneratorName=Visual Studio 14 2015"
