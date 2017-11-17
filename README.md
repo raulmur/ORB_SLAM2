@@ -1,6 +1,8 @@
 # ORB-SLAM2
 **Authors:** [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
 
+[![Build Status](https://travis-ci.org/paul-michalik/ORB_SLAM2.svg?branch=master)](https://travis-ci.org/paul-michalik/ORB_SLAM2)
+
 **13 Jan 2017**: OpenCV 3 and Eigen 3.3 are now supported.
 
 **22 Dec 2016**: Added AR demo (see section 7).
@@ -83,14 +85,51 @@ Clone the repository:
 git clone https://github.com/raulmur/ORB_SLAM2.git ORB_SLAM2
 ```
 
-We provide a script `build.sh` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
+## 3.1 Building on Windows
+
+We use `vcpkg` package manager to install the dependencies. The script `bootstrap_windows.bat` assumes that `vcpkg` is installed from https://github.com/paul-michalik/vcpkg in `\Software\vcpkg\vcpkg`. Please follow the instructions in [Readme](https://github.com/paul-michalik/vcpkg/blob/master/README.md) to install `vcpkg` and modify `bootstrap_windows.bat` if other installation folder is used.
+
+There is a script that automates building of orb-slam2 and its dependencies
+for Windows. We provide a script `scripts/windows/build.bat` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
 ```
 cd ORB_SLAM2
-chmod +x build.sh
-./build.sh
+scripts/windows/build.bat
+```
+ 
+`scripts/windows/build.bat` takes following (optional) parameters:
+- Platform: `x86` or `x64`
+- Toolset: `v140`, `v141`
+- Configuration: `Debug`, `Release`
+
+Defaults correspond to:
+``` 
+scripts/windows/build.bat x86 v141 Debug
 ```
 
-This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono_tum**, **mono_kitti**, **rgbd_tum**, **stereo_kitti**, **mono_euroc** and **stereo_euroc** in *Examples* folder.
+`scripts/windows/build.bat` invokes `scripts/windows/bootstrap.bat` which installs all required dependencies via `vcpkg`. Please install `vcpkg` according to  
+
+## 3.2 Building on Ubuntu Linux
+
+We use `apt-get` package manager to install the dependencies. The script `scripts/linux/bootstrap.sh` will download and install all packages required to build the project.
+
+We provide a script `scripts/linux/build.sh` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
+
+```
+cd ORB_SLAM2
+scripts/linux/build.sh
+```
+
+`scripts/linux/build.sh` takes following (optional) parameters:
+
+- Platform 
+- Toolset
+- Configuration
+
+Defaults correspond to:
+
+```
+scripts/linux/build.sh `uname -m` gcc.`gcc -dumpversion` Debug
+```
 
 # 4. Monocular Examples
 

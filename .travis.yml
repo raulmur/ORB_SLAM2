@@ -1,0 +1,7 @@
+sudo: required
+services:
+  - docker
+before_install:
+  - chmod -R 777 *
+script:
+  - ./docker/linux/build-from-docker.sh
