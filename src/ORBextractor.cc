@@ -1082,7 +1082,6 @@ static void computeDescriptors(const Mat& image, vector<KeyPoint>& keypoints, Ma
 
 			AllImageKeypointsList.insert(AllImageKeypointsList.end(), SubImageKeypoints.begin(), SubImageKeypoints.end());
 			AllImageDescriptorList[DescriptorIndex++] = SubImageDescriptors;
-			DrawKeypoint(image, AllImageKeypointsList, SubImageKeypoints);
 		}
 
 	}
