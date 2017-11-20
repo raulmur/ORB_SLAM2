@@ -19,11 +19,11 @@
 */
 
 #ifdef _MSC_VER
-#include <boost\config\compiler\visualc.hpp>
+#include <boost/config/compiler/visualc.hpp>
 #endif
-#include <boost\property_tree\ptree.hpp>
-#include <boost\property_tree\json_parser.hpp>
-#include <boost\foreach.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/foreach.hpp>
 
 #include<iostream>
 #include<algorithm>
@@ -50,7 +50,6 @@ int main(int argc, char **argv)
         cerr << endl << "Usage: ./mono_tum path_to_vocabulary path_to_vocabulary path_to_settings path_to_sequence path_to_jsonfile" << endl;
         return 1;
     }
-	cout<<"ansuman argc = "<<argc<<endl;
 	ORB_SLAM2::KeySemanticObjGrp SemanticObjGrp;
 	std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > Trafic;
 	if(true == ExtractSemanticObjGrp(argv[4],Trafic))

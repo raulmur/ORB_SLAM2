@@ -1062,13 +1062,14 @@ static void computeDescriptors(const Mat& image, vector<KeyPoint>& keypoints, Ma
     Mat image = _image.getMat();
     assert(image.type() == CV_8UC1 );
 	
-	vector<KeyPoint> SubImageAllKeypoints;
-	cv::Mat SubImageAllDescriptors;
-	
-	vector<KeyPoint> ImageKeypoints;
+	vector<KeyPoint> AllImageKeypointsList;
+	cv::Mat AllImageDescriptorList[50];
+	int DescriptorIndex = 0;
 	cv::Mat ImageDescriptors;
 
-
+	operator()(image, cv::Mat(), AllImageKeypointsList, ImageDescriptors);
+	
+	AllImageDescriptorList[DescriptorIndex++] = ImageDescriptors;
 	for(int SubImageIndex = 0;SubImageIndex<RoiList.size();SubImageIndex++)
 	{
 		vector<KeyPoint> SubImageKeypoints;
@@ -1079,30 +1080,19 @@ static void computeDescriptors(const Mat& image, vector<KeyPoint>& keypoints, Ma
 		{
 			LinearTransform(SubImageKeypoints, RoiList[SubImageIndex]);
 
-			SubImageAllKeypoints.insert(SubImageAllKeypoints.end(), SubImageKeypoints.begin(), SubImageKeypoints.end());
-			cv::vconcat(SubImageDescriptors, SubImageAllDescriptors);
+			AllImageKeypointsList.insert(AllImageKeypointsList.end(), SubImageKeypoints.begin(), SubImageKeypoints.end());
+			AllImageDescriptorList[DescriptorIndex++] = SubImageDescriptors;
+			DrawKeypoint(image, AllImageKeypointsList, SubImageKeypoints);
 		}
 
 	}
-	operator()(image,cv::Mat(),ImageKeypoints,ImageDescriptors);
+	
 	
 	 _keypoints.clear();
-	
-	if(SubImageAllKeypoints.size())
-	{
-		_keypoints.reserve(ImageKeypoints.size() + SubImageAllKeypoints.size());
-		_keypoints.insert(_keypoints.end(), ImageKeypoints.begin(), ImageKeypoints.end());
-		_keypoints.insert(_keypoints.end(), SubImageAllKeypoints.begin(), SubImageAllKeypoints.end());
-		cv::vconcat( ImageDescriptors,SubImageAllDescriptors, _descriptors );
-	}
-	else
-	{
-		_keypoints.reserve(ImageKeypoints.size());
-		_keypoints.insert(_keypoints.end(), ImageKeypoints.begin(), ImageKeypoints.end());
-		cv::vconcat(ImageDescriptors, _descriptors);
-	}
-	 
- }
+	 _keypoints.reserve(AllImageKeypointsList.size());
+	 _keypoints.insert(_keypoints.end(), AllImageKeypointsList.begin(), AllImageKeypointsList.end());
+	 cv::vconcat(AllImageDescriptorList, DescriptorIndex, _descriptors);
+}
 
 void ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPoint>& _keypoints,
                       OutputArray _descriptors)
