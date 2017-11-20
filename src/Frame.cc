@@ -22,7 +22,7 @@
 #include "Converter.h"
 #include "ORBmatcher.h"
 #include <thread>
-#include <system.h>
+
 namespace ORB_SLAM2
 {
 
@@ -58,9 +58,9 @@ Frame::Frame(const Frame &frame)
 }
 
 
-Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth,std::vector<cv::Rect> RoiList)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractorLeft),mpORBextractorRight(extractorRight), mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),
-     mpReferenceKF(static_cast<KeyFrame*>(NULL))
+     mpReferenceKF(static_cast<KeyFrame*>(NULL)),mRoiList(RoiList)
 {
     // Frame ID
     mnId=nNextId++;
@@ -116,9 +116,9 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     AssignFeaturesToGrid();
 }
 
-Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth,std::vector<cv::Rect> RoiList)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
-     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
+     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),mRoiList(RoiList)
 {
     // Frame ID
     mnId=nNextId++;
@@ -169,19 +169,11 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 
     AssignFeaturesToGrid();
 }
-/*
-void DrawKeypoint(string Title, cv::Mat Image, std::vector<cv::KeyPoint> &Keypoints)
-{
 
-	cv::Mat NewImageMatch;
-	cv::drawKeypoints(Image, Keypoints, NewImageMatch);
-	cv::imshow(Title, NewImageMatch);
-	//cv::waitKey(0);
-}*/
 
-Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth,std::vector<cv::Rect> RoiList)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
-     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
+     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),mRoiList(RoiList)
 {
     // Frame ID
     mnId=nNextId++;
@@ -254,31 +246,22 @@ void Frame::AssignFeaturesToGrid()
 
 void Frame::ExtractORB(int flag, const cv::Mat &im)
 {
-	std::vector<cv::Rect> RoiList;
-	System::GetInterestedObject(RoiList, mnId);
-
-	//cout << "ExtractORB " << RoiList.size()<<endl;
-	//new orbextractor with interest object
-	if (RoiList.size())
+    if(flag==0)
 	{
-		if (flag == 0)
+		if (mRoiList.size())
 		{
-			(*mpORBextractorLeft)(im, RoiList, mvKeys, mDescriptors);
-			//DrawKeypoint("Frame"+std::to_string(mnId), im, mvKeys);
+			(*mpORBextractorLeft)(im,mRoiList,mvKeys,mDescriptors);
 		}
-		else
-			(*mpORBextractorRight)(im, RoiList, mvKeysRight, mDescriptorsRight);
-		
+		else		
+			(*mpORBextractorLeft)(im,cv::Mat(),mvKeys,mDescriptors);
 	}
-	else
+    else
 	{
-		//orignal orbextractor without interest object
-		if (flag == 0)
-			(*mpORBextractorLeft)(im, cv::Mat(), mvKeys, mDescriptors);
-		else
-			(*mpORBextractorRight)(im, cv::Mat(), mvKeysRight, mDescriptorsRight);
+		if (mRoiList.size())
+			(*mpORBextractorRight)(im,mRoiList,mvKeysRight,mDescriptorsRight);
+		else		
+			(*mpORBextractorRight)(im,cv::Mat(),mvKeysRight,mDescriptorsRight);
 	}
-
 }
 
 void Frame::SetPose(cv::Mat Tcw)

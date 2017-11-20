@@ -60,7 +60,6 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <vector>
 #include <iterator>
-
 #include "ORBextractor.h"
 
 
@@ -778,7 +777,7 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
 
         vector<cv::KeyPoint> vToDistributeKeys;
         vToDistributeKeys.reserve(nfeatures*10);
-		if ( (maxBorderX <= minBorderX) ||(maxBorderY <= minBorderY))
+		if ((maxBorderX <= minBorderX) || (maxBorderY <= minBorderY))
 		{
 			nlevels = level;
 			break;
@@ -1074,25 +1073,33 @@ static void computeDescriptors(const Mat& image, vector<KeyPoint>& keypoints, Ma
 	{
 		vector<KeyPoint> SubImageKeypoints;
 		cv::Mat SubImageDescriptors;
-	
 		Mat subimage(image(RoiList[SubImageIndex]));
 		operator()(subimage,cv::Mat(),SubImageKeypoints,SubImageDescriptors);
-		LinearTransform(SubImageKeypoints,RoiList[SubImageIndex]);
-		
-		SubImageAllKeypoints.insert(SubImageAllKeypoints.end(), SubImageKeypoints.begin(), SubImageKeypoints.end());
-		cv::vconcat( SubImageDescriptors, SubImageAllDescriptors );
+		if (SubImageKeypoints.size())
+		{
+			LinearTransform(SubImageKeypoints, RoiList[SubImageIndex]);
+
+			SubImageAllKeypoints.insert(SubImageAllKeypoints.end(), SubImageKeypoints.begin(), SubImageKeypoints.end());
+			cv::vconcat(SubImageDescriptors, SubImageAllDescriptors);
+		}
+
 	}
 	operator()(image,cv::Mat(),ImageKeypoints,ImageDescriptors);
 	
 	 _keypoints.clear();
-    _keypoints.reserve(ImageKeypoints.size()+SubImageAllKeypoints.size());
-	
-	_keypoints.insert(_keypoints.end(), ImageKeypoints.begin(), ImageKeypoints.end());
 	
 	if(SubImageAllKeypoints.size())
 	{
+		_keypoints.reserve(ImageKeypoints.size() + SubImageAllKeypoints.size());
+		_keypoints.insert(_keypoints.end(), ImageKeypoints.begin(), ImageKeypoints.end());
 		_keypoints.insert(_keypoints.end(), SubImageAllKeypoints.begin(), SubImageAllKeypoints.end());
 		cv::vconcat( ImageDescriptors,SubImageAllDescriptors, _descriptors );
+	}
+	else
+	{
+		_keypoints.reserve(ImageKeypoints.size());
+		_keypoints.insert(_keypoints.end(), ImageKeypoints.begin(), ImageKeypoints.end());
+		cv::vconcat(ImageDescriptors, _descriptors);
 	}
 	 
  }

@@ -61,6 +61,7 @@ src/KeyFrameDatabase.cc
 src/Sim3Solver.cc
 src/Initializer.cc
 src/Viewer.cc
+src/KeySemanticObjGrp.cc
 )
 
 if(CMAKE_COMPILER_IS_GNUCXX)
@@ -114,9 +115,7 @@ Examples/Monocular/mono_video.cc)
 target_link_libraries(mono_video ${PROJECT_NAME})
 
 add_executable(semantic_monocular 
-Examples/Monocular/semantic_monocular.cc
-Examples/Monocular/ParseJson.cc
-Examples/Monocular/ParseJson.h)
+Examples/Monocular/semantic_monocular.cc)
 
 target_link_libraries(semantic_monocular ${PROJECT_NAME} ${Boost_LIBRARIES})
 endif()

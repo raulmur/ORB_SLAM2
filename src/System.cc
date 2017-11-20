@@ -514,25 +514,42 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
     return mTrackedKeyPointsUn;
 }
 
-std::map<long unsigned int, std::vector<Traficsign> >& System::GetAllInterestedObject()
+bool System::GetSemanticObjGrp(KeySemanticObjGrp& SemanticObjGrp)
 {
-	return mInterestedObject;
-}
-
-void System::GetInterestedObject(std::vector<cv::Rect> &RoiList, long unsigned int frameid)
-{
-
-	if (mInterestedObject.find(frameid) != mInterestedObject.end())
+	bool Status = false;
+	
+	if(true == mSemanticObjGrp.isLoaded)
 	{
-		for (int Index = 0; Index < mInterestedObject[frameid].size(); Index++)
-		{
-			RoiList.push_back(mInterestedObject[frameid][Index].Roi);
-		}
-		cout << "GetInterestedObject FormID =:" << frameid << mInterestedObject[frameid].size() << "," << RoiList.size() << endl;
+		SemanticObjGrp = mSemanticObjGrp;
+		Status = true;
 	}
+	
+	return Status;
 }
-void System::SetInterestedObject(std::map<long unsigned int, std::vector<Traficsign> > &InterestedObject)
+
+bool System::GetSemanticObjects(std::vector<cv::Rect> &RoiList, long unsigned int frameid)
 {
-	mInterestedObject = InterestedObject;
+	bool Status = false;
+	
+	if(true == mSemanticObjGrp.isLoaded)
+	{
+		Status = mSemanticObjGrp.GetSemanticObjects(RoiList,frameid);
+	}	
+	
+	return Status;
 }
+
+bool System::SetSemanticObjGrp(KeySemanticObjGrp& SemanticObjGrp)
+{
+	bool Status = false;
+	
+	if(true == SemanticObjGrp.isLoaded)
+	{
+		mSemanticObjGrp = SemanticObjGrp;
+		Status = true;
+	}
+	return Status;
+	
+}
+
 } //namespace ORB_SLAM

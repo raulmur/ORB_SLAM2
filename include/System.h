@@ -35,13 +35,8 @@
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
 #include "Viewer.h"
+#include "KeySemanticObjGrp.h"
 
-struct Traficsign
-{
-   int classid;
-  float confidence;
-   cv::Rect Roi;
-};
 namespace ORB_SLAM2
 {
 
@@ -128,9 +123,9 @@ public:
     std::vector<MapPoint*> GetTrackedMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 	
-	static std::map<long unsigned int, std::vector<Traficsign> >& GetAllInterestedObject();
-	static void GetInterestedObject(std::vector<cv::Rect> &RoiList, long unsigned int frameid);
-	static void SetInterestedObject(std::map<long unsigned int, std::vector<Traficsign> > &InterestedObject);
+	bool GetSemanticObjGrp(KeySemanticObjGrp &SemanticObjGrp);
+	bool GetSemanticObjects(std::vector<cv::Rect> &RoiList, long unsigned int frameid);
+	bool SetSemanticObjGrp(KeySemanticObjGrp &SemanticObjGrp);
 private:
 
     // Input sensor
@@ -183,7 +178,7 @@ private:
     std::vector<MapPoint*> mTrackedMapPoints;
     std::vector<cv::KeyPoint> mTrackedKeyPointsUn;
     std::mutex mMutexState;
-	static std::map<long unsigned int, std::vector<Traficsign> > mInterestedObject;
+	KeySemanticObjGrp mSemanticObjGrp;
 };
 
 }// namespace ORB_SLAM
