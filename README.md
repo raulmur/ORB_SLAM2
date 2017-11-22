@@ -1,5 +1,9 @@
 # Modification from the orginal version: 
-Code included to input live video from webcam without using ROS.
+Code included to input live video without using ROS.
+
+In case of Monocular, webcam is used to feed live video stream as input.
+
+In case of Stereo, raspberry pi compute module 3 is used to stream live stereo video to a remote PC running ORB-SLAM2. UV4L driver is installed for live video streaming from cm3 module to the remote PC.
 
 ## For Monocular:
 Run command,
