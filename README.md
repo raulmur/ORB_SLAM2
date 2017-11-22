@@ -1,10 +1,18 @@
 # Modification from the orginal version: 
 Code included to input live video from webcam without using ROS.
 
+## For Monocular:
 Run command,
 
 ```
   ./Examples/Monocular/live_demo Vocabulary/ORBvoc.txt Examples/Monocular/settingsfile.yaml timetorun
+```
+
+## For Stereo:
+Run command,
+
+```
+  ./Examples/Stereo/live_stereo Vocabulary/ORBvoc.txt Examples/Stereo/settingsfile.yaml timetorun
 ```
 
 # ORB-SLAM2
