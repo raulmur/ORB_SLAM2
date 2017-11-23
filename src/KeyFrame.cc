@@ -19,7 +19,6 @@
 */
 
 #include "KeyFrame.h"
-#include "Converter.h"
 #include "ORBmatcher.h"
 #include<mutex>
 
@@ -54,6 +53,7 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
     }
 
     SetPose(F.mTcw);    
+    SetOdomPose(F.mTf_c_w);
 }
 
 void KeyFrame::ComputeBoW()
@@ -83,17 +83,48 @@ void KeyFrame::SetPose(const cv::Mat &Tcw_)
     Cw = Twc*center;
 }
 
+void KeyFrame::SetOdomPose(const g2o::SE3Quat &TF_c_w)
+{
+    unique_lock<mutex> lock(mMutexPose);
+    mTF_c_w = TF_c_w;
+//    Tf_w_c = Tf_c_w.t();
+//    tTf_c_w = Tf_c_w.rowRange(0,3).col(3).clone();
+}
+
+
 cv::Mat KeyFrame::GetPose()
 {
     unique_lock<mutex> lock(mMutexPose);
     return Tcw.clone();
 }
 
+g2o::SE3Quat KeyFrame::GetOdomPose()
+{
+    unique_lock<mutex> lock(mMutexPose);
+    return mTF_c_w;
+}
+//cv::Mat KeyFrame::GetOdomRotation()
+//{
+//    unique_lock<mutex> lock(mMutexPose);
+//    return Tf_c_w.rowRange(0,3).colRange(0,3).clone();
+//}
+//cv::Mat KeyFrame::GetOdomTranslation()
+//{
+//    unique_lock<mutex> lock(mMutexPose);
+//    return ;
+//}
+
 cv::Mat KeyFrame::GetPoseInverse()
 {
     unique_lock<mutex> lock(mMutexPose);
     return Twc.clone();
 }
+
+//cv::Mat KeyFrame::GetOdomPoseInverse()
+//{
+//    unique_lock<mutex> lock(mMutexPose);
+//    return Tf_w_c.clone();
+//}
 
 cv::Mat KeyFrame::GetCameraCenter()
 {

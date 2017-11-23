@@ -1,0 +1,17 @@
+<launch>
+
+	<!-- different sensor inputs -->
+
+	<arg name="rgbd_depth" default="/camera/depth/image_raw"/>
+	<arg name="rgbd_rgb"   default="/camera/rgb/image_raw"/>
+
+
+	<node pkg="ORB_SLAM2" type="RGBD" name="rgbd" args="($find ORB_SLAM2)/../../../Vocabulary/ORBvoc.txt ($find ORB_SLAM2)/../../../Xtion/Calibration/xtion.yaml">
+	
+		<!-- Remap names to published sensor data -->		
+	<!--	<remap from="/camera/depth/image_raw" to="$(arg rgbd_depth)"/>	-->
+	<!--	<remap from="/camera/rgb/image_raw" to="$(arg rgbd_rgb)"/>	-->
+	</node>
+
+</launch>
+

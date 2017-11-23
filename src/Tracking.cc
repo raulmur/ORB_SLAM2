@@ -230,14 +230,18 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
     mCurrentFrame = Frame(mImGray,imDepth,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
 
     Track();
-
-    return mCurrentFrame.mTcw.clone();
+	
+if(!mCurrentFrame.mTcw.empty()){
+    cv::Mat copyCurrent = mCurrentFrame.mTcw.inv();
+    }
+	return mCurrentFrame.mTcw.clone();
 }
 
 
-cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
+cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp, g2o::SE3Quat &TF_c_w)
 {
     mImGray = im;
+
 
     if(mImGray.channels()==3)
     {
@@ -259,9 +263,12 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
     else
         mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
 
+
+    mCurrentFrame.SetOdomPose(TF_c_w);
     Track();
 
     return mCurrentFrame.mTcw.clone();
+
 }
 
 void Tracking::Track()
@@ -640,6 +647,9 @@ void Tracking::CreateInitialMapMonocular()
     KeyFrame* pKFini = new KeyFrame(mInitialFrame,mpMap,mpKeyFrameDB);
     KeyFrame* pKFcur = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
 
+//    cv::Mat test = mInitialFrame.mTf_c_w.clone();
+//    pKFini->SetOdomPose(test);
+//    pKFcur->SetOdomPose(test);
 
     pKFini->ComputeBoW();
     pKFcur->ComputeBoW();
@@ -931,7 +941,6 @@ bool Tracking::TrackLocalMap()
 {
     // We have an estimation of the camera pose and some map points tracked in the frame.
     // We retrieve the local map and try to find matches to points in the local map.
-
     UpdateLocalMap();
 
     SearchLocalPoints();
@@ -1062,10 +1071,15 @@ bool Tracking::NeedNewKeyFrame()
 
 void Tracking::CreateNewKeyFrame()
 {
+
+
     if(!mpLocalMapper->SetNotStop(true))
         return;
 
     KeyFrame* pKF = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
+    // TODO
+    //    pKFini->SetOdomPose(test);
+    //    pKFcur->SetOdomPose(test);
 
     mpReferenceKF = pKF;
     mCurrentFrame.mpReferenceKF = pKF;
@@ -1588,5 +1602,51 @@ void Tracking::InformOnlyTracking(const bool &flag)
 }
 
 
+void Tracking::ScaleRecovery()
+{
+    mpLocalMapper->RequestStop();
+    // Wait until Local Mapping has effectively stopped
+
+    while(!mpLocalMapper->isStopped() && !mpLocalMapper->isFinished())
+    {
+        usleep(1000);
+    }
+
+
+    cout <<"Scale obtaining started " <<endl;
+
+    // TODO clean up
+//    double scale;
+    cv::Mat O_w, Tf_w_c, A, B, scale;
+    for(vector<KeyFrame*>::const_iterator itKF=mvpLocalKeyFrames.begin(), itEndKF=mvpLocalKeyFrames.end(); itKF!=itEndKF; itKF++)
+    {
+        KeyFrame* pKF = *itKF;
+
+        // Camera pose
+        O_w = pKF->GetCameraCenter();
+
+        // Odometry pose
+        g2o::SE3Quat TF_w_c = pKF->GetOdomPose();
+//        Tf_w_c = Converter::toCvMat(TF_w_c);
+
+        // translation vector from homogeneous matrix
+//        cv::Mat tTf_w_c = Tf_w_c.rowRange(0,3).col(3).clone();
+
+//        std::cout << Tf_w_c << std::endl;
+
+//        A.push_back(O_w - tTf_w_c);
+//        B.push_back(tTf_w_c);
+    }
+
+//    if (A.empty())
+//        std::cout<< A <<std::endl;
+
+//    A.convertTo(A, CV_64F);
+//    B.convertTo(B, CV_64F);
+//    cv::solve(A, B, scale, cv::DECOMP_SVD);
+//    std::cout <<"Scale initialized as " << scale.at<double>(0) <<std::endl;
+    mpLocalMapper->Release();
+
+}
 
 } //namespace ORB_SLAM

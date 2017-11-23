@@ -257,7 +257,7 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
     }
     }
 
-    cv::Mat Tcw = mpTracker->GrabImageMonocular(im,timestamp);
+    cv::Mat Tcw = mpTracker->GrabImageMonocular(im,timestamp, mOdom);
 
     unique_lock<mutex> lock2(mMutexState);
     mTrackingState = mpTracker->mState;
@@ -268,7 +268,7 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
 }
 
 void System::ActivateLocalizationMode()
-{
+{   
     unique_lock<mutex> lock(mMutexMode);
     mbActivateLocalizationMode = true;
 }
@@ -488,5 +488,9 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
     unique_lock<mutex> lock(mMutexState);
     return mTrackedKeyPointsUn;
 }
-
+void System::SetOdomPose(const cv::Mat& TFpose)
+{
+    cv::Mat mTFPose = TFpose.clone();
+    mOdom = Converter::toSE3Quat(mTFPose);
+}
 } //namespace ORB_SLAM

@@ -121,6 +121,10 @@ protected:
 
     bool mbAcceptKeyFrames;
     std::mutex mMutexAccept;
+
+    // MAP SCALING
+    void MapScaling();
+    void ScaleRecovery();
 };
 
 } //namespace ORB_SLAM

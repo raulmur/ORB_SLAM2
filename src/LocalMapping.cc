@@ -76,10 +76,17 @@ void LocalMapping::Run()
 
             if(!CheckNewKeyFrames() && !stopRequested())
             {
+
                 // Local BA
                 if(mpMap->KeyFramesInMap()>2)
-                    Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap);
-
+                {
+                    if(!mpMap->IsMapScaled)
+                    MapScaling();
+                    else
+                    {
+                        Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap);
+                    }
+                }
                 // Check redundant local Keyframes
                 KeyFrameCulling();
             }
@@ -755,6 +762,45 @@ bool LocalMapping::isFinished()
 {
     unique_lock<mutex> lock(mMutexFinish);
     return mbFinished;
+}
+
+void LocalMapping::MapScaling()
+{
+    ScaleRecovery();
+    mpMap->IsMapScaled = true;
+}
+void LocalMapping::ScaleRecovery()
+{
+    cout <<"Scale obtaining started " <<endl;
+
+    // TODO clean up
+    cv::Mat O_w, Tf_w_c, A, B, scale;
+    vector<KeyFrame*> MapKeyFrames = mpMap->GetAllKeyFrames();
+
+    for(vector<KeyFrame*>::const_iterator itKF=MapKeyFrames.begin(), itEndKF=MapKeyFrames.end(); itKF!=itEndKF; itKF++)
+    {
+        KeyFrame* pKF = *itKF;
+
+        // Camera pose
+        O_w = pKF->GetCameraCenter();
+
+        // Odometry pose
+        g2o::SE3Quat TF_w_c = pKF->GetOdomPose();
+        Tf_w_c = Converter::toCvMat(TF_w_c);
+
+        // translation vector from homogeneous matrix
+        cv::Mat tTf_w_c = Tf_w_c.rowRange(0,3).col(3).clone();
+
+        std::cout << Tf_w_c << std::endl;
+
+        A.push_back(O_w - tTf_w_c);
+        B.push_back(tTf_w_c);
+    }
+
+    A.convertTo(A, CV_64F);
+    B.convertTo(B, CV_64F);
+    cv::solve(A, B, scale, cv::DECOMP_SVD);
+    std::cout <<"Scale initialized as " << scale.at<double>(0) <<std::endl;
 }
 
 } //namespace ORB_SLAM

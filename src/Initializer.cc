@@ -928,4 +928,5 @@ void Initializer::DecomposeE(const cv::Mat &E, cv::Mat &R1, cv::Mat &R2, cv::Mat
         R2=-R2;
 }
 
+
 } //namespace ORB_SLAM

@@ -28,7 +28,7 @@
 #include "ORBextractor.h"
 #include "Frame.h"
 #include "KeyFrameDatabase.h"
-
+#include "Converter.h"
 #include <mutex>
 
 
@@ -47,8 +47,13 @@ public:
 
     // Pose functions
     void SetPose(const cv::Mat &Tcw);
+    void SetOdomPose(const g2o::SE3Quat &TF_c_w);
     cv::Mat GetPose();
     cv::Mat GetPoseInverse();
+    g2o::SE3Quat GetOdomPose();
+//    cv::Mat GetOdomRotation();
+//    cv::Mat GetOdomTranslation();
+//    cv::Mat GetOdomPoseInverse();
     cv::Mat GetCameraCenter();
     cv::Mat GetStereoCenter();
     cv::Mat GetRotation();
@@ -189,6 +194,7 @@ public:
     const cv::Mat mK;
 
 
+
     // The following variables need to be accessed trough a mutex to be thread safe.
 protected:
 
@@ -198,6 +204,8 @@ protected:
     cv::Mat Ow;
 
     cv::Mat Cw; // Stereo middel point. Only for visualization
+
+
 
     // MapPoints associated to keypoints
     std::vector<MapPoint*> mvpMapPoints;
@@ -231,6 +239,13 @@ protected:
     std::mutex mMutexPose;
     std::mutex mMutexConnections;
     std::mutex mMutexFeatures;
+
+
+    // SE3 Odometry Pose
+      g2o::SE3Quat mTF_c_w;
+//    cv::Mat Tf_w_c;
+//    cv::Mat tTf_c_w;
+
 };
 
 } //namespace ORB_SLAM

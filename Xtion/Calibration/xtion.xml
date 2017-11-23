@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<root>
+	<Camera.fx>529.449427</Camera.fx>
+	<Camera.fy>522.914242</Camera.fy>
+	<Camera.cx>320.586931</Camera.cx>
+	<Camera.cy>228.00142</Camera.cy>
+	<Camera.k1>0.040396</Camera.k1>
+	<Camera.k2>-0.15318</Camera.k2>
+	<Camera.p1>-0.0007</Camera.p1>
+	<Camera.p2>-0.002234</Camera.p2>
+	<Camera.k3>0</Camera.k3>
+	<Camera.width>640</Camera.width>
+	<Camera.height>480</Camera.height>
+	<Camera.fps>30</Camera.fps>
+	<Camera.bf>40</Camera.bf>
+	<Camera.RGB>1</Camera.RGB>
+	<ThDepth>40</ThDepth>
+	<DepthMapFactor>5000</DepthMapFactor>
+	<ORBextractor.nFeatures>1000</ORBextractor.nFeatures>
+	<ORBextractor.scaleFactor>1.2</ORBextractor.scaleFactor>
+	<ORBextractor.nLevels>8</ORBextractor.nLevels>
+	<ORBextractor.iniThFAST>20</ORBextractor.iniThFAST>
+	<ORBextractor.minThFAST>7</ORBextractor.minThFAST>
+	<Viewer.KeyFrameSize>0.05</Viewer.KeyFrameSize>
+	<Viewer.KeyFrameLineWidth>1</Viewer.KeyFrameLineWidth>
+	<Viewer.GraphLineWidth>0.9</Viewer.GraphLineWidth>
+	<Viewer.PointSize>2</Viewer.PointSize>
+	<Viewer.CameraSize>0.08</Viewer.CameraSize>
+	<Viewer.CameraLineWidth>3</Viewer.CameraLineWidth>
+	<Viewer.ViewpointX>0</Viewer.ViewpointX>
+	<Viewer.ViewpointY>-0.7</Viewer.ViewpointY>
+	<Viewer.ViewpointZ>-1.8</Viewer.ViewpointZ>
+	<Viewer.ViewpointF>500</Viewer.ViewpointF>
+</root>
