@@ -4,4 +4,4 @@ services:
 before_install:
   - chmod -R 777 *
 script:
-  - ./docker/linux/build-from-docker.sh
+  - ./docker/build-from-docker.sh
