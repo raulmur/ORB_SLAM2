@@ -18,7 +18,7 @@ We can build ORB-SLAM2 using docker, advantages of this method is user need not 
 
 ```
 cd ORB-SLAM2
-./scripts/docker/build-from-docker.sh
+./docker/build-from-docker.sh
 ```
 
 Output build artifacts are stored under `ORB-SLAM2/products`
@@ -28,7 +28,7 @@ Similar to building ORB-SLAM2 using a docker image, we can also run the built OR
 
 ```
 cd ORB-SLAM2
-./scripts/docker/run-from-docker.sh "<application-binary> <parameter>"
+./docker/run-from-docker.sh "<application-binary> <parameter>"
 ```
 Note: Enclosing `"<application-binary> <parameter>"` within in double quotes is mandatory
 
@@ -36,7 +36,7 @@ Note: Enclosing `"<application-binary> <parameter>"` within in double quotes is 
 
 ```
 cd ORB-SLAM2
-./scripts/docker/run-garching-video-from-docker.sh /root/orb-slam2/video.mp4
+./docker/run-garching-video-from-docker.sh /root/orb-slam2/video.mp4
 ```
 
 Host's current directory i.e. `ORB-SLAM2` is shared under `/root/orb-slam2` path, inside the container. Hence, it is required to place the video file under this shared directory `ORB-SLAM2`.
@@ -46,7 +46,7 @@ Optionally user can create new docker image locally, which can be used to build 
 
 ```
 cd ORB-SLAM2
-./scripts/docker/create-image.sh
+./docker/create-image.sh
 ```
 Above script creates a docker image, provisioned with required dependences for ORB-SLAM2
 
