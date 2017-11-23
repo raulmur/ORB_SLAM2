@@ -6,7 +6,7 @@ cd ${ProjectDir}
 
 OrbSlamPlatform=`uname -m`
 OrbSlamToolset=gcc.`gcc -dumpversion`
-OrbSlamBuildtype=Debug
+OrbSlamBuildtype=Release
 
 BuildDir="products/cmake.make.linux.${OrbSlamPlatform}.${OrbSlamToolset}.${OrbSlamBuildtype}"
 

@@ -6,7 +6,7 @@ cd ${ProjectDir}
 
 OrbSlamPlatform=`uname -m`
 OrbSlamToolset=gcc.`gcc -dumpversion`
-OrbSlamBuildtype=Debug
+OrbSlamBuildtype=Release
 cores=$(nproc)
 
 if [ ! -z "$1" ] 

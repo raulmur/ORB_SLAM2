@@ -32,14 +32,14 @@ cd ORB-SLAM2
 ```
 Note: Enclosing `"<application-binary> <parameter>"` within in double quotes is mandatory
 
-`run-from-docker.sh` provides way to run any ORB-SLAM2's application binary. `run-garching-video-from-docker.sh` use `run-from-docker.sh` to run mono_video example of ORB-SLAM2.
+`run-from-docker.sh` provides way to run any ORB-SLAM2's application binary. `run-garching-video-from-docker.sh` uses `run-from-docker.sh` to run a specific example of ORB-SLAM2.
 
 ```
 cd ORB-SLAM2
-./docker/run-garching-video-from-docker.sh /root/orb-slam2/video.mp4
+./docker/run-garching-video-from-docker.sh <path-to-video>
 ```
 
-Host's current directory i.e. `ORB-SLAM2` is shared under `/root/orb-slam2` path, inside the container. Hence, it is required to place the video file under this shared directory `ORB-SLAM2`.
+Note that `<path-to-video>` must be a path to a video file inside of the `ORB_SLAM2` folder. Host's current directory i.e. `ORB-SLAM2` is shared under `/root/orb-slam2` path, inside the container. Hence, it is required to place the video file under this shared directory `ORB-SLAM2`.
 
 ### Create Docker image
 Optionally user can create new docker image locally, which can be used to build and run ORB-SLAM2.
