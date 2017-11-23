@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CurDir=$(dirname $0)
-ProjectDir=${CurDir}/../..
+ProjectDir=${CurDir}/..
 cd ${ProjectDir}
 
 docker run --volume="$(pwd):/root/orb-slam2" \

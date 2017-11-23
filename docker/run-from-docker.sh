@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CurDir=$(dirname $0)
-ProjectDir=${CurDir}/../..
+ProjectDir=${CurDir}/..
 cd ${ProjectDir}
 
 if [ "$1" = "" ]
