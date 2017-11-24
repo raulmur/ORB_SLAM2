@@ -30,10 +30,13 @@
 namespace ORB_SLAM2
 {
 
-LocalMapping::LocalMapping(Map *pMap, const float bMonocular):
+LocalMapping::LocalMapping(Map *pMap, const string &strSettingPath,  const float bMonocular):
     mbMonocular(bMonocular), mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap),
     mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true)
 {
+    // Load camera parameters from settings file
+    cv::FileStorage fsSettings(strSettingPath, cv::FileStorage::READ);
+//    NumOfKeyFrames = fsSettings["Initializer.KeyFrames"];
 }
 
 void LocalMapping::SetLoopCloser(LoopClosing* pLoopCloser)
@@ -79,6 +82,7 @@ void LocalMapping::Run()
             {
 
                 // Local BA
+//                if(mpMap->KeyFramesInMap()>NumOfKeyFrames && !mpMap->IsMapScaled)
                 if(mpMap->KeyFramesInMap()>10 && !mpMap->IsMapScaled)
                     MapScaling();
 
@@ -764,23 +768,24 @@ bool LocalMapping::isFinished()
 
 void LocalMapping::MapScaling()
 {
-    double scale = ScaleRecovery();
+    float scale = ScaleRecovery();
     std::vector<KeyFrame*> UnscaledKF = mpMap->GetAllKeyFrames();
     std::vector<MapPoint*> UnscaledMP = mpMap->GetAllMapPoints();
 
     for(vector<KeyFrame*>::const_iterator itKF = UnscaledKF.begin(), itEndKF = UnscaledKF.end(); itKF!=itEndKF; itKF++)
     {
-    KeyFrame* pKF = *itKF;
-    cv::Mat tPose;
-    tPose = pKF->GetTranslation();
-    pKF->UpdateTranslation(tPose);
+        KeyFrame* pKF = *itKF;
+        pKF->UpdateTranslation(scale);
     }
-//    for(vector<MapPoint*>::const_iterator itMP = UnscaledMP.begin(), itEndMP = UnscaledMP.end(); itMP!=itEndMP; itMP++)
-//    {}
+    for(vector<MapPoint*>::const_iterator itMP = UnscaledMP.begin(), itEndMP = UnscaledMP.end(); itMP!=itEndMP; itMP++)
+    {
+        MapPoint* pMP = *itMP;
+        pMP->UpdateWorldPos(scale);
+    }
 
     mpMap->IsMapScaled = true;
 }
-double LocalMapping::ScaleRecovery()
+float LocalMapping::ScaleRecovery()
 {
     cout <<"Scale obtaining started " <<endl;
 
@@ -817,7 +822,8 @@ double LocalMapping::ScaleRecovery()
 
     std::cout <<"Scale OpenCv initialized as " << scale.at<double>(0) <<std::endl;
 //    std::cout <<"Scale OpenCv initialized 3 coords " << scale <<std::endl;
-    return scale.at<double>(0);
+    float s = (float) scale.at<double>(0);
+    return s;
 }
 
 } //namespace ORB_SLAM

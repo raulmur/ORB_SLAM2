@@ -42,7 +42,7 @@ class Map;
 class LocalMapping
 {
 public:
-    LocalMapping(Map* pMap, const float bMonocular);
+    LocalMapping(Map* pMap, const string &strSettingPath, const float bMonocular);
 
     void SetLoopCloser(LoopClosing* pLoopCloser);
 
@@ -126,7 +126,8 @@ protected:
 
     // MAP SCALING
     void MapScaling();
-    double ScaleRecovery();
+    float ScaleRecovery();
+    unsigned long NumOfKeyFrames;
 
 };
 

@@ -1,6 +1,6 @@
 argument1="Maqui"
 argument2="Vocabulary/ORBvoc.txt"
-argument3="Examples/ROS/ORB_SLAM2/Asus.yaml"
+argument3="Examples/ROS/ORB_SLAM2/maqui.yaml"
 argument4="/pepper_robot/camera/bottom/image_raw:=/camera/rgb/image_raw"
 #argument4="/pepper_robot/camera/bottom/image_raw:=/pepper_robot/camera/front/image_raw"
 

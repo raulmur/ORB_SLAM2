@@ -82,6 +82,13 @@ cv::Mat MapPoint::GetWorldPos()
     unique_lock<mutex> lock(mMutexPos);
     return mWorldPos.clone();
 }
+void MapPoint::UpdateWorldPos(float s)
+{
+    unique_lock<mutex> lock(mMutexPos);
+    mWorldPos.at<float>(0) *= s;
+    mWorldPos.at<float>(1) *= s;
+    mWorldPos.at<float>(2) *= s;
+}
 
 cv::Mat MapPoint::GetNormal()
 {

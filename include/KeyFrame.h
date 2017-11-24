@@ -48,7 +48,7 @@ public:
     // Pose functions
     void SetPose(const cv::Mat &Tcw);
     void SetOdomPose(const g2o::SE3Quat &TF_c_w);
-    void UpdateTranslation(const cv::Mat &tPose, double s);
+    void UpdateTranslation(float s);
     cv::Mat GetPose();
     cv::Mat GetPoseInverse();
     g2o::SE3Quat GetOdomPose();

@@ -133,13 +133,13 @@ cv::Mat KeyFrame::GetTranslation()
     unique_lock<mutex> lock(mMutexPose);
     return Tcw.rowRange(0,3).col(3).clone();
 }
-void KeyFrame::UpdateTranslation(const cv::Mat &tPose, double s)
+void KeyFrame::UpdateTranslation(float s)
 {
     unique_lock<mutex> lock(mMutexPose);
 
-    Tcw.at<float>(0,3) = s*tPose.at<float>(0);
-    Tcw.at<float>(1,3) = s*tPose.at<float>(1);
-    Tcw.at<float>(2,3) = s*tPose.at<float>(2);
+    Tcw.at<float>(0,3) *= s;
+    Tcw.at<float>(1,3) *= s;
+    Tcw.at<float>(2,3) *= s;
 }
 
 void KeyFrame::AddConnection(KeyFrame *pKF, const int &weight)
