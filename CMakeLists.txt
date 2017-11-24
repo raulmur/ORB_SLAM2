@@ -118,6 +118,11 @@ add_executable(semantic_monocular
 Examples/Monocular/semantic_monocular.cc)
 
 target_link_libraries(semantic_monocular ${PROJECT_NAME} ${Boost_LIBRARIES})
+
+add_executable(semantic_monocular_video 
+Examples/Monocular/semantic_monocular_video.cpp)
+
+target_link_libraries(semantic_monocular_video ${PROJECT_NAME} ${Boost_LIBRARIES})
 endif()
 
 # Build tools

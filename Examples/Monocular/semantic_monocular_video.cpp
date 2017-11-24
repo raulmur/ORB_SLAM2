@@ -147,7 +147,7 @@ void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vecto
         }
     }
 }
-void TransformRect(std::vector<int> RectArr,cv::Rect& Roi)
+void TransformRect(std::vector<float> RectArr,cv::Rect& Roi)
 {
 	int ymin = int(RectArr[0] * gImgHeight);
     int xmin = int(RectArr[1] * gImgWidth);
@@ -216,10 +216,10 @@ bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, 
          ORB_SLAM2::Traficsign t;
          t.classid = node.second.get<int>("class_id");
          t.confidence = node.second.get<double>("confidence");
-         std::vector<int> r;
+         std::vector<float> r;
          for (auto &temppt : node.second.get_child("rectangle"))
-         {			 
-            r.push_back(round(temppt.second.get_value < double > ()));
+         {	
+			r.push_back(temppt.second.get_value < double > ());	 
          }	
 		TransformRect(r,t.Roi);		 
          //t.Roi.x = r[0];
