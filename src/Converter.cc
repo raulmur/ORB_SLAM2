@@ -148,20 +148,6 @@ Eigen::VectorXd toVectorXd(const cv::Mat &cvVector)
 }
 
 
-Eigen::MatrixXd toMatrixXd(const cv::Mat &cvVector)
-{
-    Eigen::MatrixXd M;
-
-    for(int i=0; i<cvVector.rows; i++)
-    {
-        M(i) = cvVector.at<double>(i);
-    }
-
-    return M;
-}
-
-
-
 
 std::vector<float> Converter::toQuaternion(const cv::Mat &M)
 {

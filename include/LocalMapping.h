@@ -26,6 +26,7 @@
 #include "LoopClosing.h"
 #include "Tracking.h"
 #include "KeyFrameDatabase.h"
+#include "Converter.h"
 
 #include <Eigen/Dense>
 #include <mutex>
@@ -126,6 +127,7 @@ protected:
     // MAP SCALING
     void MapScaling();
     void ScaleRecovery();
+
 };
 
 } //namespace ORB_SLAM

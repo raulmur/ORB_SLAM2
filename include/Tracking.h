@@ -76,7 +76,6 @@
 
         // Scale recovery
         cv::Mat GetTranslation(cv::Mat &TFmat);
-        void ScaleRecovery();
     public:
 
         // Tracking states

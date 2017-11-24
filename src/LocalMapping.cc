@@ -80,7 +80,7 @@ void LocalMapping::Run()
             {
 
                 // Local BA
-                if(mpMap->KeyFramesInMap()>50)
+                if(mpMap->KeyFramesInMap()>10)
 
                 {
                     if(!mpMap->IsMapScaled)
@@ -795,8 +795,9 @@ void LocalMapping::ScaleRecovery()
         cv::Mat tTf_w_c = Tf_w_c.rowRange(0,3).col(3).clone();
 
         cv::Mat temp = O_w - tTf_w_c;
-        A.push_back(temp);
-        B.push_back(tTf_w_c);
+        A.push_back(tTf_w_c);
+        B.push_back(temp);
+
     }
 
     // opencv method
@@ -804,20 +805,6 @@ void LocalMapping::ScaleRecovery()
     B.convertTo(B, CV_64F);
     cv::solve(A, B, scale, cv::DECOMP_SVD);
     std::cout <<"Scale OpenCv initialized as " << scale.at<double>(0) <<std::endl;
-
-//    // Eigen method
-//    Eigen::MatrixXd Ae, Be;
-//    Ae = Converter::toMatrixXd(A);
-//    std::cout << "Matrix dimensions of Ae: \n" <<
-//                 "# of rows: " << Ae.rows() <<
-//                 "# of columns: " << Ae.cols() << std::endl;
-
-//    Be = Converter::toMatrixXd(B);
-//    Eigen::JacobiSVD<Eigen::MatrixXd> svd(Ae, Eigen::ComputeThinU | Eigen::ComputeThinV);
-//    Eigen::MatrixXd c = svd.solve(Be);
-
-//    std::cout <<"Scale Eigen initialized as " << svd.singularValues() << std::endl;
-
 }
 
 } //namespace ORB_SLAM
