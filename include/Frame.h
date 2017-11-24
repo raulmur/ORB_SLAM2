@@ -97,7 +97,7 @@ public:
 
     // Backprojects a keypoint (if stereo/depth info available) into 3D world coordinates.
     cv::Mat UnprojectStereo(const int &i);
-
+	void ExtractORBInSubImage(const cv::Mat &im,std::vector<cv::KeyPoint> &AllSubKeys,cv::Mat AllImageDescriptorList[],int &DescriptorIndex);
 public:
     // Vocabulary used for relocalization.
     ORBVocabulary* mpORBvocabulary;
@@ -207,6 +207,7 @@ private:
     cv::Mat mRwc;
     cv::Mat mOw; //==mtwc
 	std::vector<cv::Rect> mRoiList;
+	ORBextractor* mpORBextractorSub;
 };
 
 }// namespace ORB_SLAM

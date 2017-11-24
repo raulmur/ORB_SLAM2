@@ -63,12 +63,28 @@ public:
 	void operator()(cv::InputArray _image,std::vector <cv::Rect> &Roi,
 	std::vector<cv::KeyPoint>& _keypoints,
 	cv::OutputArray _descriptors);
+
+	void operator()(cv::InputArray _image,std::vector <cv::Rect> &Roi,
+	std::vector<cv::KeyPoint>& _keypoints,
+	cv::OutputArray _descriptors,bool Masking);
+	void operator()(cv::InputArray _image,std::vector <cv::Rect> &Roi,
+	std::vector<cv::KeyPoint>& _keypoints,
+	cv::OutputArray _descriptors,bool Masking,bool AddEachLevel);
 	
 	 void LinearTransform(std::vector<cv::KeyPoint> &vKeys,cv::Rect &CropArea);
-	 
+	 void LinearTransform1(std::vector<cv::KeyPoint> &vKeys,cv::Rect &CropArea,cv::Mat &LevelMat);
     int inline GetLevels(){
         return nlevels;}
-
+		
+	int inline Getfeatures(){
+        return nfeatures;}
+		
+	int inline GetiniThFAST(){
+        return iniThFAST;}
+		
+	int inline GetminThFAST(){
+        return minThFAST;}
+		
     float inline GetScaleFactor(){
         return scaleFactor;}
 

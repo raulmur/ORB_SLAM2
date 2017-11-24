@@ -169,6 +169,14 @@ scripts/linux/build.sh `uname -m` gcc.`gcc -dumpversion` Debug
 ./Examples/Monocular/mono_euroc Vocabulary/ORBvoc.txt Examples/Monocular/EuRoC.yaml PATH_TO_SEQUENCE/cam0/data Examples/Monocular/EuRoC_TimeStamps/SEQUENCE.txt 
 ```
 
+```
+./Examples/Monocular/semantic_monocular_video VideoFile Vocabulary/ORBvoc.txt Examples/Monocular/CameraSetting.yaml [JsonFile] 
+```
+
+```
+./Examples/Monocular/semantic_monocular Vocabulary/ORBvoc.txt Examples/Monocular/KITTIX.yaml PATH_TO_DATASET_FOLDER/dataset/sequences/SEQUENCE_NUMBER [JsonFile] 
+```
+
 # 5. Stereo Examples
 
 ## KITTI Dataset

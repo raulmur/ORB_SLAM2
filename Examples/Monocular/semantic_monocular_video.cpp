@@ -34,6 +34,7 @@
 #include <vector>
 #include <map>
 #include<System.h>
+#include <opencv2/highgui/highgui.hpp>
 
 using namespace std;
 using boost::property_tree::ptree;
@@ -50,79 +51,72 @@ int gMinRectHeight = 90;
 
 int main(int argc, char** argv)
 {
-	
-    if(argc != 5)
+    enum class status : int
     {
-        cerr << endl << "Usage: ./mono_tum path_to_vocabulary path_to_vocabulary path_to_settings path_to_sequence path_to_jsonfile" << endl;
-        return 1;
-    }
+        success = 0,
+        failure = -1
+    };
 	ORB_SLAM2::KeySemanticObjGrp SemanticObjGrp;
-	std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > Trafic;
-	if(true == ExtractSemanticObjGrp(argv[4],Trafic))
-		SemanticObjGrp.SetSemanticObjGrp(Trafic);
-
-    // Retrieve paths to images
-    vector<string> vstrImageFilenames;
-    vector<double> vTimestamps;
-    string strFile = string(argv[3])+"/rgb.txt";
-    LoadImages(strFile, vstrImageFilenames, vTimestamps);
-
-    int nImages = vstrImageFilenames.size();
-
 	
-    // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
-	SLAM.SetSemanticObjGrp(SemanticObjGrp);
-    // Vector for tracking time statistics
-    vector<float> vTimesTrack;
-    vTimesTrack.resize(nImages);
-
-    cout << endl << "-------" << endl;
-    cout << "Start processing sequence ..." << endl;
-    cout << "Images in the sequence: " << nImages << endl << endl;
-
-    // Main loop
-    cv::Mat im;
-    for(int ni=0; ni<nImages; ni++)
+    int ret_val{static_cast<int>(status::success)};
+	std::cout<<"Total Arg = "<<argc<<endl;
+    if (4 <= argc)
     {
-        // Read image from file
-        im = cv::imread(string(argv[3])+"/"+vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
-        double tframe = vTimestamps[ni];
+        std::string video_file{argv[1]};
+        std::string vocabulary_file{argv[2]};
+        std::string settings_file{argv[3]};
 
-        if(im.empty())
-        {
-            cerr << endl << "Failed to load image at: "
-                 << string(argv[3]) << "/" << vstrImageFilenames[ni] << endl;
-            return 1;
-        }
-		double ttrack = (double)cv::getTickCount();
-
-        // Pass the image to the SLAM system
-        SLAM.TrackMonocular(im,tframe);
+        cv::VideoCapture video_capture(video_file);
 		
-		ttrack = 1000 * (((double)cv::getTickCount() - ttrack) / cv::getTickFrequency());
-		vTimesTrack[ni]=ttrack;
+	
+	
+        if (true == video_capture.isOpened())
+        {
+			
+			
+            ORB_SLAM2::System slam(vocabulary_file, settings_file,
+                                   ORB_SLAM2::System::MONOCULAR);
+			 if (5 <= argc)
+			 {
+				 int TotalImageFrame = video_capture.get(cv::CAP_PROP_FRAME_COUNT);
+				 cout<<"Image Frame = : ="<<TotalImageFrame<<endl;
+				std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > Trafic;
+				if(true == ExtractSemanticObjGrp(argv[4],Trafic))
+				SemanticObjGrp.SetSemanticObjGrp(Trafic);
+				show_interesting_object(Trafic);
+				slam.SetSemanticObjGrp(SemanticObjGrp);
+			 }
+            cv::Mat frame;
+            while (video_capture.read(frame))
+            {
+                auto current_video_time = video_capture.get(CV_CAP_PROP_POS_MSEC);
+                slam.TrackMonocular(frame, current_video_time);
+                //std::this_thread::sleep_for(std::chrono::milliseconds(30));
+            }
 
+            slam.Shutdown();
+            slam.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+        }
+        else
+        {
+            std::cerr << "Cannot open the video file " << video_file << '\n';
+            ret_val = static_cast<int>(status::failure);
+        }
     }
-
-    // Stop all threads
-    SLAM.Shutdown();
-
-    // Tracking time statistics
-    sort(vTimesTrack.begin(),vTimesTrack.end());
-    float totaltime = 0;
-    for(int ni=0; ni<nImages; ni++)
+    else
     {
-        totaltime+=vTimesTrack[ni];
+        std::cerr << "Invalid input\n";
+        std::cerr
+            << "Usage: semantic mono_video VideoFile VocabularyFile SettingsFile Jsonfile\n";
+        std::cerr << "Example: /ORB_SLAM2/Examples/Monocular/mono_video "
+                  << "/ORB_SLAM2/Examples/video.mp4 "
+                  << "/ORB_SLAM2/Vocabulary/ORBVoc.txt "
+                  << "/ORB_SLAM2/Examples/Monocular/TUM1.yaml\n"
+				  << "/ORB_SLAM2/Examples/Monocular/Jsonfile.json\n";
+        ret_val = static_cast<int>(status::failure);
     }
-    cout << "-------" << endl << endl;
-    cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
-    cout << "mean tracking time: " << totaltime/nImages << endl;
 
-    // Save camera trajectory
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
-
-    return 0;
+    return ret_val;
 }
 
 void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vector<double> &vTimestamps)
@@ -216,6 +210,7 @@ bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, 
       std::string image_name = pt_iter->first; 
       auto &traffic_sign_arr = pt_iter->second;
       std::vector<ORB_SLAM2::Traficsign> traffic_signs;
+
       BOOST_FOREACH(boost::property_tree::ptree::value_type &node, traffic_sign_arr.get_child("traffic_signs"))
       {
          ORB_SLAM2::Traficsign t;
