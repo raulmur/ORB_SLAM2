@@ -10,8 +10,8 @@ then
     exit 1
 fi
 
-sudo xhost +local:root
-sudo docker run --rm -it \
+xhost +local:root
+docker run --rm -it \
     --net=host \
     --ipc=host \
     --device=/dev/dri:/dev/dri \
