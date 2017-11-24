@@ -47,7 +47,6 @@ public:
     cv::Mat cvT_w_c;
     cv_bridge::CvImageConstPtr cv_ptr;
 
-	
 	// methods
 	void Shutdown();
 

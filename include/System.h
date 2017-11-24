@@ -127,8 +127,9 @@ public:
     void SetOdomPose(const cv::Mat& TFpose);
     g2o::SE3Quat mOdom;
 
-private:
 
+
+private:
     // Input sensor
     eSensor mSensor;
 

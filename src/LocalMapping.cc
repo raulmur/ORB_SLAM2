@@ -48,7 +48,6 @@ void LocalMapping::SetTracker(Tracking *pTracker)
 
 void LocalMapping::Run()
 {
-
     mbFinished = false;
 
     while(1)
@@ -80,16 +79,12 @@ void LocalMapping::Run()
             {
 
                 // Local BA
-                if(mpMap->KeyFramesInMap()>10)
-
-                {
-                    if(!mpMap->IsMapScaled)
+                if(mpMap->KeyFramesInMap()>10 && !mpMap->IsMapScaled)
                     MapScaling();
-                    else
-                    {
-                        Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap);
-                    }
-                }
+
+                if(mpMap->KeyFramesInMap()>2 && mpMap->IsMapScaled)
+                    Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap);
+
                 // Check redundant local Keyframes
                 KeyFrameCulling();
             }
@@ -769,14 +764,26 @@ bool LocalMapping::isFinished()
 
 void LocalMapping::MapScaling()
 {
-    ScaleRecovery();
+    double scale = ScaleRecovery();
+    std::vector<KeyFrame*> UnscaledKF = mpMap->GetAllKeyFrames();
+    std::vector<MapPoint*> UnscaledMP = mpMap->GetAllMapPoints();
+
+    for(vector<KeyFrame*>::const_iterator itKF = UnscaledKF.begin(), itEndKF = UnscaledKF.end(); itKF!=itEndKF; itKF++)
+    {
+    KeyFrame* pKF = *itKF;
+    cv::Mat tPose;
+    tPose = pKF->GetTranslation();
+    pKF->UpdateTranslation(tPose);
+    }
+//    for(vector<MapPoint*>::const_iterator itMP = UnscaledMP.begin(), itEndMP = UnscaledMP.end(); itMP!=itEndMP; itMP++)
+//    {}
+
     mpMap->IsMapScaled = true;
 }
-void LocalMapping::ScaleRecovery()
+double LocalMapping::ScaleRecovery()
 {
     cout <<"Scale obtaining started " <<endl;
 
-    // TODO clean up
     cv::Mat O_w, Tf_w_c, A, B, scale;
     vector<KeyFrame*> MapKeyFrames = mpMap->GetAllKeyFrames();
 
@@ -794,17 +801,23 @@ void LocalMapping::ScaleRecovery()
         // translation vector from homogeneous matrix
         cv::Mat tTf_w_c = Tf_w_c.rowRange(0,3).col(3).clone();
 
+
         cv::Mat temp = O_w - tTf_w_c;
         A.push_back(tTf_w_c);
         B.push_back(temp);
-
     }
+
+    // TODO for A[m x n],  SVD is good when m >> n. IF scale recovery is sufficient with limited keyframes,
+    // try different method with for example only 2d coordinates (e.g. QR)
 
     // opencv method
     A.convertTo(A, CV_64F);
     B.convertTo(B, CV_64F);
     cv::solve(A, B, scale, cv::DECOMP_SVD);
+
     std::cout <<"Scale OpenCv initialized as " << scale.at<double>(0) <<std::endl;
+//    std::cout <<"Scale OpenCv initialized 3 coords " << scale <<std::endl;
+    return scale.at<double>(0);
 }
 
 } //namespace ORB_SLAM

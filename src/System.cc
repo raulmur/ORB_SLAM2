@@ -493,4 +493,5 @@ void System::SetOdomPose(const cv::Mat& TFpose)
     cv::Mat mTFPose = TFpose.clone();
     mOdom = Converter::toSE3Quat(mTFPose);
 }
+
 } //namespace ORB_SLAM

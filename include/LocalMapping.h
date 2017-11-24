@@ -126,7 +126,7 @@ protected:
 
     // MAP SCALING
     void MapScaling();
-    void ScaleRecovery();
+    double ScaleRecovery();
 
 };
 

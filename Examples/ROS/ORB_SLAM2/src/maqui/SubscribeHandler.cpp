@@ -16,15 +16,12 @@ mpNodeHandler(pNodeHandler),
 mpTFlistener(pTFlistener),
 mbReferenceWorldFrame(false)
 {
-    // Initialize
+    // Initialize TODO put in setting file
         // Topics to subscribe
     cameraTopic      = "/pepper_robot/camera/bottom/image_raw";
     cameraFrameTopic = "/CameraBottom_optical_frame";
     worldFrameTopic  = "/map";
     tfTopic          = "tf";
-        // world Origin and Odom initialization
-//    wOrigin = cv::Mat4d.eye();
-//    oInit   = cv::Mat4d.eye();
 
     mpSLAM = new ORB_SLAM2::System(strVocFile, strSettingsFile, ORB_SLAM2::System::MONOCULAR,true);
 

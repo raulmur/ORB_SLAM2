@@ -129,6 +129,8 @@ void Map::clear()
     mnMaxKFid = 0;
     mvpReferenceMapPoints.clear();
     mvpKeyFrameOrigins.clear();
+
+    IsMapScaled = false;
 }
 
 } //namespace ORB_SLAM

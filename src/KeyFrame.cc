@@ -87,8 +87,6 @@ void KeyFrame::SetOdomPose(const g2o::SE3Quat &TF_c_w)
 {
     unique_lock<mutex> lock(mMutexPose);
     mTF_c_w = TF_c_w;
-//    Tf_w_c = Tf_c_w.t();
-//    tTf_c_w = Tf_c_w.rowRange(0,3).col(3).clone();
 }
 
 
@@ -103,16 +101,6 @@ g2o::SE3Quat KeyFrame::GetOdomPose()
     unique_lock<mutex> lock(mMutexPose);
     return mTF_c_w;
 }
-//cv::Mat KeyFrame::GetOdomRotation()
-//{
-//    unique_lock<mutex> lock(mMutexPose);
-//    return Tf_c_w.rowRange(0,3).colRange(0,3).clone();
-//}
-//cv::Mat KeyFrame::GetOdomTranslation()
-//{
-//    unique_lock<mutex> lock(mMutexPose);
-//    return ;
-//}
 
 cv::Mat KeyFrame::GetPoseInverse()
 {
@@ -120,11 +108,6 @@ cv::Mat KeyFrame::GetPoseInverse()
     return Twc.clone();
 }
 
-//cv::Mat KeyFrame::GetOdomPoseInverse()
-//{
-//    unique_lock<mutex> lock(mMutexPose);
-//    return Tf_w_c.clone();
-//}
 
 cv::Mat KeyFrame::GetCameraCenter()
 {
@@ -149,6 +132,14 @@ cv::Mat KeyFrame::GetTranslation()
 {
     unique_lock<mutex> lock(mMutexPose);
     return Tcw.rowRange(0,3).col(3).clone();
+}
+void KeyFrame::UpdateTranslation(const cv::Mat &tPose, double s)
+{
+    unique_lock<mutex> lock(mMutexPose);
+
+    Tcw.at<float>(0,3) = s*tPose.at<float>(0);
+    Tcw.at<float>(1,3) = s*tPose.at<float>(1);
+    Tcw.at<float>(2,3) = s*tPose.at<float>(2);
 }
 
 void KeyFrame::AddConnection(KeyFrame *pKF, const int &weight)
