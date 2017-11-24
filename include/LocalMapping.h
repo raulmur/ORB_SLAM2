@@ -27,6 +27,7 @@
 #include "Tracking.h"
 #include "KeyFrameDatabase.h"
 
+#include <Eigen/Dense>
 #include <mutex>
 
 
