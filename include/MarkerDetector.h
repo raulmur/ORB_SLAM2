@@ -58,7 +58,13 @@ public:
 
 class MarkerDetector{
 public:
-	//the input image was already gratscale
+	//use marker detector by implement this function
+	//im: a grayscale image with type CV_8UC1
+	//keypoints: detected keypoints provided by ORB_SLAM2. can not be modified
+	//rmat: a 3*3 rotate matrix of camera pose. equal to pose(cv::Rect(0,0,3,3))
+	//tvec: a 3*1 translate vector of camera pose. equal to pose(cv::Rect(3,0,1,3))
+	//mask: same size to keypoints. initially all false. fill this to show the system those keypoints has certain 3d position in this frame.
+	//worldpos: same size to keypoints. the 3d position of each keypoints. keypoints with false mask will be ignored.
 	virtual int detect(const cv::Mat &im, const std::vector<cv::KeyPoint> &keypoints, cv::Mat &rmat, cv::Mat &tvec, std::vector<bool> &mask,std::vector<cv::Point3f> &worldPos);
 
 	void addFrame(const cv::Mat &image, const Frame &frame);
