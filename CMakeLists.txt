@@ -22,17 +22,19 @@ elseif(COMPILER_SUPPORTS_CXX0X)
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
    add_definitions(-DCOMPILEDWITHC0X)
    message(STATUS "Using flag -std=c++0x.")
+elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+   message(STATUS "Using MSVC.")
 else()
    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
-find_package(OpenCV 3.0 QUIET)
+find_package(OpenCV QUIET)
 if(NOT OpenCV_FOUND)
-   find_package(OpenCV 2.4.3 QUIET)
+   find_package(OpenCV 2.4.13 QUIET)
    if(NOT OpenCV_FOUND)
-      message(FATAL_ERROR "OpenCV > 2.4.3 not found.")
+      message(FATAL_ERROR "OpenCV > 2.4.13 not found.")
    endif()
 endif()
 
@@ -68,6 +70,7 @@ src/KeyFrameDatabase.cc
 src/Sim3Solver.cc
 src/Initializer.cc
 src/Viewer.cc
+src/MarkerDetector.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -110,4 +113,14 @@ target_link_libraries(mono_kitti ${PROJECT_NAME})
 add_executable(mono_euroc
 Examples/Monocular/mono_euroc.cc)
 target_link_libraries(mono_euroc ${PROJECT_NAME})
+
+add_executable(mono_marker
+Examples/MonocularMarker/mono_marker.cc
+Examples/MonocularMarker/Marker.h
+Examples/MonocularMarker/Marker.cpp
+Examples/MonocularMarker/SimpleDetector.h
+Examples/MonocularMarker/SimpleDetector.cpp
+Examples/MonocularMarker/PlainPaperDetector.h
+Examples/MonocularMarker/PlainPaperDetector.cpp)
+target_link_libraries(mono_marker ${PROJECT_NAME})
 
