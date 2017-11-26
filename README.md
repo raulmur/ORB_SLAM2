@@ -2,7 +2,7 @@
 https://github.com/raulmur/ORB_SLAM2
 
 # This project
-Add some mechanisms to make ORB_SLAM2 initialize or transform its coordinate to the coordinate recognized by a marker detector. 
+Add some mechanisms to make ORB_SLAM2 initializes or transform its coordinate to the coordinate recognized by a marker detector. 
 
 # How to use
 Inherit MarkerDetector class and implemention detect() function. 
