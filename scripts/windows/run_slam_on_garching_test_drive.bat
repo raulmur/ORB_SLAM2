@@ -22,3 +22,4 @@ set SettingsFile="%ProjectDir%\Examples\Monocular\Garching-Test-Drive.yaml"
 %MonoVideoApp% %VideoFile% %VocabularyFile% %SettingsFile%
 
 endlocal
+
