@@ -22,6 +22,7 @@
 #include <pangolin/pangolin.h>
 
 #include <mutex>
+#define usleep(i) std::this_thread::sleep_for(std::chrono::microseconds(i))
 
 namespace ORB_SLAM2
 {

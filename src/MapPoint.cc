@@ -272,7 +272,10 @@ void MapPoint::ComputeDistinctiveDescriptors()
     // Compute distances between them
     const size_t N = vDescriptors.size();
 
-    float Distances[N][N];
+    float **Distances = new float*[N];
+	for (size_t i = 0; i < N; ++i){
+		Distances[i] = new float[N];
+	}
     for(size_t i=0;i<N;i++)
     {
         Distances[i][i]=0;
@@ -299,6 +302,10 @@ void MapPoint::ComputeDistinctiveDescriptors()
             BestIdx = i;
         }
     }
+	for (size_t i = 0; i < N; ++i){
+		delete Distances[i];
+	}
+	delete Distances;
 
     {
         unique_lock<mutex> lock(mMutexFeatures);

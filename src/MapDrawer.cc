@@ -51,6 +51,17 @@ void MapDrawer::DrawMapPoints()
     if(vpMPs.empty())
         return;
 
+	glBegin(GL_LINES);
+	glColor3f(0.0, 1.0, 0.0);
+	glVertex3d(-2, 0, 0);
+	glVertex3d(2, 0, 0);
+	glEnd();
+	glBegin(GL_LINES);
+	glColor3f(0.0, 0.0, 1.0);
+	glVertex3d(0, -4, 0);
+	glVertex3d(0, 4, 0);
+	glEnd();
+
     glPointSize(mPointSize);
     glBegin(GL_POINTS);
     glColor3f(0.0,0.0,0.0);

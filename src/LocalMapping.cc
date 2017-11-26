@@ -24,6 +24,7 @@
 #include "Optimizer.h"
 
 #include<mutex>
+#define usleep(i) std::this_thread::sleep_for(std::chrono::microseconds(i))
 
 namespace ORB_SLAM2
 {
@@ -432,6 +433,7 @@ void LocalMapping::CreateNewMapPoints()
 
             // Triangulation is succesfull
             MapPoint* pMP = new MapPoint(x3D,mpCurrentKeyFrame,mpMap);
+			//cout << x3D << endl;
 
             pMP->AddObservation(mpCurrentKeyFrame,idx1);            
             pMP->AddObservation(pKF2,idx2);
