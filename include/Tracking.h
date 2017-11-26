@@ -39,6 +39,7 @@
 #include "System.h"
 
 #include <mutex>
+#include "MarkerDetector.h"
 
 namespace ORB_SLAM2
 {
@@ -55,7 +56,7 @@ class Tracking
 
 public:
     Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
-             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor);
+		KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, MarkerDetector* detector);
 
     // Preprocess the input and call Track(). Extract features and performs stereo matching.
     cv::Mat GrabImageStereo(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp);
@@ -126,6 +127,10 @@ protected:
     // Map initialization for monocular
     void MonocularInitialization();
     void CreateInitialMapMonocular();
+
+	// Map initialization with marker
+	void MonocularInitializationMarker();
+	void CreateInitialMapMonocularMarker(MarkerFrameData* data);
 
     void CheckReplacedInLastFrame();
     bool TrackReferenceKeyFrame();
@@ -214,6 +219,9 @@ protected:
     bool mbRGB;
 
     list<MapPoint*> mlpTemporalPoints;
+
+	MarkerDetector *mDetector;
+	bool marked;
 };
 
 } //namespace ORB_SLAM

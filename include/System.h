@@ -35,6 +35,7 @@
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
 #include "Viewer.h"
+#include "MarkerDetector.h"
 
 namespace ORB_SLAM2
 {
@@ -59,7 +60,7 @@ public:
 public:
 
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true);
+	System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true, MarkerDetector* detector = static_cast<MarkerDetector*>(NULL));
 
     // Proccess the given stereo frame. Images must be synchronized and rectified.
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
@@ -151,6 +152,9 @@ private:
     // The viewer draws the map and the current camera pose. It uses Pangolin.
     Viewer* mpViewer;
 
+	// The marker recognizer 
+	MarkerDetector* mMarkerDetector;
+
     FrameDrawer* mpFrameDrawer;
     MapDrawer* mpMapDrawer;
 
@@ -159,6 +163,7 @@ private:
     std::thread* mptLocalMapping;
     std::thread* mptLoopClosing;
     std::thread* mptViewer;
+	std::thread* mptMarkerDetector;
 
     // Reset flag
     std::mutex mMutexReset;
