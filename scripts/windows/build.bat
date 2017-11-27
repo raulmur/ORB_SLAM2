@@ -10,7 +10,7 @@ if NOT "%~1"=="" set "OrbSlamPlatform=%~1"
 if NOT "%~2"=="" set "OrbSlamToolset=%~2"
 if NOT "%~3"=="" set "OrbSlamBuildType=%~3" 
 
-set "VcPkgDir=C:\Software\vcpkg\vcpkg"
+set "VcPkgDir=%~d0\Software\vcpkg\vcpkg"
 set "VcPkgTriplet=%OrbSlamPlatform%-windows-%OrbSlamToolset%"
 set "VcPkgTripletDir=%VcPkgDir%\installed\%VcPkgTriplet%"
 if not exist "%VcPkgTripletDir%" echo %VcPkgTripletDir% does not exist, bailing out & exit /b 1
