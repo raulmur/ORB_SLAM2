@@ -330,6 +330,7 @@ void Frame::ExtractORB(int flag, const cv::Mat &im)
 			if(SubImageKeypoints.size())
 			{	
 				cv::Mat OrgDescriptors;
+				(*mpORBextractorLeft)(im,cv::Mat(),mvKeys,OrgDescriptors);
 				mvKeys.insert(mvKeys.end(), SubImageKeypoints.begin(), SubImageKeypoints.end());
 				cv::vconcat(OrgDescriptors, SubDescriptors, mDescriptors);	
 				//DrawKeypoint1("Merge",im,SubImageKeypoints);

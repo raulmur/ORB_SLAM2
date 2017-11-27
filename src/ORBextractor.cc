@@ -541,7 +541,11 @@ vector<cv::KeyPoint> ORBextractor::DistributeOctTree(const vector<cv::KeyPoint>&
 {
     // Compute how many initial nodes   
     const int nIni = round(static_cast<float>(maxX-minX)/(maxY-minY));
-
+	if (!nIni)
+	{
+		vector<cv::KeyPoint> vResultKeys;
+		return vResultKeys;
+	}
     const float hX = static_cast<float>(maxX-minX)/nIni;
 
     list<ExtractorNode> lNodes;
