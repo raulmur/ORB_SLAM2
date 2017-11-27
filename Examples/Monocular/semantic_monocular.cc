@@ -51,15 +51,14 @@ int gMinRectHeight = 90;
 int main(int argc, char** argv)
 {
 	
-    if(argc != 5)
+    if(argc < 4)
     {
         cerr << endl << "Usage: ./mono_tum path_to_vocabulary path_to_vocabulary path_to_settings path_to_sequence path_to_jsonfile" << endl;
         return 1;
     }
 	ORB_SLAM2::KeySemanticObjGrp SemanticObjGrp;
 	std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > Trafic;
-	if(true == ExtractSemanticObjGrp(argv[4],Trafic))
-		SemanticObjGrp.SetSemanticObjGrp(Trafic);
+
 
     // Retrieve paths to images
     vector<string> vstrImageFilenames;
@@ -72,7 +71,11 @@ int main(int argc, char** argv)
 	
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
-	SLAM.SetSemanticObjGrp(SemanticObjGrp);
+	if((argc >= 5) && (true == ExtractSemanticObjGrp(argv[4],Trafic)))
+	{
+		SemanticObjGrp.SetSemanticObjGrp(Trafic);
+		SLAM.SetSemanticObjGrp(SemanticObjGrp);
+	}
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
     vTimesTrack.resize(nImages);
@@ -153,7 +156,7 @@ void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vecto
         }
     }
 }
-void TransformRect(std::vector<float> RectArr,cv::Rect& Roi)
+void TransformRect(std::vector<double> RectArr,cv::Rect& Roi)
 {
 	int ymin = int(RectArr[0] * gImgHeight);
     int xmin = int(RectArr[1] * gImgWidth);
@@ -221,7 +224,7 @@ bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, 
          ORB_SLAM2::Traficsign t;
          t.classid = node.second.get<int>("class_id");
          t.confidence = node.second.get<double>("confidence");
-         std::vector<float> r;
+         std::vector<double> r;
          for (auto &temppt : node.second.get_child("rectangle"))
          {	
 			r.push_back(temppt.second.get_value < double > ());	 

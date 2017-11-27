@@ -46,7 +46,6 @@ bool KeySemanticObjGrp::GetSemanticObjects(std::vector<cv::Rect> &RoiList, long 
 		{
 			RoiList.push_back(mSemanticObjGrp[frameid][Index].Roi);
 		}
-		std::cout << "GetInterestedObject FormID =:" << frameid << mSemanticObjGrp[frameid].size() << "," << RoiList.size() << std::endl;
 	}
 	
 	return Status;

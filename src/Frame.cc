@@ -186,7 +186,7 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     mvInvScaleFactors = mpORBextractorLeft->GetInverseScaleFactors();
     mvLevelSigma2 = mpORBextractorLeft->GetScaleSigmaSquares();
     mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
-
+	mpORBextractorSub = NULL;
     // ORB extraction
     ExtractORB(0,imGray);
 
@@ -244,13 +244,31 @@ void Frame::AssignFeaturesToGrid()
     }
 }
 
+void Frame::ExtractORBInSubImage(const cv::Mat &im,std::vector<cv::KeyPoint> &SubImageKeypoints,cv::Mat &SubDescriptors)
+{
+	//mnScaleLevels
+	if(!mpORBextractorSub)
+		mpORBextractorSub = new ORBextractor(mpORBextractorLeft->Getfeatures(),mfScaleFactor,1,mpORBextractorLeft->GetiniThFAST(),mpORBextractorLeft->GetminThFAST());	
+	(*mpORBextractorSub)(im,mRoiList,SubImageKeypoints,SubDescriptors);	
+}
 void Frame::ExtractORB(int flag, const cv::Mat &im)
 {
     if(flag==0)
 	{
 		if (mRoiList.size())
 		{
-			(*mpORBextractorLeft)(im,mRoiList,mvKeys,mDescriptors);
+			std::vector<cv::KeyPoint> SubImageKeypoints;
+			cv::Mat SubDescriptors;
+			cv::Mat OrgDescriptors;
+			ExtractORBInSubImage(im,SubImageKeypoints,SubDescriptors);
+			if(SubImageKeypoints.size())
+			{	
+				(*mpORBextractorLeft)(im,cv::Mat(),mvKeys,OrgDescriptors);				
+				mvKeys.insert(mvKeys.end(), SubImageKeypoints.begin(), SubImageKeypoints.end());
+				cv::vconcat(OrgDescriptors, SubDescriptors, mDescriptors);	
+			}
+			else
+				(*mpORBextractorLeft)(im,cv::Mat(),mvKeys,mDescriptors);
 		}
 		else		
 			(*mpORBextractorLeft)(im,cv::Mat(),mvKeys,mDescriptors);
@@ -258,7 +276,16 @@ void Frame::ExtractORB(int flag, const cv::Mat &im)
     else
 	{
 		if (mRoiList.size())
-			(*mpORBextractorRight)(im,mRoiList,mvKeysRight,mDescriptorsRight);
+		{		
+			std::vector<cv::KeyPoint> SubImageKeypoints;
+			cv::Mat SubDescriptors;
+			cv::Mat OrgDescriptors;
+			(*mpORBextractorRight)(im,cv::Mat(),mvKeysRight,OrgDescriptors);
+			ExtractORBInSubImage(im,SubImageKeypoints,SubDescriptors);
+			mvKeysRight.insert(mvKeysRight.end(), SubImageKeypoints.begin(), SubImageKeypoints.end());
+			
+			cv::vconcat(OrgDescriptors, SubDescriptors, mDescriptorsRight);	
+		}
 		else		
 			(*mpORBextractorRight)(im,cv::Mat(),mvKeysRight,mDescriptorsRight);
 	}
