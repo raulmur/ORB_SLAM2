@@ -32,7 +32,7 @@ rem ==============================
 rem Update and Install packages.
 rem ==============================
 call "%VcPkgPath%" update
-call "%VcPkgPath%" install eigen3 opencv pangolin --triplet %VcPkgTriplet%
+call "%VcPkgPath%" install boost eigen3 opencv pangolin --triplet %VcPkgTriplet%
 
 set "VcPkgTripletDir=%VcPkgDir%\installed\%VcPkgTriplet%"
 

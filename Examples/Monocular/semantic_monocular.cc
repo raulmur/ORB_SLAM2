@@ -18,9 +18,6 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifdef _MSC_VER
-#include <boost/config/compiler/visualc.hpp>
-#endif
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
@@ -35,45 +32,156 @@
 #include <map>
 #include<System.h>
 
+#include <filesystem>
+#include <vector>
+#include <cinttypes>
+#include <stdexcept>
+#include <memory>
+
+namespace fs = std::experimental::filesystem;
+
 using namespace std;
 using boost::property_tree::ptree;
 void show_interesting_object(std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > &image_trafficsigns_map);
-bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > &SemanticObjGrp);
+bool ExtractSemanticObjGrp(std::string jsonFilename, std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > &SemanticObjGrp);
 void LoadImages(const string &strFile, vector<string> &vstrImageFilenames,
                 vector<double> &vTimestamps);
 
-int gImgWidth=1280;
-int gImgHeight=720;
+int gImgWidth = 1280;
+int gImgHeight = 720;
 int gMinRectWidth = 90;
 int gMinRectHeight = 90;
 
+struct input_args {
+    std::string path_to_vocabulary;
+    std::string path_to_camera_settings;
+    std::string path_to_image_folder;
+    std::string path_to_json_file;
+};
 
-int main(int argc, char** argv)
+input_args parse_input_arguments(int argc, char** argv)
 {
-	
-    if(argc < 4)
+    if (argc < 4) {
+        throw std::runtime_error(
+            "Usage: ./semantic_monocular path_to_vocabulary path_to_camera_settings path_to_image_folder path_to_jsonfile");
+    }
+
+    return input_args{
+        argv[1],
+        argv[2],
+        argv[3],
+        argv[4],
+    };
+}
+
+class slam_object {
+    std::unique_ptr<ORB_SLAM2::System> _slam;
+
+    void shutdown()
     {
-        cerr << endl << "Usage: ./mono_tum path_to_vocabulary path_to_vocabulary path_to_settings path_to_sequence path_to_jsonfile" << endl;
+        if (_slam) {
+            // Stop all threads
+            _slam->Shutdown();
+
+            // Save camera trajectory
+            _slam->SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+        }
+    }
+public:
+    ORB_SLAM2::System& get()
+    {
+        if (!_slam) {
+            throw std::runtime_error("Empty System object!");
+        }
+        return *_slam;
+    }
+
+    void initialize(input_args const& args_)
+    {
+        shutdown();
+
+        _slam = std::make_unique<ORB_SLAM2::System>(
+            args_.path_to_vocabulary,
+            args_.path_to_camera_settings,
+            ORB_SLAM2::System::MONOCULAR,
+            true);
+    }
+
+    ~slam_object()
+    {
+        shutdown();
+    }
+};
+
+int run_slam_loop(int argc, char** argv)
+{ 
+    slam_object slam;
+    try {
+        auto args = parse_input_arguments(argc, argv);
+
+        std::vector<fs::path> image_files;
+        std::copy(fs::directory_iterator(args.path_to_image_folder), fs::directory_iterator(),
+                  std::back_inserter(image_files));
+        std::sort(image_files.begin(), image_files.end());
+
+        ORB_SLAM2::KeySemanticObjGrp semantic_obj_group;
+        std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > traffic_signs;
+
+        // Create SLAM system. It initializes all system threads and gets ready to process frames.
+        slam.initialize(args);
+        if (ExtractSemanticObjGrp(args.path_to_json_file, traffic_signs)) {
+            semantic_obj_group.SetSemanticObjGrp(traffic_signs);
+            slam.get().SetSemanticObjGrp(semantic_obj_group);
+        }
+
+        std::uint64_t time = 0;
+        for (auto const& file : image_files) {
+            auto image = cv::imread(file.generic_string(), CV_LOAD_IMAGE_UNCHANGED);
+
+            if (image.empty()) {
+                throw std::runtime_error("Failed to load image!");
+            }
+
+            // Pass the image to the SLAM system
+            slam.get().TrackMonocular(image, static_cast<double>(time));
+            time++;
+        }
+    } catch (std::exception const& ex_) {
+
+        std::cerr << "Exception: " << ex_.what() << std::endl;
+
         return 1;
     }
-	std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > Trafic;
+
+    return 0;
+}
+
+int run_slam_loop_old(int argc, char** argv)
+{
+
+    if (argc < 4) {
+        cerr << endl << "Usage: ./semantic_monocular path_to_vocabulary path_to_camera_settings path_to_image_folder path_to_jsonfile" << endl;
+        return 1;
+    }
+    ORB_SLAM2::KeySemanticObjGrp SemanticObjGrp;
+    std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > Trafic;
 
 
     // Retrieve paths to images
     vector<string> vstrImageFilenames;
     vector<double> vTimestamps;
-    string strFile = string(argv[3])+"/rgb.txt";
+    string strFile = string(argv[3]) + "/rgb.txt";
     LoadImages(strFile, vstrImageFilenames, vTimestamps);
 
     int nImages = vstrImageFilenames.size();
 
-	
+
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
+    ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::MONOCULAR, true);
 	if((argc >= 5) && (true == ExtractSemanticObjGrp(argv[4],Trafic)))
 	{
 		SLAM.SetSemanticObjGrp(Trafic);
-	}
+    }
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
     vTimesTrack.resize(nImages);
@@ -151,16 +259,16 @@ void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vecto
         }
     }
 }
-void TransformRect(std::vector<double> RectArr,cv::Rect& Roi)
+void TransformRect(std::vector<double> RectArr, cv::Rect& Roi)
 {
-	int ymin = int(RectArr[0] * gImgHeight);
+    int ymin = int(RectArr[0] * gImgHeight);
     int xmin = int(RectArr[1] * gImgWidth);
     int ymax = int(RectArr[2] * gImgHeight);
     int xmax = int(RectArr[3] * gImgWidth);
-	Roi.x = xmin;
-	Roi.y = ymin;
-	Roi.width = xmax - xmin;
-	Roi.height = ymax - ymin;
+    Roi.x = xmin;
+    Roi.y = ymin;
+    Roi.width = xmax - xmin;
+    Roi.height = ymax - ymin;
 }
 
 void enlarge_rectangle(cv::Rect& rectangle)
@@ -264,4 +372,15 @@ void show_interesting_object(std::map<long unsigned int, std::vector<ORB_SLAM2::
          std::cout << "----------------------------------------" << std::endl;
       }
    }
+}
+
+#define ORBSLAM2_USE_ORIGINAL_IMPLEMENTATION
+
+int main(int argc, char** argv)
+{
+#if ORBSLAM2_USE_ORIGINAL_IMPLEMENTATION
+    return run_slam_loop_old(argc, argv);
+#else
+    return run_slam_loop(argc, argv);
+#endif
 }

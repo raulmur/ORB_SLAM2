@@ -1,0 +1,17 @@
+{
+    "version": "0.2.1",
+    "defaults": {},
+    "configurations": [
+        {
+            "type": "default",
+            "project": "Examples\\Monocular\\semantic_monocular.cc",
+            "name": "semantic_monocular.cc",
+            "args": [
+                "${projectRoot}\\Vocabulary\\ORBvoc.txt",
+                "${projectRoot}\\Examples\\Monocular\\Garching-Test-Drive.yaml",
+                "${projectRoot}\\data\\Garching_LoopClosure-5-images",
+                "${projectRoot}\\data\\Garching_LoopClosure-5-features.json"
+            ]
+        }
+    ]
+}

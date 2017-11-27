@@ -1,3 +1,6 @@
+data/
+data.zip
+
 CMakeLists.txt.user
 Examples/Monocular/mono_euroc
 Examples/Monocular/mono_kitti
@@ -24,4 +27,4 @@ build/
 lib/
 products/
 data/
-.*/
+

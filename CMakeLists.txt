@@ -23,8 +23,8 @@ endif()
 
 find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED
-    filesystem
-    serialization
+#    filesystem
+#    serialization
 )
 if("${EIGEN3_VERSION}" VERSION_LESS "3.1.0")
 	message(FATAL_ERROR "Eigen3 > 3.1.0 not found.")
