@@ -53,7 +53,7 @@ public:
     enum eSensor{
         MONOCULAR=0,
         STEREO=1,
-        RGBD=2
+        RGBD=2,
     };
 
 public:
@@ -180,6 +180,9 @@ private:
     std::vector<MapPoint*> mTrackedMapPoints;
     std::vector<cv::KeyPoint> mTrackedKeyPointsUn;
     std::mutex mMutexState;
+
+    // To odometry or not to odometry
+    int useOdometry;
 };
 
 }// namespace ORB_SLAM

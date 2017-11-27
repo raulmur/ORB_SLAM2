@@ -60,6 +60,7 @@
         // Preprocess the input and call Track(). Extract features and performs stereo matching.
         cv::Mat GrabImageStereo(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp);
         cv::Mat GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const double &timestamp);
+        cv::Mat GrabImageMonocular(const cv::Mat &im, const double &timestamp);
         cv::Mat GrabImageMonocular(const cv::Mat &im, const double &timestamp, g2o::SE3Quat &TF_c_w);
 
         void SetLocalMapper(LocalMapping* pLocalMapper);
@@ -218,6 +219,10 @@
 
         //Color order (true RGB, false BGR, ignored if grayscale)
         bool mbRGB;
+
+        // To odometry or not to odometry
+        int useOdometry;
+
 
         list<MapPoint*> mlpTemporalPoints;
     };

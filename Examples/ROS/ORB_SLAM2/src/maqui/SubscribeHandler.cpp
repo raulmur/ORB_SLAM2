@@ -18,12 +18,17 @@ mbReferenceWorldFrame(false)
 {
     // Initialize TODO put in setting file
         // Topics to subscribe
-    cameraTopic      = "/pepper_robot/camera/bottom/image_raw";
-    cameraFrameTopic = "/CameraBottom_optical_frame";
-    worldFrameTopic  = "/map";
-    tfTopic          = "tf";
+//    cameraTopic      = "/pepper_robot/camera/bottom/image_raw";
+//    cameraFrameTopic = "/CameraBottom_optical_frame";
+//    worldFrameTopic  = "/map";
+//    tfTopic          = "tf";
+      cv::FileStorage fsSettings(strSettingsFile, cv::FileStorage::READ);
+      cameraTopic = (std::string) fsSettings["Topic.Camera"];
+      cameraFrameTopic = (std::string) fsSettings["Topic.CameraFrame"];
+      worldFrameTopic = (std::string) fsSettings["Topic.WorldFrame"];
+      tfTopic =(std::string) fsSettings["Topic.TF"];
 
-    mpSLAM = new ORB_SLAM2::System(strVocFile, strSettingsFile, ORB_SLAM2::System::MONOCULAR,true);
+    mpSLAM = new ORB_SLAM2::System(strVocFile, strSettingsFile, ORB_SLAM2::System::ODOMETRY,true);
 
     subImage = mpNodeHandler->subscribe(cameraTopic, 1, &SubscribeHandler::GrabImage, this);
 
@@ -39,7 +44,6 @@ void SubscribeHandler::GrabImage(const sensor_msgs::ImageConstPtr& msg)
     try
     {
         cv_ptr = cv_bridge::toCvShare(msg);
-//        std::cout << "RobotHandler: Image grabbed!" << std::endl;
 
     }
     catch (cv_bridge::Exception& e)

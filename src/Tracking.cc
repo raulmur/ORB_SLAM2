@@ -55,6 +55,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     float fy = fSettings["Camera.fy"];
     float cx = fSettings["Camera.cx"];
     float cy = fSettings["Camera.cy"];
+    useOdometry = fSettings["Initializer.UseOdometry"];
 
     cv::Mat K = cv::Mat::eye(3,3,CV_32F);
     K.at<float>(0,0) = fx;
@@ -237,6 +238,37 @@ if(!mCurrentFrame.mTcw.empty()){
 	return mCurrentFrame.mTcw.clone();
 }
 
+
+cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
+{
+    mImGray = im;
+
+
+    if(mImGray.channels()==3)
+    {
+        if(mbRGB)
+            cvtColor(mImGray,mImGray,CV_RGB2GRAY);
+        else
+            cvtColor(mImGray,mImGray,CV_BGR2GRAY);
+    }
+    else if(mImGray.channels()==4)
+    {
+        if(mbRGB)
+            cvtColor(mImGray,mImGray,CV_RGBA2GRAY);
+        else
+            cvtColor(mImGray,mImGray,CV_BGRA2GRAY);
+    }
+
+    if(mState==NOT_INITIALIZED || mState==NO_IMAGES_YET)
+        mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
+    else
+        mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
+
+    Track();
+
+    return mCurrentFrame.mTcw.clone();
+
+}
 
 cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp, g2o::SE3Quat &TF_c_w)
 {
@@ -427,6 +459,12 @@ void Tracking::Track()
         // If tracking were good, check if we insert a keyframe
         if(bOK)
         {
+            if(useOdometry)
+            {
+
+                // **** TODO update ****
+
+            }
             // Update motion model
             if(!mLastFrame.mTcw.empty())
             {
@@ -646,10 +684,6 @@ void Tracking::CreateInitialMapMonocular()
     // Create KeyFrames
     KeyFrame* pKFini = new KeyFrame(mInitialFrame,mpMap,mpKeyFrameDB);
     KeyFrame* pKFcur = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
-
-//    cv::Mat test = mInitialFrame.mTf_c_w.clone();
-//    pKFini->SetOdomPose(test);
-//    pKFcur->SetOdomPose(test);
 
     pKFini->ComputeBoW();
     pKFcur->ComputeBoW();

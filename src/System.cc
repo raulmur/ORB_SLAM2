@@ -33,6 +33,16 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
                const bool bUseViewer):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
         mbDeactivateLocalizationMode(false)
 {
+    //Check settings file
+    cv::FileStorage fsSettings(strSettingsFile.c_str(), cv::FileStorage::READ);
+    if(!fsSettings.isOpened())
+    {
+       cerr << "Failed to open settings file at: " << strSettingsFile << endl;
+       exit(-1);
+    }
+    useOdometry = fsSettings["Initializer.UseOdometry"];
+
+
     // Output welcome message
     cout << endl <<
     "ORB-SLAM2 Copyright (C) 2014-2016 Raul Mur-Artal, University of Zaragoza." << endl <<
@@ -43,19 +53,19 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     cout << "Input sensor was set to: ";
 
     if(mSensor==MONOCULAR)
-        cout << "Monocular" << endl;
+    {
+        if(useOdometry)
+            cout << "Monocular with Odometry" << endl;
+        else
+            cout << "Monocular" << endl;
+    }
     else if(mSensor==STEREO)
         cout << "Stereo" << endl;
     else if(mSensor==RGBD)
         cout << "RGB-D" << endl;
 
-    //Check settings file
-    cv::FileStorage fsSettings(strSettingsFile.c_str(), cv::FileStorage::READ);
-    if(!fsSettings.isOpened())
-    {
-       cerr << "Failed to open settings file at: " << strSettingsFile << endl;
-       exit(-1);
-    }
+
+
 
 
     //Load ORB Vocabulary
@@ -86,6 +96,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpTracker = new Tracking(this, mpVocabulary, mpFrameDrawer, mpMapDrawer,
                              mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor);
 
+    // **** TODO **** Now scale is fixed in loop closing for odometry mode, change!
     //Initialize the Local Mapping thread and launch
     mpLocalMapper = new LocalMapping(mpMap, strSettingsFile, mSensor==MONOCULAR);
     mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run,mpLocalMapper);
@@ -219,7 +230,7 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
 {
     if(mSensor!=MONOCULAR)
     {
-        cerr << "ERROR: you called TrackMonocular but input sensor was not set to Monocular." << endl;
+        cerr << "ERROR: you called TrackMonocular but input sensor was not set to Monocular or Odometry." << endl;
         exit(-1);
     }
 
@@ -257,7 +268,11 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
     }
     }
 
-    cv::Mat Tcw = mpTracker->GrabImageMonocular(im,timestamp, mOdom);
+    cv::Mat Tcw;
+    if(useOdometry)
+        Tcw = mpTracker->GrabImageMonocular(im,timestamp, mOdom);
+    else
+        Tcw = mpTracker->GrabImageMonocular(im,timestamp);
 
     unique_lock<mutex> lock2(mMutexState);
     mTrackingState = mpTracker->mState;

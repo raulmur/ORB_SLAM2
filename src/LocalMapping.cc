@@ -36,7 +36,9 @@ LocalMapping::LocalMapping(Map *pMap, const string &strSettingPath,  const float
 {
     // Load camera parameters from settings file
     cv::FileStorage fsSettings(strSettingPath, cv::FileStorage::READ);
-//    NumOfKeyFrames = fsSettings["Initializer.KeyFrames"];
+    float temp = fsSettings["Initializer.KeyFrames"];
+    NumOfKeyFrames = (unsigned long) temp;
+    useOdometry = fsSettings["Initializer.UseOdometry"];
 }
 
 void LocalMapping::SetLoopCloser(LoopClosing* pLoopCloser)
@@ -83,7 +85,7 @@ void LocalMapping::Run()
 
                 // Local BA
 //                if(mpMap->KeyFramesInMap()>NumOfKeyFrames && !mpMap->IsMapScaled)
-                if(mpMap->KeyFramesInMap()>10 && !mpMap->IsMapScaled)
+                if(useOdometry && mpMap->KeyFramesInMap()>NumOfKeyFrames && !mpMap->IsMapScaled)
                     MapScaling();
 
                 if(mpMap->KeyFramesInMap()>2 && mpMap->IsMapScaled)
@@ -800,8 +802,9 @@ float LocalMapping::ScaleRecovery()
         O_w = pKF->GetCameraCenter();
 
         // Odometry pose
-        g2o::SE3Quat TF_w_c = pKF->GetOdomPose();
-        Tf_w_c = Converter::toCvMat(TF_w_c);
+        g2o::SE3Quat TF_c_w = pKF->GetOdomPose();
+        Tf_w_c = Converter::toCvMat(TF_c_w.inverse());
+
 
         // translation vector from homogeneous matrix
         cv::Mat tTf_w_c = Tf_w_c.rowRange(0,3).col(3).clone();
@@ -820,8 +823,8 @@ float LocalMapping::ScaleRecovery()
     B.convertTo(B, CV_64F);
     cv::solve(A, B, scale, cv::DECOMP_SVD);
 
-    std::cout <<"Scale OpenCv initialized as " << scale.at<double>(0) <<std::endl;
-//    std::cout <<"Scale OpenCv initialized 3 coords " << scale <<std::endl;
+//    std::cout <<"Scale OpenCv initialized as " << scale.at<double>(0) <<std::endl;
+    std::cout <<"Scale OpenCv initialized 3 coords " << scale <<std::endl;
     float s = (float) scale.at<double>(0);
     return s;
 }

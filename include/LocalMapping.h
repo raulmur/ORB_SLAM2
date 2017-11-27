@@ -124,10 +124,15 @@ protected:
     bool mbAcceptKeyFrames;
     std::mutex mMutexAccept;
 
+    // To odometry or not to odometry
+    int useOdometry;
+
     // MAP SCALING
     void MapScaling();
     float ScaleRecovery();
     unsigned long NumOfKeyFrames;
+
+
 
 };
 

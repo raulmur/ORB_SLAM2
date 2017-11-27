@@ -266,7 +266,6 @@ void Frame::SetPose(cv::Mat Tcw)
 void Frame::SetOdomPose(g2o::SE3Quat &TF_c_w)
 {
     mTf_c_w = TF_c_w;
-//    mTf_w_c = mTf_c_w.t();
 }
 
 void Frame::UpdatePoseMatrices()
