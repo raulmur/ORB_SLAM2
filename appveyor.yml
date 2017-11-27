@@ -1,0 +1,10 @@
+# https://www.appveyor.com/docs/appveyor-yml
+
+image: Visual Studio 2017
+clone_depth: 1
+before_build:
+  - git clone -q --depth=1 https://github.com/shanmukhananda/orb-slam2-dependencies.git C:\Software\vcpkg\vcpkg
+  - C:\Software\vcpkg\vcpkg\install.bat
+build_script:
+  - cd /d C:\projects\orb-slam2
+  - scripts\windows\build.bat x86 v141 Release

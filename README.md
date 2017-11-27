@@ -1,7 +1,16 @@
 # ORB-SLAM2
 **Authors:** [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
 
-[![Build Status](https://travis-ci.org/paul-michalik/ORB_SLAM2.svg?branch=master)](https://travis-ci.org/paul-michalik/ORB_SLAM2)
+| Linux                                           | Windows                                             |
+|-------------------------------------------------|-----------------------------------------------------|
+| [![Build Status][travis_status]][travis_builds] | [![Build Status][appveyor_status]][appveyor_builds] |
+
+[travis_status]: https://travis-ci.org/paul-michalik/ORB_SLAM2.svg?branch=master
+[travis_builds]: https://travis-ci.org/paul-michalik/ORB_SLAM2
+
+[appveyor_status]: https://ci.appveyor.com/api/projects/status/b8byybpslegj1n66?svg=true
+[appveyor_builds]: https://ci.appveyor.com/project/shanmukhananda/orb-slam2
+
 
 **13 Jan 2017**: OpenCV 3 and Eigen 3.3 are now supported.
 
