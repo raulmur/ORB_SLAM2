@@ -48,7 +48,9 @@ class KeySemanticObjGrp
 	KeySemanticObjGrp();	
 	bool GetSemanticObjects(std::vector<cv::Rect> &RoiList, long unsigned int frameid);
 	void SetSemanticObjGrp(std::map<long unsigned int, std::vector<Traficsign> > &InterestedObject);
-	std::map<long unsigned int, std::vector<Traficsign> >& GetSemanticObjGrp();
+	bool GetSemanticObjectList(std::vector<Traficsign> &TraficsignList, long unsigned int frameid);
+	bool GetSemanticObjectClassid(int &ClassID, long unsigned int frameid,long unsigned int ObjectIndex);
+	KeySemanticObjGrp& GetSemanticObjGrp();
 	bool isLoaded;
 };
 

@@ -82,9 +82,10 @@ int main(int argc, char** argv)
 				 cout<<"Image Frame = : ="<<TotalImageFrame<<endl;
 				std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > Trafic;
 				if(true == ExtractSemanticObjGrp(argv[4],Trafic))
-				SemanticObjGrp.SetSemanticObjGrp(Trafic);
-				show_interesting_object(Trafic);
-				slam.SetSemanticObjGrp(SemanticObjGrp);
+				{
+					//show_interesting_object(Trafic);
+					slam.SetSemanticObjGrp(Trafic);
+				}
 			 }
             cv::Mat frame;
             while (video_capture.read(frame))

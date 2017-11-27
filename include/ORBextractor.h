@@ -59,12 +59,7 @@ public:
     void operator()( cv::InputArray image, cv::InputArray mask,
       std::vector<cv::KeyPoint>& keypoints,
       cv::OutputArray descriptors);
-	  
-	void operator()(cv::InputArray _image,std::vector <cv::Rect> &Roi,
-	std::vector<cv::KeyPoint>& _keypoints,
-	cv::OutputArray _descriptors);
-	
-	 void LinearTransform(std::vector<cv::KeyPoint> &vKeys,cv::Rect &CropArea);
+	 
     int inline GetLevels(){
         return nlevels;}
 		

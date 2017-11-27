@@ -34,7 +34,10 @@ FrameDrawer::FrameDrawer(Map* pMap):mpMap(pMap)
     mState=Tracking::SYSTEM_NOT_READY;
     mIm = cv::Mat(480,640,CV_8UC3, cv::Scalar(0,0,0));
 }
-
+void FrameDrawer::SetInterestingObject(std::vector<cv::Rect> &RoiList)
+{
+	mRoiList.assign(RoiList.begin(), RoiList.end());
+}
 cv::Mat FrameDrawer::DrawFrame()
 {
     cv::Mat im;
@@ -105,23 +108,44 @@ cv::Mat FrameDrawer::DrawFrame()
                 // This is a match to a MapPoint in the map
                 if(vbMap[i])
                 {
-                    cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
-                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
+					if(vCurrentKeys[i].class_id != -1)
+					{
+						cv::rectangle(im,pt1,pt2,cv::Scalar(255,0,0));
+						cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(255,0,0),-1);
+					}
+					else
+					{
+						cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
+						cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
+					}
                     mnTracked++;
                 }
                 else // This is match to a "visual odometry" MapPoint created in the last frame
                 {
-                    cv::rectangle(im,pt1,pt2,cv::Scalar(255,0,0));
-                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(255,0,0),-1);
+					if(vCurrentKeys[i].class_id != -1)
+					{
+						cv::rectangle(im,pt1,pt2,cv::Scalar(255,255,255));
+						cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(255,255,255),-1);
+					}
+					else
+					{
+						cv::rectangle(im,pt1,pt2,cv::Scalar(255,0,0));
+						cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(255,0,0),-1);
+					}
                     mnTrackedVO++;
                 }
             }
         }
+			//cout<<"mRoiList.size()"<<mRoiList.size();
+		for(int Index = 0;Index <mRoiList.size();Index++)
+		{
+			cv::rectangle(im,mRoiList[Index],cv::Scalar(255,0,0));
+		}
     }
 
     cv::Mat imWithInfo;
     DrawTextInfo(im,state, imWithInfo);
-
+	
     return imWithInfo;
 }
 

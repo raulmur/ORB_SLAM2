@@ -56,7 +56,6 @@ int main(int argc, char** argv)
         cerr << endl << "Usage: ./mono_tum path_to_vocabulary path_to_vocabulary path_to_settings path_to_sequence path_to_jsonfile" << endl;
         return 1;
     }
-	ORB_SLAM2::KeySemanticObjGrp SemanticObjGrp;
 	std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > Trafic;
 
 
@@ -73,8 +72,7 @@ int main(int argc, char** argv)
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
 	if((argc >= 5) && (true == ExtractSemanticObjGrp(argv[4],Trafic)))
 	{
-		SemanticObjGrp.SetSemanticObjGrp(Trafic);
-		SLAM.SetSemanticObjGrp(SemanticObjGrp);
+		SLAM.SetSemanticObjGrp(Trafic);
 	}
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
@@ -135,9 +133,6 @@ void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vecto
 
     // skip first three lines
     string s0;
-    getline(f,s0);
-    getline(f,s0);
-    getline(f,s0);
 
     while(!f.eof())
     {

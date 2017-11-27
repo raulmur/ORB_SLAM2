@@ -1043,54 +1043,6 @@ static void computeDescriptors(const Mat& image, vector<KeyPoint>& keypoints, Ma
     for (size_t i = 0; i < keypoints.size(); i++)
         computeOrbDescriptor(keypoints[i], image, &pattern[0], descriptors.ptr((int)i));
 }
- void ORBextractor::LinearTransform(std::vector<cv::KeyPoint> &vKeys,cv::Rect &CropArea)
- {
-	for(int Index = 0;Index<vKeys.size();Index++)
-	{
-
-		vKeys[Index].pt.x = CropArea.x + vKeys[Index].pt.x;
-		vKeys[Index].pt.y = CropArea.y + vKeys[Index].pt.y;
-
-	}
- }
-
-  /*New orb extractor that will take Each Interested region by croping and make tranfomation on all the keypoint and add to orginal keypoints and descriptors*/
- void ORBextractor::operator()(InputArray _image,vector <Rect> &RoiList,vector<KeyPoint>& _keypoints,OutputArray _descriptors)
- {
-    if(_image.empty())
-        return;
-
-    Mat image = _image.getMat();
-    assert(image.type() == CV_8UC1 );
-	
-	vector<KeyPoint> AllSubImageKeypointsList;
-	cv::Mat AllImageDescriptorList[50];
-	int DescriptorIndex = 0;
-	
-	for(int SubImageIndex = 0;SubImageIndex<RoiList.size();SubImageIndex++)
-	{
-		vector<KeyPoint> SubImageKeypoints;
-		cv::Mat SubImageDescriptors;
-		//width should be highier than height which is need for DistributeOctTree()
-		if(RoiList[SubImageIndex].width < RoiList[SubImageIndex].height)
-			continue;
-		Mat subimage(image(RoiList[SubImageIndex]));
-		operator()(subimage,cv::Mat(),SubImageKeypoints,SubImageDescriptors);
-		if (SubImageKeypoints.size())
-		{
-			LinearTransform(SubImageKeypoints, RoiList[SubImageIndex]);
-			AllSubImageKeypointsList.insert(AllSubImageKeypointsList.end(), SubImageKeypoints.begin(), SubImageKeypoints.end());
-			AllImageDescriptorList[DescriptorIndex++] = SubImageDescriptors;
-		}
-	}	
-	if (AllSubImageKeypointsList.size())
-	{
-		 _keypoints.clear();
-		 _keypoints.reserve(AllSubImageKeypointsList.size());
-		 _keypoints.insert(_keypoints.end(), AllSubImageKeypointsList.begin(), AllSubImageKeypointsList.end());
-		 cv::vconcat(AllImageDescriptorList, DescriptorIndex, _descriptors);
-	}
- }
  
  /*Orginal orb extractor*/
 void ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPoint>& _keypoints,

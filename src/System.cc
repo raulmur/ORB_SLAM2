@@ -514,42 +514,14 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
     return mTrackedKeyPointsUn;
 }
 
-bool System::GetSemanticObjGrp(KeySemanticObjGrp& SemanticObjGrp)
-{
-	bool Status = false;
-	
-	if(true == mSemanticObjGrp.isLoaded)
-	{
-		SemanticObjGrp = mSemanticObjGrp;
-		Status = true;
-	}
-	
-	return Status;
+KeySemanticObjGrp* System::GetSemanticObjGrp()
+{	
+	return &mSemanticObjGrp;
 }
 
-bool System::GetSemanticObjects(std::vector<cv::Rect> &RoiList, long unsigned int frameid)
+void System::SetSemanticObjGrp(std::map<long unsigned int, std::vector<Traficsign> > &InterestedObject)
 {
-	bool Status = false;
-	
-	if(true == mSemanticObjGrp.isLoaded)
-	{
-		Status = mSemanticObjGrp.GetSemanticObjects(RoiList,frameid);
-	}	
-	
-	return Status;
-}
-
-bool System::SetSemanticObjGrp(KeySemanticObjGrp& SemanticObjGrp)
-{
-	bool Status = false;
-	
-	if(true == SemanticObjGrp.isLoaded)
-	{
-		mSemanticObjGrp = SemanticObjGrp;
-		Status = true;
-	}
-	return Status;
-	
+	mSemanticObjGrp.SetSemanticObjGrp(InterestedObject);
 }
 
 } //namespace ORB_SLAM
