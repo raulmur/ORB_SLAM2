@@ -155,6 +155,7 @@ int run_slam_loop(int argc, char** argv)
         return 1;
     }
 
+
     return 0;
 }
 
@@ -382,11 +383,11 @@ void show_interesting_object(std::map<long unsigned int, std::vector<ORB_SLAM2::
    }
 }
 
-//#define ORBSLAM2_USE_ORIGINAL_IMPLEMENTATION
+#define ORBSLAM2_USE_ORIGINAL_IMPLEMENTATION
 
 int main(int argc, char** argv)
 {
-#ifdef ORBSLAM2_USE_ORIGINAL_IMPLEMENTATION
+#if ORBSLAM2_USE_ORIGINAL_IMPLEMENTATION
     return run_slam_loop_old(argc, argv);
 #else
     return run_slam_loop(argc, argv);
