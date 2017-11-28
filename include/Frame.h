@@ -99,6 +99,7 @@ public:
     cv::Mat UnprojectStereo(const int &i);
 	void ExtractORBInSubImage(const cv::Mat &im,std::vector<cv::KeyPoint> &SubImageKeypoints,cv::Mat &SubDescriptors);
 	 void LinearTransform(std::vector<cv::KeyPoint> &vKeys,cv::Rect &CropArea,int ClassId);
+	 void UpdateOrgSemanticClassid(std::vector<cv::KeyPoint> &vKeys,int ClassId);
 public:
     // Vocabulary used for relocalization.
     ORBVocabulary* mpORBvocabulary;

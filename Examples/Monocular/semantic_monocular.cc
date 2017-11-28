@@ -124,14 +124,12 @@ int run_slam_loop(int argc, char** argv)
                   std::back_inserter(image_files));
         std::sort(image_files.begin(), image_files.end());
 
-        ORB_SLAM2::KeySemanticObjGrp semantic_obj_group;
         std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > traffic_signs;
 
         // Create SLAM system. It initializes all system threads and gets ready to process frames.
         slam.initialize(args);
         if (ExtractSemanticObjGrp(args.path_to_json_file, traffic_signs)) {
-            semantic_obj_group.SetSemanticObjGrp(traffic_signs);
-            slam.get().SetSemanticObjGrp(semantic_obj_group);
+            slam.get().SetSemanticObjGrp(traffic_signs);
         }
 
         std::uint64_t time = 0;
@@ -163,7 +161,6 @@ int run_slam_loop_old(int argc, char** argv)
         cerr << endl << "Usage: ./semantic_monocular path_to_vocabulary path_to_camera_settings path_to_image_folder path_to_jsonfile" << endl;
         return 1;
     }
-    ORB_SLAM2::KeySemanticObjGrp SemanticObjGrp;
     std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > Trafic;
 
 
@@ -259,16 +256,27 @@ void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vecto
         }
     }
 }
-void TransformRect(std::vector<double> RectArr, cv::Rect& Roi)
+void TransformRect(std::vector<double> &RectArr,cv::Rect& Roi, bool IsAbsolute = false)
 {
-    int ymin = int(RectArr[0] * gImgHeight);
-    int xmin = int(RectArr[1] * gImgWidth);
-    int ymax = int(RectArr[2] * gImgHeight);
-    int xmax = int(RectArr[3] * gImgWidth);
-    Roi.x = xmin;
-    Roi.y = ymin;
-    Roi.width = xmax - xmin;
-    Roi.height = ymax - ymin;
+	
+	if(true == IsAbsolute)
+	{
+	    Roi.x = RectArr[0];
+        Roi.y = RectArr[1];
+        Roi.width = RectArr[2]-RectArr[0];
+        Roi.height = RectArr[3]-RectArr[1];
+	}
+	else
+	{
+		int ymin = int(RectArr[0] * gImgHeight);
+		int xmin = int(RectArr[1] * gImgWidth);
+		int ymax = int(RectArr[2] * gImgHeight);
+		int xmax = int(RectArr[3] * gImgWidth);
+		Roi.x = xmin;
+		Roi.y = ymin;
+		Roi.width = xmax - xmin;
+		Roi.height = ymax - ymin;
+	}
 }
 
 void enlarge_rectangle(cv::Rect& rectangle)
@@ -324,22 +332,18 @@ bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, 
       std::vector<ORB_SLAM2::Traficsign> traffic_signs;
       BOOST_FOREACH(boost::property_tree::ptree::value_type &node, traffic_sign_arr.get_child("traffic_signs"))
       {
-         ORB_SLAM2::Traficsign t;
-         t.classid = node.second.get<int>("class_id");
-         t.confidence = node.second.get<double>("confidence");
-         std::vector<double> r;
-         for (auto &temppt : node.second.get_child("rectangle"))
-         {	
+        ORB_SLAM2::Traficsign t;
+        t.classid = node.second.get<int>("class_id");
+        t.confidence = node.second.get<double>("confidence");
+        std::vector<double> r;
+        for (auto &temppt : node.second.get_child("rectangle"))
+        {	
 			r.push_back(temppt.second.get_value < double > ());	 
-         }	
-		TransformRect(r,t.Roi);		 
-         //t.Roi.x = r[0];
-         //t.Roi.y = r[1];
-         //t.Roi.width = r[2]-r[0];
-         //t.Roi.height = r[3]-r[1];
+        }	
+		TransformRect(r,t.Roi);
 		
-		 enlarge_rectangle(t.Roi);
-		 //if( (t.Roi.x == 842) && (t.Roi.y == 166) )
+		enlarge_rectangle(t.Roi);
+
          traffic_signs.push_back(t);
 
       }

@@ -60,6 +60,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <vector>
 #include <iterator>
+
 #include "ORBextractor.h"
 
 
@@ -541,11 +542,7 @@ vector<cv::KeyPoint> ORBextractor::DistributeOctTree(const vector<cv::KeyPoint>&
 {
     // Compute how many initial nodes   
     const int nIni = round(static_cast<float>(maxX-minX)/(maxY-minY));
-	if (!nIni)
-	{
-		vector<cv::KeyPoint> vResultKeys;
-		return vResultKeys;
-	}
+
     const float hX = static_cast<float>(maxX-minX)/nIni;
 
     list<ExtractorNode> lNodes;
@@ -1047,8 +1044,7 @@ static void computeDescriptors(const Mat& image, vector<KeyPoint>& keypoints, Ma
     for (size_t i = 0; i < keypoints.size(); i++)
         computeOrbDescriptor(keypoints[i], image, &pattern[0], descriptors.ptr((int)i));
 }
- 
- /*Orginal orb extractor*/
+
 void ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPoint>& _keypoints,
                       OutputArray _descriptors)
 { 

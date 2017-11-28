@@ -92,6 +92,7 @@ int main(int argc, char** argv)
             {
                 auto current_video_time = video_capture.get(CV_CAP_PROP_POS_MSEC);
                 slam.TrackMonocular(frame, current_video_time);
+				cv::waitKey(30);
                 //std::this_thread::sleep_for(std::chrono::milliseconds(30));
             }
 
@@ -148,16 +149,26 @@ void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vecto
         }
     }
 }
-void TransformRect(std::vector<float> RectArr,cv::Rect& Roi)
+void TransformRect(std::vector<double> &RectArr,cv::Rect& Roi, bool IsAbsolute = false)
 {
-	int ymin = int(RectArr[0] * gImgHeight);
-    int xmin = int(RectArr[1] * gImgWidth);
-    int ymax = int(RectArr[2] * gImgHeight);
-    int xmax = int(RectArr[3] * gImgWidth);
-	Roi.x = xmin;
-	Roi.y = ymin;
-	Roi.width = xmax - xmin;
-	Roi.height = ymax - ymin;
+	if(true == IsAbsolute)
+	{
+	    Roi.x = RectArr[0];
+        Roi.y = RectArr[1];
+        Roi.width = RectArr[2]-RectArr[0];
+        Roi.height = RectArr[3]-RectArr[1];
+	}
+	else
+	{
+		int ymin = int(RectArr[0] * gImgHeight);
+		int xmin = int(RectArr[1] * gImgWidth);
+		int ymax = int(RectArr[2] * gImgHeight);
+		int xmax = int(RectArr[3] * gImgWidth);
+		Roi.x = xmin;
+		Roi.y = ymin;
+		Roi.width = xmax - xmin;
+		Roi.height = ymax - ymin;
+	}
 }
 
 void enlarge_rectangle(cv::Rect& rectangle)
@@ -217,19 +228,14 @@ bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, 
          ORB_SLAM2::Traficsign t;
          t.classid = node.second.get<int>("class_id");
          t.confidence = node.second.get<double>("confidence");
-         std::vector<float> r;
+         std::vector<double> r;
          for (auto &temppt : node.second.get_child("rectangle"))
          {	
 			r.push_back(temppt.second.get_value < double > ());	 
          }	
-		TransformRect(r,t.Roi);		 
-         //t.Roi.x = r[0];
-         //t.Roi.y = r[1];
-         //t.Roi.width = r[2]-r[0];
-         //t.Roi.height = r[3]-r[1];
+		TransformRect(r,t.Roi);
 		
 		 enlarge_rectangle(t.Roi);
-		 //if( (t.Roi.x == 842) && (t.Roi.y == 166) )
          traffic_signs.push_back(t);
 
       }

@@ -278,6 +278,29 @@ void Frame::AssignFeaturesToGrid()
 
 	}
  }
+ 
+ void Frame::UpdateOrgSemanticClassid(std::vector<cv::KeyPoint> &vKeys,int ClassId)
+ {
+	std::vector<cv::Rect> RoiList;
+	if ( (NULL != mpTraficsignGrp) && (true == mpTraficsignGrp->isLoaded))
+	{
+		mpTraficsignGrp->GetSemanticObjects(RoiList,mnId);
+		for(int SubImageIndex = 0;SubImageIndex<RoiList.size();SubImageIndex++)
+		{
+			for(int Index = 0;Index<vKeys.size();Index++)
+			{
+				if( (vKeys[Index].pt.x >= RoiList[SubImageIndex].x) && (vKeys[Index].pt.x < (RoiList[SubImageIndex].x + RoiList[SubImageIndex].width)))
+				{
+					if( (vKeys[Index].pt.y >= RoiList[SubImageIndex].y) && (vKeys[Index].pt.y < (RoiList[SubImageIndex].y + RoiList[SubImageIndex].height)))
+					{
+						vKeys[Index].class_id = ClassId;
+					}
+				}
+			}
+		}
+	}
+ }
+ 
 void Frame::ExtractORBInSubImage(const cv::Mat &im,std::vector<cv::KeyPoint> &AllSubImageKeypoints,cv::Mat &SubDescriptors)
 {
 	//mnScaleLevels
@@ -286,7 +309,7 @@ void Frame::ExtractORBInSubImage(const cv::Mat &im,std::vector<cv::KeyPoint> &Al
 	{
 		mpTraficsignGrp->GetSemanticObjects(RoiList,mnId);
 		if(!mpORBextractorSub)
-			mpORBextractorSub = new ORBextractor(mpORBextractorLeft->Getfeatures(),mfScaleFactor,1,mpORBextractorLeft->GetiniThFAST(),mpORBextractorLeft->GetminThFAST());	
+			mpORBextractorSub = new ORBextractor(mpORBextractorLeft->Getfeatures(),mfScaleFactor,mnScaleLevels,mpORBextractorLeft->GetiniThFAST(),mpORBextractorLeft->GetminThFAST());	
 
 		cv::Mat AllImageDescriptorList[50];
 		int DescriptorIndex = 0;
@@ -331,6 +354,7 @@ void Frame::ExtractORB(int flag, const cv::Mat &im)
 			{	
 				cv::Mat OrgDescriptors;
 				(*mpORBextractorLeft)(im,cv::Mat(),mvKeys,OrgDescriptors);
+				UpdateOrgSemanticClassid(mvKeys,255);
 				mvKeys.insert(mvKeys.end(), SubImageKeypoints.begin(), SubImageKeypoints.end());
 				cv::vconcat(OrgDescriptors, SubDescriptors, mDescriptors);	
 				//DrawKeypoint1("Merge",im,SubImageKeypoints);
@@ -344,7 +368,25 @@ void Frame::ExtractORB(int flag, const cv::Mat &im)
 		 
 	}
     else
-	{		
+	{	
+		if ( (NULL != mpTraficsignGrp) && (true == mpTraficsignGrp->isLoaded))
+		{	
+			std::vector<cv::KeyPoint> SubImageKeypoints;
+			cv::Mat SubDescriptors;
+					
+			ExtractORBInSubImage(im,SubImageKeypoints,SubDescriptors);
+			if(SubImageKeypoints.size())
+			{	
+				cv::Mat OrgDescriptors;
+				(*mpORBextractorRight)(im,cv::Mat(),mvKeysRight,OrgDescriptors);
+				UpdateOrgSemanticClassid(mvKeysRight,255);
+				mvKeysRight.insert(mvKeysRight.end(), SubImageKeypoints.begin(), SubImageKeypoints.end());
+				cv::vconcat(OrgDescriptors, SubDescriptors, mDescriptorsRight);	
+			}
+			else
+				(*mpORBextractorRight)(im,cv::Mat(),mvKeysRight,mDescriptorsRight);
+		}
+		else		
 			(*mpORBextractorRight)(im,cv::Mat(),mvKeysRight,mDescriptorsRight);
 	}
 	
