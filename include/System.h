@@ -124,7 +124,7 @@ public:
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 	
 	KeySemanticObjGrp* GetSemanticObjGrp();
-	void SetSemanticObjGrp(std::map<long unsigned int, std::vector<Traficsign> > &InterestedObject);
+	void SetSemanticObjGrpContent(traffic_sign_map_t const & InterestedObject);
 private:
 
     // Input sensor

@@ -42,8 +42,8 @@ namespace fs = std::experimental::filesystem;
 
 using namespace std;
 using boost::property_tree::ptree;
-void show_interesting_object(std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > &image_trafficsigns_map);
-bool ExtractSemanticObjGrp(std::string jsonFilename, std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > &SemanticObjGrp);
+void show_interesting_object(std::map<long unsigned int, std::vector<ORB_SLAM2::TrafficSign> > &image_trafficsigns_map);
+bool ExtractSemanticObjGrp(std::string jsonFilename, std::map<long unsigned int, std::vector<ORB_SLAM2::TrafficSign> > &SemanticObjGrp);
 void LoadImages(const string &strFile, vector<string> &vstrImageFilenames,
                 vector<double> &vTimestamps);
 
@@ -96,6 +96,13 @@ public:
         return *_slam;
     }
 
+    ORB_SLAM2::System const& get() const
+    {
+        if (!_slam) {
+            throw std::runtime_error("Empty System object!");
+        }
+        return *_slam;
+    }
     void initialize(input_args const& args_)
     {
         shutdown();
@@ -124,12 +131,12 @@ int run_slam_loop(int argc, char** argv)
                   std::back_inserter(image_files));
         std::sort(image_files.begin(), image_files.end());
 
-        std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > traffic_signs;
-
+        ORB_SLAM2::traffic_sign_map_t traffic_signs;
         // Create SLAM system. It initializes all system threads and gets ready to process frames.
         slam.initialize(args);
         if (ExtractSemanticObjGrp(args.path_to_json_file, traffic_signs)) {
-            slam.get().SetSemanticObjGrp(traffic_signs);
+            semantic_obj_group.SetSemanticObjGrpContent(traffic_signs);
+            slam.get().SetSemanticObjGrpContent(traffic_signs);
         }
 
         std::uint64_t time = 0;
@@ -161,7 +168,7 @@ int run_slam_loop_old(int argc, char** argv)
         cerr << endl << "Usage: ./semantic_monocular path_to_vocabulary path_to_camera_settings path_to_image_folder path_to_jsonfile" << endl;
         return 1;
     }
-    std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > Trafic;
+    std::map<long unsigned int, std::vector<ORB_SLAM2::TrafficSign> > Trafic;
 
 
     // Retrieve paths to images
@@ -177,7 +184,7 @@ int run_slam_loop_old(int argc, char** argv)
     ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::MONOCULAR, true);
 	if((argc >= 5) && (true == ExtractSemanticObjGrp(argv[4],Trafic)))
 	{
-		SLAM.SetSemanticObjGrp(Trafic);
+		SLAM.SetSemanticObjGrpContent(Trafic);
     }
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
@@ -268,15 +275,15 @@ void TransformRect(std::vector<double> &RectArr,cv::Rect& Roi, bool IsAbsolute =
 	}
 	else
 	{
-		int ymin = int(RectArr[0] * gImgHeight);
-		int xmin = int(RectArr[1] * gImgWidth);
-		int ymax = int(RectArr[2] * gImgHeight);
-		int xmax = int(RectArr[3] * gImgWidth);
-		Roi.x = xmin;
-		Roi.y = ymin;
-		Roi.width = xmax - xmin;
-		Roi.height = ymax - ymin;
-	}
+    int ymin = int(RectArr[0] * gImgHeight);
+    int xmin = int(RectArr[1] * gImgWidth);
+    int ymax = int(RectArr[2] * gImgHeight);
+    int xmax = int(RectArr[3] * gImgWidth);
+    Roi.x = xmin;
+    Roi.y = ymin;
+    Roi.width = xmax - xmin;
+    Roi.height = ymax - ymin;
+}
 }
 
 void enlarge_rectangle(cv::Rect& rectangle)
@@ -311,7 +318,7 @@ void enlarge_rectangle(cv::Rect& rectangle)
 			rectangle.height = gMinRectHeight;
 	}
 }
-bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > &SemanticObjGrp)
+bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, std::vector<ORB_SLAM2::TrafficSign> > &SemanticObjGrp)
 {
 	boost::property_tree::ptree pt;
    	std::fstream jsonfile(jsonFilename);
@@ -329,20 +336,20 @@ bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, 
    {
       std::string image_name = pt_iter->first; 
       auto &traffic_sign_arr = pt_iter->second;
-      std::vector<ORB_SLAM2::Traficsign> traffic_signs;
+      std::vector<ORB_SLAM2::TrafficSign> traffic_signs;
       BOOST_FOREACH(boost::property_tree::ptree::value_type &node, traffic_sign_arr.get_child("traffic_signs"))
       {
-        ORB_SLAM2::Traficsign t;
-        t.classid = node.second.get<int>("class_id");
-        t.confidence = node.second.get<double>("confidence");
-        std::vector<double> r;
-        for (auto &temppt : node.second.get_child("rectangle"))
-        {	
+         ORB_SLAM2::TrafficSign t;
+         t.classid = node.second.get<int>("class_id");
+         t.confidence = node.second.get<double>("confidence");
+         std::vector<double> r;
+         for (auto &temppt : node.second.get_child("rectangle"))
+         {	
 			r.push_back(temppt.second.get_value < double > ());	 
-        }	
-		TransformRect(r,t.Roi);
+         }	
+		TransformRect(r,t.Roi);		 
 		
-		enlarge_rectangle(t.Roi);
+		 enlarge_rectangle(t.Roi);
 
          traffic_signs.push_back(t);
 
@@ -354,7 +361,7 @@ bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, 
    return true;;
 }
 
-void show_interesting_object(std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > &image_trafficsigns_map)
+void show_interesting_object(std::map<long unsigned int, std::vector<ORB_SLAM2::TrafficSign> > &image_trafficsigns_map)
 {
 	
    for (auto &map_item : image_trafficsigns_map)
@@ -378,7 +385,7 @@ void show_interesting_object(std::map<long unsigned int, std::vector<ORB_SLAM2::
    }
 }
 
-#define ORBSLAM2_USE_ORIGINAL_IMPLEMENTATION
+//#define ORBSLAM2_USE_ORIGINAL_IMPLEMENTATION
 
 int main(int argc, char** argv)
 {

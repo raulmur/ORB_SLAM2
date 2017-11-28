@@ -31,24 +31,24 @@
 
 namespace ORB_SLAM2
 {
-
-struct Traficsign
-{
-   int classid;
-  float confidence;
-   cv::Rect Roi;
-};
+    struct TrafficSign
+    {
+        int classid;
+        float confidence;
+        cv::Rect Roi;
+    };
+    using traffic_sign_map_t = std::map<long unsigned int, std::vector<TrafficSign> >;
 
 class KeySemanticObjGrp
 {
 	
-	std::map<long unsigned int, std::vector<Traficsign> > mSemanticObjGrp;
+	traffic_sign_map_t mSemanticObjGrp;
 	
    public:
 	KeySemanticObjGrp();	
 	bool GetSemanticObjects(std::vector<cv::Rect> &RoiList, long unsigned int frameid);
-	void SetSemanticObjGrp(std::map<long unsigned int, std::vector<Traficsign> > &InterestedObject);
-	bool GetSemanticObjectList(std::vector<Traficsign> &TraficsignList, long unsigned int frameid);
+	void SetSemanticObjGrpContent(traffic_sign_map_t const &InterestedObject);
+	bool GetSemanticObjectList(std::vector<TrafficSign> &TraficsignList, long unsigned int frameid);
 	bool GetSemanticObjectClassid(int &ClassID, long unsigned int frameid,long unsigned int ObjectIndex);
 	KeySemanticObjGrp& GetSemanticObjGrp();
 	bool isLoaded;

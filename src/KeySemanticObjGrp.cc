@@ -42,7 +42,7 @@ bool KeySemanticObjGrp::GetSemanticObjects(std::vector<cv::Rect> &RoiList, long 
 	if (mSemanticObjGrp.find(frameid) != mSemanticObjGrp.end())
 	{
 		Status = true;
-		for (int Index = 0; Index < mSemanticObjGrp[frameid].size(); Index++)
+		for (auto Index = 0u; Index < mSemanticObjGrp[frameid].size(); Index++)
 		{
 			RoiList.push_back(mSemanticObjGrp[frameid][Index].Roi);
 		}
@@ -52,7 +52,7 @@ bool KeySemanticObjGrp::GetSemanticObjects(std::vector<cv::Rect> &RoiList, long 
 	return Status;
 }
 
-bool KeySemanticObjGrp::GetSemanticObjectList(std::vector<Traficsign> &TraficsignList, long unsigned int frameid)
+bool KeySemanticObjGrp::GetSemanticObjectList(std::vector<TrafficSign> &TraficsignList, long unsigned int frameid)
 {
 	bool Status = false;
 	
@@ -80,7 +80,7 @@ bool KeySemanticObjGrp::GetSemanticObjectClassid(int &ClassID, long unsigned int
 	return Status;
 }
 
-void KeySemanticObjGrp::SetSemanticObjGrp(std::map<long unsigned int, std::vector<Traficsign> > &InterestedObjGrp)
+void KeySemanticObjGrp::SetSemanticObjGrpContent(traffic_sign_map_t const& InterestedObjGrp)
 {
 	isLoaded = true;
 	mSemanticObjGrp = InterestedObjGrp;

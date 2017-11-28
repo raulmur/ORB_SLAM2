@@ -38,8 +38,8 @@
 
 using namespace std;
 using boost::property_tree::ptree;
-void show_interesting_object(std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > &image_trafficsigns_map);
-bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > &SemanticObjGrp);
+void show_interesting_object(std::map<long unsigned int, std::vector<ORB_SLAM2::TrafficSign> > &image_trafficsigns_map);
+bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, std::vector<ORB_SLAM2::TrafficSign> > &SemanticObjGrp);
 void LoadImages(const string &strFile, vector<string> &vstrImageFilenames,
                 vector<double> &vTimestamps);
 
@@ -80,11 +80,11 @@ int main(int argc, char** argv)
 			 {
 				 int TotalImageFrame = video_capture.get(cv::CAP_PROP_FRAME_COUNT);
 				 cout<<"Image Frame = : ="<<TotalImageFrame<<endl;
-				std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > Trafic;
+				std::map<long unsigned int, std::vector<ORB_SLAM2::TrafficSign> > Trafic;
 				if(true == ExtractSemanticObjGrp(argv[4],Trafic))
 				{
 					//show_interesting_object(Trafic);
-					slam.SetSemanticObjGrp(Trafic);
+					slam.SetSemanticObjGrpContent(Trafic);
 				}
 			 }
             cv::Mat frame;
@@ -203,7 +203,7 @@ void enlarge_rectangle(cv::Rect& rectangle)
 			rectangle.height = gMinRectHeight;
 	}
 }
-bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > &SemanticObjGrp)
+bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, std::vector<ORB_SLAM2::TrafficSign> > &SemanticObjGrp)
 {
 	boost::property_tree::ptree pt;
    	std::fstream jsonfile(jsonFilename);
@@ -221,11 +221,11 @@ bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, 
    {
       std::string image_name = pt_iter->first; 
       auto &traffic_sign_arr = pt_iter->second;
-      std::vector<ORB_SLAM2::Traficsign> traffic_signs;
+      std::vector<ORB_SLAM2::TrafficSign> traffic_signs;
 
       BOOST_FOREACH(boost::property_tree::ptree::value_type &node, traffic_sign_arr.get_child("traffic_signs"))
       {
-         ORB_SLAM2::Traficsign t;
+         ORB_SLAM2::TrafficSign t;
          t.classid = node.second.get<int>("class_id");
          t.confidence = node.second.get<double>("confidence");
          std::vector<double> r;
@@ -246,7 +246,7 @@ bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, 
    return true;;
 }
 
-void show_interesting_object(std::map<long unsigned int, std::vector<ORB_SLAM2::Traficsign> > &image_trafficsigns_map)
+void show_interesting_object(std::map<long unsigned int, std::vector<ORB_SLAM2::TrafficSign> > &image_trafficsigns_map)
 {
 	
    for (auto &map_item : image_trafficsigns_map)

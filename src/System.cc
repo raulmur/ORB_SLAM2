@@ -520,9 +520,9 @@ KeySemanticObjGrp* System::GetSemanticObjGrp()
 	return &mSemanticObjGrp;
 }
 
-void System::SetSemanticObjGrp(std::map<long unsigned int, std::vector<Traficsign> > &InterestedObject)
+void System::SetSemanticObjGrpContent(traffic_sign_map_t const &InterestedObject)
 {
-	mSemanticObjGrp.SetSemanticObjGrp(InterestedObject);
+	mSemanticObjGrp.SetSemanticObjGrpContent(InterestedObject);
 }
 
 } //namespace ORB_SLAM
