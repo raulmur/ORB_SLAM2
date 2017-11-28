@@ -135,7 +135,6 @@ int run_slam_loop(int argc, char** argv)
         // Create SLAM system. It initializes all system threads and gets ready to process frames.
         slam.initialize(args);
         if (ExtractSemanticObjGrp(args.path_to_json_file, traffic_signs)) {
-            semantic_obj_group.SetSemanticObjGrpContent(traffic_signs);
             slam.get().SetSemanticObjGrpContent(traffic_signs);
         }
 
