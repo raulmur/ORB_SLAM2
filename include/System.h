@@ -124,10 +124,11 @@ public:
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
 
-    void SetOdomPose(const cv::Mat& TFpose);
-    g2o::SE3Quat mOdom;
+    void SetOdomPose(const cv::Mat& T_w_c);
+    g2o::SE3Quat mTF_w_c;
 
-
+    // To odometry or not to odometry
+    int useOdometry;
 
 private:
     // Input sensor
@@ -181,8 +182,7 @@ private:
     std::vector<cv::KeyPoint> mTrackedKeyPointsUn;
     std::mutex mMutexState;
 
-    // To odometry or not to odometry
-    int useOdometry;
+
 };
 
 }// namespace ORB_SLAM

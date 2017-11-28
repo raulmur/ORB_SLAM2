@@ -46,7 +46,7 @@ Frame::Frame(const Frame &frame)
      mpReferenceKF(frame.mpReferenceKF), mnScaleLevels(frame.mnScaleLevels),
      mfScaleFactor(frame.mfScaleFactor), mfLogScaleFactor(frame.mfLogScaleFactor),
      mvScaleFactors(frame.mvScaleFactors), mvInvScaleFactors(frame.mvInvScaleFactors),
-     mvLevelSigma2(frame.mvLevelSigma2), mvInvLevelSigma2(frame.mvInvLevelSigma2), mTf_c_w(frame.mTf_c_w)
+     mvLevelSigma2(frame.mvLevelSigma2), mvInvLevelSigma2(frame.mvInvLevelSigma2), mTf_w_c(frame.mTf_w_c)
 {
     for(int i=0;i<FRAME_GRID_COLS;i++)
         for(int j=0; j<FRAME_GRID_ROWS; j++)
@@ -263,9 +263,14 @@ void Frame::SetPose(cv::Mat Tcw)
 }
 
 
-void Frame::SetOdomPose(g2o::SE3Quat &TF_c_w)
+void Frame::SetOdomPose(g2o::SE3Quat &TF_w_c)
 {
-    mTf_c_w = TF_c_w;
+    mTf_w_c = TF_w_c;
+}
+
+g2o::SE3Quat Frame::GetOdomPose()
+{
+    return mTf_w_c;
 }
 
 void Frame::UpdatePoseMatrices()

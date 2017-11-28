@@ -73,7 +73,6 @@ public:
         unique_lock<std::mutex> lock(mMutexNewKFs);
         return mlNewKeyFrames.size();
     }
-
 protected:
 
     bool CheckNewKeyFrames();

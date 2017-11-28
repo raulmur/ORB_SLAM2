@@ -119,6 +119,7 @@
 
         void Reset();
 
+        g2o::SE3Quat mO_w_c;
     protected:
 
         // Main tracking function. It is independent of the input sensor.

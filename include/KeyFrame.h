@@ -47,14 +47,11 @@ public:
 
     // Pose functions
     void SetPose(const cv::Mat &Tcw);
-    void SetOdomPose(const g2o::SE3Quat &TF_c_w);
+    void SetOdomPose(const g2o::SE3Quat &TF_w_c);
     void UpdateTranslation(float s);
     cv::Mat GetPose();
     cv::Mat GetPoseInverse();
     g2o::SE3Quat GetOdomPose();
-//    cv::Mat GetOdomRotation();
-//    cv::Mat GetOdomTranslation();
-//    cv::Mat GetOdomPoseInverse();
     cv::Mat GetCameraCenter();
     cv::Mat GetStereoCenter();
     cv::Mat GetRotation();
@@ -194,6 +191,7 @@ public:
     const int mnMaxY;
     const cv::Mat mK;
 
+    bool isWorldFrame = false;
 
 
     // The following variables need to be accessed trough a mutex to be thread safe.
@@ -243,9 +241,7 @@ protected:
 
 
     // SE3 Odometry Pose
-      g2o::SE3Quat mTF_c_w;
-//    cv::Mat Tf_w_c;
-//    cv::Mat tTf_c_w;
+      g2o::SE3Quat mTF_w_c;
 
 };
 

@@ -1,19 +1,19 @@
 %YAML:1.0
 
 #--------------------------------------------------------------------------------------------
-# Camera Parameters, fictional. Adjust to Maqui!
+# Camera Parameters, fictional. Adjusted to Maqui front camera!
 #--------------------------------------------------------------------------------------------
 
 # Camera calibration and distortion parameters (OpenCV) 
-Camera.fx: 535.4
-Camera.fy: 539.2
-Camera.cx: 320.1
-Camera.cy: 247.6
+Camera.fx: 602.092564
+Camera.fy: 605.051474
+Camera.cx: 320.717527
+Camera.cy: 249.433825
 
-Camera.k1: 0.0
-Camera.k2: 0.0
-Camera.p1: 0.0
-Camera.p2: 0.0
+Camera.k1: 0.101126
+Camera.k2: -0.255123
+Camera.p1: -0.001504
+Camera.p2: -0.001720
 
 Camera.width: 640
 Camera.height: 480
@@ -30,7 +30,7 @@ Camera.RGB: 1
 # Close/Far threshold. Baseline times.
 ThDepth: 40.0
 
-# Deptmap values factor
+# Depthmap values factor
 DepthMapFactor: 1.0
 
 #--------------------------------------------------------------------------------------------

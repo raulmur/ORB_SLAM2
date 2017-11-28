@@ -53,7 +53,7 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
     }
 
     SetPose(F.mTcw);    
-    SetOdomPose(F.mTf_c_w);
+    SetOdomPose(F.mTf_w_c);
 }
 
 void KeyFrame::ComputeBoW()
@@ -83,10 +83,10 @@ void KeyFrame::SetPose(const cv::Mat &Tcw_)
     Cw = Twc*center;
 }
 
-void KeyFrame::SetOdomPose(const g2o::SE3Quat &TF_c_w)
+void KeyFrame::SetOdomPose(const g2o::SE3Quat &TF_w_c)
 {
     unique_lock<mutex> lock(mMutexPose);
-    mTF_c_w = TF_c_w;
+    mTF_w_c = TF_w_c;
 }
 
 
@@ -99,7 +99,7 @@ cv::Mat KeyFrame::GetPose()
 g2o::SE3Quat KeyFrame::GetOdomPose()
 {
     unique_lock<mutex> lock(mMutexPose);
-    return mTF_c_w;
+    return mTF_w_c;
 }
 
 cv::Mat KeyFrame::GetPoseInverse()
@@ -114,6 +114,7 @@ cv::Mat KeyFrame::GetCameraCenter()
     unique_lock<mutex> lock(mMutexPose);
     return Ow.clone();
 }
+
 
 cv::Mat KeyFrame::GetStereoCenter()
 {

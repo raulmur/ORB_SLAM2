@@ -65,7 +65,8 @@ public:
 
     // Set the camera pose.
     void SetPose(cv::Mat Tcw);
-    void SetOdomPose(g2o::SE3Quat &TF_c_w);
+    void SetOdomPose(g2o::SE3Quat &TF_w_c);
+    g2o::SE3Quat GetOdomPose();
 
     // Computes rotation, translation and camera center matrices from the camera pose.
     void UpdatePoseMatrices();
@@ -190,7 +191,7 @@ public:
 
 
     //Odometry pose
-    g2o::SE3Quat mTf_c_w;
+    g2o::SE3Quat mTf_w_c;
 
 
 private:

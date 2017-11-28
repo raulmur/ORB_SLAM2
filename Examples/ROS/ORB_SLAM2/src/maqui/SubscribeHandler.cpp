@@ -16,19 +16,13 @@ mpNodeHandler(pNodeHandler),
 mpTFlistener(pTFlistener),
 mbReferenceWorldFrame(false)
 {
-    // Initialize TODO put in setting file
-        // Topics to subscribe
-//    cameraTopic      = "/pepper_robot/camera/bottom/image_raw";
-//    cameraFrameTopic = "/CameraBottom_optical_frame";
-//    worldFrameTopic  = "/map";
-//    tfTopic          = "tf";
       cv::FileStorage fsSettings(strSettingsFile, cv::FileStorage::READ);
       cameraTopic = (std::string) fsSettings["Topic.Camera"];
       cameraFrameTopic = (std::string) fsSettings["Topic.CameraFrame"];
       worldFrameTopic = (std::string) fsSettings["Topic.WorldFrame"];
       tfTopic =(std::string) fsSettings["Topic.TF"];
 
-    mpSLAM = new ORB_SLAM2::System(strVocFile, strSettingsFile, ORB_SLAM2::System::ODOMETRY,true);
+    mpSLAM = new ORB_SLAM2::System(strVocFile, strSettingsFile, ORB_SLAM2::System::MONOCULAR,true);
 
     subImage = mpNodeHandler->subscribe(cameraTopic, 1, &SubscribeHandler::GrabImage, this);
 
@@ -53,9 +47,8 @@ void SubscribeHandler::GrabImage(const sensor_msgs::ImageConstPtr& msg)
     }
     try
     {
-        mpTFlistener->waitForTransform(cameraFrameTopic,worldFrameTopic, ros::Time(0), ros::Duration(0.0001));
-        mpTFlistener->lookupTransform(cameraFrameTopic, worldFrameTopic, ros::Time(0), tfT_w_c);
-
+        mpTFlistener->waitForTransform(worldFrameTopic, cameraFrameTopic, ros::Time(0), ros::Duration(0.0001));
+        mpTFlistener->lookupTransform(worldFrameTopic, cameraFrameTopic,ros::Time(0), tfT_w_c);
     }
     catch(tf::TransformException& e)
     {

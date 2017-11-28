@@ -1,6 +1,6 @@
 argument1="Maqui"
 argument2="Vocabulary/ORBvoc.txt"
-argument3="Examples/ROS/ORB_SLAM2/maqui.yaml"
+argument3="Examples/ROS/ORB_SLAM2/maqui_front.yaml"
 
 
 if [ "$1" == gdb ]; then

@@ -270,7 +270,7 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 
 }
 
-cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp, g2o::SE3Quat &TF_c_w)
+cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp, g2o::SE3Quat &TF_w_c)
 {
     mImGray = im;
 
@@ -296,7 +296,7 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp,
         mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
 
 
-    mCurrentFrame.SetOdomPose(TF_c_w);
+    mCurrentFrame.SetOdomPose(TF_w_c);
     Track();
 
     return mCurrentFrame.mTcw.clone();
@@ -684,6 +684,15 @@ void Tracking::CreateInitialMapMonocular()
     // Create KeyFrames
     KeyFrame* pKFini = new KeyFrame(mInitialFrame,mpMap,mpKeyFrameDB);
     KeyFrame* pKFcur = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
+
+    if(mpSystem->useOdometry)
+    {
+        // correct for origin of TF world
+        mO_w_c = mInitialFrame.GetOdomPose();
+        pKFini->SetOdomPose(Converter::toSE3Quat(cv::Mat::eye(4,4, CV_32F)));
+        g2o::SE3Quat T_w_c = mCurrentFrame.GetOdomPose();
+        pKFcur->SetOdomPose(mO_w_c.inverse() * T_w_c);
+    }
 
     pKFini->ComputeBoW();
     pKFcur->ComputeBoW();
@@ -1111,9 +1120,13 @@ void Tracking::CreateNewKeyFrame()
         return;
 
     KeyFrame* pKF = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
-    // TODO
-    //    pKFini->SetOdomPose(test);
-    //    pKFcur->SetOdomPose(test);
+
+    if(mpSystem->useOdometry)
+    {
+        g2o::SE3Quat currentOdomPose = mCurrentFrame.GetOdomPose();
+        pKF->SetOdomPose(mO_w_c.inverse() * currentOdomPose);
+    }
+
 
     mpReferenceKF = pKF;
     mCurrentFrame.mpReferenceKF = pKF;

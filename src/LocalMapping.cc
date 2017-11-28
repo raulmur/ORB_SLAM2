@@ -84,13 +84,16 @@ void LocalMapping::Run()
             {
 
                 // Local BA
-//                if(mpMap->KeyFramesInMap()>NumOfKeyFrames && !mpMap->IsMapScaled)
                 if(useOdometry && mpMap->KeyFramesInMap()>NumOfKeyFrames && !mpMap->IsMapScaled)
                     MapScaling();
 
-                if(mpMap->KeyFramesInMap()>2 && mpMap->IsMapScaled)
-                    Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap);
-
+                if(mpMap->KeyFramesInMap()>2)
+                {
+                    if(useOdometry && mpMap->IsMapScaled)
+                        Optimizer::LocalBundleAdjustmentWithOdometry(mpCurrentKeyFrame,&mbAbortBA, mpMap);
+                    else if(!useOdometry)
+                        Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap);
+                }
                 // Check redundant local Keyframes
                 KeyFrameCulling();
             }
@@ -791,41 +794,35 @@ float LocalMapping::ScaleRecovery()
 {
     cout <<"Scale obtaining started " <<endl;
 
-    cv::Mat O_w, Tf_w_c, A, B, scale;
-    vector<KeyFrame*> MapKeyFrames = mpMap->GetAllKeyFrames();
+    cv::Mat tTf_w_c, C_w, Tf_w_c, A, B, scale;
 
+    vector<KeyFrame*> MapKeyFrames = mpMap->GetAllKeyFrames();
     for(vector<KeyFrame*>::const_iterator itKF=MapKeyFrames.begin(), itEndKF=MapKeyFrames.end(); itKF!=itEndKF; itKF++)
     {
         KeyFrame* pKF = *itKF;
 
-        // Camera pose
-        O_w = pKF->GetCameraCenter();
+        // Camera pose & odometry pose
+        C_w = pKF->GetCameraCenter();
+        Tf_w_c = Converter::toCvMat(pKF->GetOdomPose());
+        tTf_w_c = Tf_w_c.rowRange(0,3).col(3).clone();
 
-        // Odometry pose
-        g2o::SE3Quat TF_c_w = pKF->GetOdomPose();
-        Tf_w_c = Converter::toCvMat(TF_c_w.inverse());
+        // see if odometry and camera movement prediction match up to order of magnitude
+//        std::cout << "tTf_w_c = " << tTf_w_c.clone()
+//                  << "\n C_w = "  << C_w.clone() << std::endl;
 
-
-        // translation vector from homogeneous matrix
-        cv::Mat tTf_w_c = Tf_w_c.rowRange(0,3).col(3).clone();
-
-
-        cv::Mat temp = O_w - tTf_w_c;
         A.push_back(tTf_w_c);
-        B.push_back(temp);
+        B.push_back(C_w);
     }
 
-    // TODO for A[m x n],  SVD is good when m >> n. IF scale recovery is sufficient with limited keyframes,
-    // try different method with for example only 2d coordinates (e.g. QR)
 
     // opencv method
     A.convertTo(A, CV_64F);
     B.convertTo(B, CV_64F);
     cv::solve(A, B, scale, cv::DECOMP_SVD);
 
-//    std::cout <<"Scale OpenCv initialized as " << scale.at<double>(0) <<std::endl;
-    std::cout <<"Scale OpenCv initialized 3 coords " << scale <<std::endl;
+    std::cout <<"Scale obtained as " << scale.at<double>(0) <<std::endl;
     float s = (float) scale.at<double>(0);
+//    std::cout << "Scale: " <<  s << std::endl;
     return s;
 }
 
