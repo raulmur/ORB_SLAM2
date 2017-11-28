@@ -75,43 +75,34 @@ input_args parse_input_arguments(int argc, char** argv)
 }
 
 class slam_object {
-    std::unique_ptr<ORB_SLAM2::System> _slam;
+    ORB_SLAM2::System _slam;
 
     void shutdown()
     {
-        if (_slam) {
-            // Stop all threads
-            _slam->Shutdown();
+        // Stop all threads
+        _slam.Shutdown();
 
-            // Save camera trajectory
-            _slam->SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
-        }
+        // Save camera trajectory
+        _slam.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
     }
 public:
     ORB_SLAM2::System& get()
     {
-        if (!_slam) {
-            throw std::runtime_error("Empty System object!");
-        }
-        return *_slam;
+        return _slam;
     }
 
     ORB_SLAM2::System const& get() const
     {
-        if (!_slam) {
-            throw std::runtime_error("Empty System object!");
-        }
-        return *_slam;
+        return _slam;
     }
-    void initialize(input_args const& args_)
-    {
-        shutdown();
 
-        _slam = std::make_unique<ORB_SLAM2::System>(
+    slam_object(input_args const& args_)
+        : _slam(
             args_.path_to_vocabulary,
             args_.path_to_camera_settings,
             ORB_SLAM2::System::MONOCULAR,
-            true);
+            true)
+    {
     }
 
     ~slam_object()
@@ -122,7 +113,6 @@ public:
 
 int run_slam_loop(int argc, char** argv)
 { 
-    slam_object slam;
     try {
         auto args = parse_input_arguments(argc, argv);
 
@@ -133,7 +123,8 @@ int run_slam_loop(int argc, char** argv)
 
         ORB_SLAM2::traffic_sign_map_t traffic_signs;
         // Create SLAM system. It initializes all system threads and gets ready to process frames.
-        slam.initialize(args);
+
+        slam_object slam{args};
         if (ExtractSemanticObjGrp(args.path_to_json_file, traffic_signs)) {
             slam.get().SetSemanticObjGrpContent(traffic_signs);
         }
