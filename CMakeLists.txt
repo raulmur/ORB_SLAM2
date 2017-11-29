@@ -96,10 +96,6 @@ add_executable(stereo_euroc
 Examples/Stereo/stereo_euroc.cc)
 target_link_libraries(stereo_euroc ${PROJECT_NAME})
 
-add_executable(live_stereo
-Examples/Stereo/live_stereo.cc)
-target_link_libraries(live_stereo ${PROJECT_NAME})
-
 add_executable(stereo_live
 Examples/Stereo/stereo_live.cc)
 target_link_libraries(stereo_live ${PROJECT_NAME})
