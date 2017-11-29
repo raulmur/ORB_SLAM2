@@ -43,7 +43,9 @@ install_dependencies() {
         libtiff-dev \
         cmake \
         apt-utils \
-        wget
+        wget \
+        libboost-all-dev \
+        libopencv-dev
 }
 
 download_file() {
@@ -58,30 +60,9 @@ download_file() {
 }
 
 download_packages() {
-    opencv_url=https://github.com/opencv/opencv/archive/3.3.1.tar.gz
     pangolin_url=https://github.com/stevenlovegrove/Pangolin/archive/v0.5.tar.gz
 
-    download_file opencv ${opencv_url}
     download_file pangolin ${pangolin_url}
-}
-
-install_opencv() {
-    cd ${packages_dir}/opencv
-    extracted_folder=opencv-3.3.1
-    archive_file=3.3.1.tar.gz
-    
-    if [ ! -e ${extracted_folder} ]
-    then
-        mkdir -p ${extracted_folder}
-        tar xzf ${archive_file} --directory=${extracted_folder} --strip-components=1
-    fi
-    
-    cd ${extracted_folder}
-    mkdir -p release
-    cd release
-    cmake -D CMAKE_BUILD_TYPE=release -D CMAKE_INSTALL_PREFIX=${install_dir} ..
-    make -j${cores}
-    make install
 }
 
 install_pangolin() {
@@ -109,6 +90,5 @@ cleanup() {
 
 install_dependencies
 download_packages
-install_opencv
 install_pangolin
 cleanup
