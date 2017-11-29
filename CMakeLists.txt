@@ -100,6 +100,11 @@ add_executable(live_stereo
 Examples/Stereo/live_stereo.cc)
 target_link_libraries(live_stereo ${PROJECT_NAME})
 
+add_executable(stereo_live
+Examples/Stereo/stereo_live.cc)
+target_link_libraries(stereo_live ${PROJECT_NAME})
+
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Monocular)
 
 add_executable(mono_tum

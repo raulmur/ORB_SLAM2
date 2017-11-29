@@ -34,7 +34,7 @@ int main(int argc, char ** argv)
   //to capture video
   VideoCapture cap;
   Mat image;
-  const string videoStreamAddress="http://192.168.0.100:9090/stream/video.mpeg";
+  const std::string videoStreamAddress="http://192.168.0.100:9090/stream/video.mpeg";
   if(!cap.open(videoStreamAddress))
   {
     cout<<"Error opening the video stream or file"<<endl;
