@@ -27,6 +27,10 @@
 #include <iomanip>
 #include <chrono>
 
+bool has_suffix(const std::string &str, const std::string &suffix) {
+  std::size_t index = str.find(suffix, str.size() - suffix.size());
+  return (index != std::string::npos);
+}
 namespace ORB_SLAM2
 {
 
@@ -90,7 +94,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         //exit(-1);
         cout << "Vocabulary not loaded!" << endl << endl;
     } else
-        cout << "Vocabulary loaded!" << endl << endl;
+    cout << "Vocabulary loaded!" << endl << endl;
 
     std::chrono::steady_clock::time_point end= std::chrono::steady_clock::now();
     std::cout << "Vocabulary loading time(ms): " 
