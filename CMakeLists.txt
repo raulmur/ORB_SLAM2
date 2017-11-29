@@ -110,3 +110,8 @@ add_executable(mono_video
 Examples/Monocular/mono_video.cc)
 target_link_libraries(mono_video ${PROJECT_NAME})
 endif()
+
+# Build tools
+add_executable(bin_vocabulary
+tools/bin_vocabulary.cc)
+target_link_libraries(bin_vocabulary ${PROJECT_NAME})

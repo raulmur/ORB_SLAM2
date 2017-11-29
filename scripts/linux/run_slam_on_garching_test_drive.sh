@@ -16,15 +16,21 @@ then
     exit 1
 fi
 
-cd Vocabulary
-if [ ! -e ORBvoc.txt ]
+if [ ! -e Vocabulary/ORBvoc.txt ]
 then
+    cd ${ProjectDir}/Vocabulary
     echo "Uncompress vocabulary ..."
     tar -xf ORBvoc.txt.tar.gz
+    cd ..
+
 fi
-cd ..
+
+if [ ! -e Vocabulary/ORBvoc.bin ]
+then
+    ${BuildDir}/bin_vocabulary
+fi
 
 ${ProjectDir}/${BuildDir}/mono_video \
     ${1} \
-    ${ProjectDir}/Vocabulary/ORBvoc.txt \
+    ${ProjectDir}/Vocabulary/ORBvoc.bin \
     ${ProjectDir}/Examples/Monocular/Garching-Test-Drive.yaml
