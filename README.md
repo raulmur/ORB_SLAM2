@@ -16,7 +16,7 @@ Run command,
 Run command,
 
 ```
-  ./Examples/Stereo/live_stereo Vocabulary/ORBvoc.txt Examples/Stereo/settingsfile.yaml timetorun
+  ./Examples/Stereo/stereo_live Vocabulary/ORBvoc.txt Examples/Stereo/settingsfile.yaml timetorun
 ```
 
 # ORB-SLAM2
