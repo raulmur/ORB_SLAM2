@@ -110,6 +110,12 @@ public:
         shutdown();
     }
 };
+void Pause(int WaitTime)
+{
+	//pause on entering space bar
+	if(cv::waitKey(WaitTime) ==32)
+		cv::waitKey();
+}
 
 int run_slam_loop(int argc, char** argv)
 { 
@@ -139,6 +145,7 @@ int run_slam_loop(int argc, char** argv)
 
             // Pass the image to the SLAM system
             slam.get().TrackMonocular(image, static_cast<double>(time));
+			Pause(70);
             time++;
         }
     } catch (std::exception const& ex_) {
@@ -339,7 +346,7 @@ bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, 
          }	
 		TransformRect(r,t.Roi);		 
 		
-		 enlarge_rectangle(t.Roi);
+		 //enlarge_rectangle(t.Roi);
 
          traffic_signs.push_back(t);
 

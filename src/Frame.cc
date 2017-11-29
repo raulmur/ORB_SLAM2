@@ -23,6 +23,9 @@
 #include "ORBmatcher.h"
 #include <thread>
 
+#define MIN_ORB_IMG_WIDTH 90 
+#define MIN_ORB_IMG_HEIGHT 90
+
 namespace ORB_SLAM2
 {
 void DrawKeypoint1( std::string title,cv::Mat Image, std::vector<cv::KeyPoint> &Keypoints1);
@@ -243,29 +246,7 @@ void Frame::AssignFeaturesToGrid()
             mGrid[nGridPosX][nGridPosY].push_back(i);
     }
 }
- void DrawKeypoint1( std::string title,cv::Mat Image, std::vector<cv::KeyPoint> &Keypoints1)
- {
 
-	 cv::Mat WholeImageMatch;
-	 cv::drawKeypoints(Image, Keypoints1, WholeImageMatch);
-	 cv::imshow(title, WholeImageMatch);
-	 std::cout<<title<<" Keypoint size = "<<Keypoints1.size()<<endl;
-
- }
-  void Match_DrawMatches(string title,cv::Mat &Image1,std::vector<cv::KeyPoint> &Keypoints1,cv::Mat &Descriptors1,
-					cv::Mat Image2,std::vector<cv::KeyPoint> &Keypoints2,cv::Mat &Descriptors2)
- {
-	cv::Ptr<cv::DescriptorMatcher> MatcherPtr;
-	std::vector< cv::DMatch > Matches;
-	MatcherPtr = cv::BFMatcher::create(cv::NORM_HAMMING, true); 
-	MatcherPtr->match(Descriptors1, Descriptors2, Matches);
-	cv::Mat img_matches;	
-
-	cv::drawMatches(Image1, Keypoints1,	Image2, Keypoints2, Matches, img_matches,cv::Scalar::all(-1), cv::Scalar::all(-1),
-				   vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
-	cv::imshow(title, img_matches);
-	 cv::waitKey(0);	
- }
  
  void Frame::LinearTransform(std::vector<cv::KeyPoint> &vKeys,cv::Rect &CropArea,int ClassId)
  {
@@ -275,6 +256,17 @@ void Frame::AssignFeaturesToGrid()
 		vKeys[Index].pt.x = CropArea.x + vKeys[Index].pt.x;
 		vKeys[Index].pt.y = CropArea.y + vKeys[Index].pt.y;
 		vKeys[Index].class_id = ClassId;
+
+	}
+ }
+ 
+ void Frame::ScaleBack(std::vector<cv::KeyPoint> &vKeys,double ScaleX,double ScaleY)
+ {
+	for(int Index = 0;Index<vKeys.size();Index++)
+	{
+
+		vKeys[Index].pt.x = round((double)vKeys[Index].pt.x / ScaleX);
+		vKeys[Index].pt.y = round((double)vKeys[Index].pt.y / ScaleY);
 
 	}
  }
@@ -305,6 +297,9 @@ void Frame::ExtractORBInSubImage(const cv::Mat &im,std::vector<cv::KeyPoint> &Al
 {
 	//mnScaleLevels
 	std::vector<cv::Rect> RoiList;
+	double ScaleX = 1;
+	double ScaleY = 1;
+	
 	if ( (NULL != mpTraficsignGrp) && (true == mpTraficsignGrp->isLoaded))
 	{
 		mpTraficsignGrp->GetSemanticObjects(RoiList,mnId);
@@ -318,14 +313,19 @@ void Frame::ExtractORBInSubImage(const cv::Mat &im,std::vector<cv::KeyPoint> &Al
 			std::vector<cv::KeyPoint> SubImageKeypoints;
 			cv::Mat SubImageDescriptors;
 			//width should be highier than height which is need for DistributeOctTree()
-			if(RoiList[SubImageIndex].width < RoiList[SubImageIndex].height)
-				continue;
 			cv::Mat subimage(im(RoiList[SubImageIndex]));
-			(*mpORBextractorSub)(subimage,cv::Mat(),SubImageKeypoints,SubImageDescriptors);
+			cv::Mat scaleUpImg;
+			if(subimage.cols < MIN_ORB_IMG_WIDTH)				
+				ScaleX = (double)MIN_ORB_IMG_WIDTH / subimage.cols;
+			if(subimage.rows < MIN_ORB_IMG_HEIGHT)
+				ScaleY = (double)MIN_ORB_IMG_HEIGHT / subimage.rows;
+			cv::resize(subimage ,scaleUpImg,cv::Size(), ScaleX, ScaleY, cv::INTER_LINEAR );
+			(*mpORBextractorSub)(scaleUpImg,cv::Mat(),SubImageKeypoints,SubImageDescriptors);
 			if (SubImageKeypoints.size())
 			{
 				int ClassId = -1;
 				mpTraficsignGrp->GetSemanticObjectClassid(ClassId,mnId,SubImageIndex);
+				ScaleBack(SubImageKeypoints,ScaleX,ScaleY);
 				LinearTransform(SubImageKeypoints, RoiList[SubImageIndex],ClassId);
 				AllSubImageKeypoints.insert(AllSubImageKeypoints.end(), SubImageKeypoints.begin(), SubImageKeypoints.end());
 				AllImageDescriptorList[DescriptorIndex++] = SubImageDescriptors;

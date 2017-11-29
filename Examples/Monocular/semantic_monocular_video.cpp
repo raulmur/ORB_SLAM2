@@ -48,6 +48,12 @@ int gImgHeight=720;
 int gMinRectWidth = 90;
 int gMinRectHeight = 90;
 
+void Pause(int WaitTime)
+{
+	//pause on entering space bar
+	if(cv::waitKey(WaitTime) ==32)
+		cv::waitKey();
+}
 
 int main(int argc, char** argv)
 {
@@ -92,7 +98,7 @@ int main(int argc, char** argv)
             {
                 auto current_video_time = video_capture.get(CV_CAP_PROP_POS_MSEC);
                 slam.TrackMonocular(frame, current_video_time);
-				cv::waitKey(30);
+				Pause(70);
                 //std::this_thread::sleep_for(std::chrono::milliseconds(30));
             }
 
@@ -235,7 +241,7 @@ bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, 
          }	
 		TransformRect(r,t.Roi);
 		
-		 enlarge_rectangle(t.Roi);
+		 //enlarge_rectangle(t.Roi);
          traffic_signs.push_back(t);
 
       }
