@@ -53,8 +53,7 @@ int main(int argc, char **argv) {
     //It's important to create this window outside of the `for` loop
     //Otherwise this window will be created automatically each time you call
     //`imshow(...)`, which is very inefficient. 
-    //cv::Mat gray, edge, draw;
-    //cv::namedWindow("image", CV_WINDOW_AUTOSIZE);
+    
     cv::namedWindow("Output Window");
     cv::namedWindow("Left");
     cv::namedWindow("Right");
@@ -65,12 +64,12 @@ int main(int argc, char **argv) {
             cv::waitKey();
         }
         vcap.read(image);
-        //Mat croppedFrame = frame(Rect(0, frame.rows/2, frame.cols, frame.rows/2));
         cv::Mat imgL = image(cv::Range(0, image.rows), cv::Range(0, image.cols / 2));
         cv::Mat imgR = image(cv::Range(0, image.rows), cv::Range(image.cols / 2 + 1, image.cols));
         cv::imshow("Output Window", image);
         cv::imshow("Left",imgL);
         cv::imshow("Right",imgR);
+
         //setting the second clock
         SET_CLOCK(t1);
         double tframe=TIME_DIFF(t0,t1);
@@ -80,15 +79,11 @@ int main(int argc, char **argv) {
         }
         SLAM.TrackStereo(imgL,imgR,tframe);
         nof++;
-        //cv::cvtColor(image, gray, CV_BGR2GRAY);
-        //cv::Canny( gray, edge, 50, 150, 3);
-        //edge.convertTo(draw, CV_8U);
-        //cv::imshow("Edge detected", draw);
         if(cv::waitKey(1) >= 0) break;
     }
     SLAM.Shutdown();
     cout<<"Mean Tracking time:"<<nof/timetorun<<endl;
     //Saving the keyframe trajectories
-    SLAM.SaveKeyFrameTrajectoryTUM("Trajectory.txt");   
+    SLAM.SaveKeyFrameTrajectoryTUM("Trajectory_stereo.txt");   
     return 0;
 }
