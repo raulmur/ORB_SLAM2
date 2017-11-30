@@ -83,6 +83,7 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 protected:
+    int useOdometry;
 
     bool CheckNewKeyFrames();
 

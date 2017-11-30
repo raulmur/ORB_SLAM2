@@ -694,6 +694,10 @@ void Tracking::CreateInitialMapMonocular()
         pKFcur->SetOdomPose(mO_w_c.inverse() * T_w_c);
     }
 
+    pKFini->SetPreviousKF(NULL);
+    pKFini->SetNextKF(pKFcur);
+    pKFcur->SetPreviousKF(pKFini);
+
     pKFini->ComputeBoW();
     pKFcur->ComputeBoW();
 
@@ -1127,6 +1131,8 @@ void Tracking::CreateNewKeyFrame()
         pKF->SetOdomPose(mO_w_c.inverse() * currentOdomPose);
     }
 
+    pKF->SetPreviousKF(mpLastKeyFrame);
+    mpLastKeyFrame->SetNextKF(pKF);
 
     mpReferenceKF = pKF;
     mCurrentFrame.mpReferenceKF = pKF;

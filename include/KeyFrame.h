@@ -97,6 +97,12 @@ public:
     std::vector<size_t> GetFeaturesInArea(const float &x, const float  &y, const float  &r) const;
     cv::Mat UnprojectStereo(int i);
 
+    // neighbouring KF functions
+    KeyFrame* GetPreviousKF();
+    KeyFrame* GetNextKF();
+    void SetPreviousKF(KeyFrame* PrevKF);
+    void SetNextKF(KeyFrame* NextKF);
+
     // Image
     bool IsInImage(const float &x, const float &y) const;
 
@@ -243,6 +249,9 @@ protected:
     // SE3 Odometry Pose
       g2o::SE3Quat mTF_w_c;
 
+      // pointers to neighbouring keyframes in trajectory
+      KeyFrame *mpPreviousKeyFrame;
+      KeyFrame *mpNextKeyFrame;
 };
 
 } //namespace ORB_SLAM

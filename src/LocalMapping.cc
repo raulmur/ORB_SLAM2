@@ -90,9 +90,9 @@ void LocalMapping::Run()
                 if(mpMap->KeyFramesInMap()>2)
                 {
                     if(useOdometry && mpMap->IsMapScaled)
-                        Optimizer::LocalBundleAdjustmentWithOdometry(mpCurrentKeyFrame,&mbAbortBA, mpMap);
-                    else if(!useOdometry)
-                        Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap);
+                        Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap, true);
+                        else if(!useOdometry)
+                        Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap, false);
                 }
                 // Check redundant local Keyframes
                 KeyFrameCulling();
