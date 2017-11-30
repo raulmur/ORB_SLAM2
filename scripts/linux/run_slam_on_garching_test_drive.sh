@@ -27,7 +27,7 @@ fi
 
 if [ ! -e Vocabulary/ORBvoc.bin ]
 then
-    ${BuildDir}/bin_vocabulary
+    ${BuildDir}/bin_vocabulary "Vocabulary/ORBvoc.txt" "Vocabulary/ORBvoc.bin"
 fi
 
 ${ProjectDir}/${BuildDir}/mono_video \

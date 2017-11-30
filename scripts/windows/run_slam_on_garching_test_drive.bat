@@ -16,7 +16,7 @@ if not exist "%ProjectDir%\Vocabulary\ORBvoc.txt" (
 )
 
 if not exist "%ProjectDir%\Vocabulary\ORBvoc.bin" (
-    %BinVocApp%
+    %BinVocApp% "Vocabulary\ORBvoc.txt" "Vocabulary\ORBvoc.bin"
 )
 
 set MonoVideoApp="%OrbSlam2ProductsDir%\Release\mono_video.exe"

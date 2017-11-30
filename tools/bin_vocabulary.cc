@@ -40,13 +40,21 @@ void save_as_binary(ORB_SLAM2::ORBVocabulary* voc, const std::string outfile) {
   printf("Saving as binary: %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);
 }
 
-
 int main(int argc, char **argv) {
   cout << "BoW load/save benchmark" << endl;
   ORB_SLAM2::ORBVocabulary* voc = new ORB_SLAM2::ORBVocabulary();
 
-  load_as_text(voc, "Vocabulary/ORBvoc.txt");
-  save_as_binary(voc, "Vocabulary/ORBvoc.bin");
+  if(argc != 3)
+  {
+    cout << "Invalid arguments\n";
+    cout << "Usage: bin_vocabulary <input-path> <output-path>\n";
+    return 1;
+  }
+
+  std::string input_txt = argv[1];
+  std::string output_bin = argv[2];
+  load_as_text(voc, input_txt);
+  save_as_binary(voc, output_bin);
 
   return 0;
 }
