@@ -2,7 +2,7 @@
 
 set "OrbSlamPlatform=x86"
 set "OrbSlamToolset=v141"
-set "OrbSlamBuildType=Debug"
+set "OrbSlamBuildType=Release"
 
 if NOT "%~1"=="" set "OrbSlamPlatform=%~1"
 if NOT "%~2"=="" set "OrbSlamToolset=%~2"

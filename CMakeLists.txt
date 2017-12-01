@@ -112,6 +112,6 @@ target_link_libraries(mono_video ${PROJECT_NAME})
 endif()
 
 # Build tools
-add_executable(bin_vocabulary
-tools/bin_vocabulary.cc)
-target_link_libraries(bin_vocabulary ${PROJECT_NAME})
+add_executable(vocabulary_converter
+tools/vocabulary_converter.cc)
+target_link_libraries(vocabulary_converter ${PROJECT_NAME})

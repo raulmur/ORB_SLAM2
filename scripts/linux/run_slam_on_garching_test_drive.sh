@@ -16,18 +16,13 @@ then
     exit 1
 fi
 
-if [ ! -e Vocabulary/ORBvoc.txt ]
+if [ ! -e Vocabulary/ORBvoc.bin ]
 then
     cd ${ProjectDir}/Vocabulary
     echo "Uncompress vocabulary ..."
-    tar -xf ORBvoc.txt.tar.gz
+    tar -xf ORBvoc.bin.tar.gz
     cd ..
 
-fi
-
-if [ ! -e Vocabulary/ORBvoc.bin ]
-then
-    ${BuildDir}/bin_vocabulary "Vocabulary/ORBvoc.txt" "Vocabulary/ORBvoc.bin"
 fi
 
 ${ProjectDir}/${BuildDir}/mono_video \

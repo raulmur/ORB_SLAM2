@@ -27,12 +27,14 @@
 #include <iomanip>
 #include <chrono>
 
-bool has_suffix(const std::string &str, const std::string &suffix) {
-  std::size_t index = str.find(suffix, str.size() - suffix.size());
-  return (index != std::string::npos);
-}
 namespace ORB_SLAM2
 {
+
+bool has_suffix(const std::string &str, const std::string &suffix)
+{
+    std::size_t index = str.find(suffix, str.size() - suffix.size());
+    return (index != std::string::npos);
+}
 
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
                const bool bUseViewer):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
@@ -62,17 +64,25 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
        exit(-1);
     }
 
-
     //Load ORB Vocabulary
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
+    cout << "Vocabulary file = " << strVocFile << endl;
 
     mpVocabulary = new ORBVocabulary();
-    bool bVocLoad = false; // chose loading method based on file extension
+    bool bVocLoad = false;
+
+    // choose loading method based on file extension
     if (has_suffix(strVocFile, ".txt"))
-	  bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
-	else
-	  bVocLoad = mpVocabulary->loadFromBinaryFile(strVocFile);
+        bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
+    else if(has_suffix(strVocFile, ".bin"))
+        bVocLoad = mpVocabulary->loadFromBinaryFile(strVocFile);
+    else if(has_suffix(strVocFile, ".xml"))
+    {
+        mpVocabulary->load(strVocFile); // throws on error
+        bVocLoad = true;
+    }
+
     if(!bVocLoad)
     {
         cerr << "Wrong path to vocabulary. " << endl;
