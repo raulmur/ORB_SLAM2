@@ -2,6 +2,7 @@ sudo: required
 services:
   - docker
 before_install:
+  - sudo apt-get install -y realpath
   - chmod -R 777 *
 script:
   - ./docker/build-from-docker.sh
