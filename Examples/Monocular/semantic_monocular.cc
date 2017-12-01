@@ -32,13 +32,13 @@
 #include <map>
 #include<System.h>
 
-#include <filesystem>
+#include <boost/filesystem.hpp>
 #include <vector>
 #include <cinttypes>
 #include <stdexcept>
 #include <memory>
 
-namespace fs = std::experimental::filesystem;
+namespace fs = boost::filesystem;
 
 using namespace std;
 using boost::property_tree::ptree;
@@ -102,8 +102,7 @@ public:
             args_.path_to_camera_settings,
             ORB_SLAM2::System::MONOCULAR,
             true)
-    {
-    }
+    {}
 
     ~slam_object()
     {
@@ -112,13 +111,13 @@ public:
 };
 void Pause(int WaitTime)
 {
-	//pause on entering space bar
-	if(cv::waitKey(WaitTime) ==32)
-		cv::waitKey();
+    //pause on entering space bar
+    if (cv::waitKey(WaitTime) == 32)
+        cv::waitKey();
 }
 
 int run_slam_loop(int argc, char** argv)
-{ 
+{
     try {
         auto args = parse_input_arguments(argc, argv);
 
@@ -145,7 +144,7 @@ int run_slam_loop(int argc, char** argv)
 
             // Pass the image to the SLAM system
             slam.get().TrackMonocular(image, static_cast<double>(time));
-			Pause(70);
+            Pause(70);
             time++;
         }
     } catch (std::exception const& ex_) {
@@ -180,9 +179,8 @@ int run_slam_loop_old(int argc, char** argv)
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::MONOCULAR, true);
-	if((argc >= 5) && (true == ExtractSemanticObjGrp(argv[4],Trafic)))
-	{
-		SLAM.SetSemanticObjGrpContent(Trafic);
+    if ((argc >= 5) && (true == ExtractSemanticObjGrp(argv[4], Trafic))) {
+        SLAM.SetSemanticObjGrpContent(Trafic);
     }
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
@@ -194,25 +192,23 @@ int run_slam_loop_old(int argc, char** argv)
 
     // Main loop
     cv::Mat im;
-    for(int ni=0; ni<nImages; ni++)
-    {
+    for (int ni = 0; ni < nImages; ni++) {
         // Read image from file
-        im = cv::imread(string(argv[3])+"/"+vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
+        im = cv::imread(string(argv[3]) + "/" + vstrImageFilenames[ni], CV_LOAD_IMAGE_UNCHANGED);
         double tframe = vTimestamps[ni];
 
-        if(im.empty())
-        {
+        if (im.empty()) {
             cerr << endl << "Failed to load image at: "
-                 << string(argv[3]) << "/" << vstrImageFilenames[ni] << endl;
+                << string(argv[3]) << "/" << vstrImageFilenames[ni] << endl;
             return 1;
         }
-		double ttrack = (double)cv::getTickCount();
+        double ttrack = (double)cv::getTickCount();
 
         // Pass the image to the SLAM system
-        SLAM.TrackMonocular(im,tframe);
-		
-		ttrack = 1000 * (((double)cv::getTickCount() - ttrack) / cv::getTickFrequency());
-		vTimesTrack[ni]=ttrack;
+        SLAM.TrackMonocular(im, tframe);
+
+        ttrack = 1000 * (((double)cv::getTickCount() - ttrack) / cv::getTickFrequency());
+        vTimesTrack[ni] = ttrack;
 
     }
 
@@ -220,15 +216,14 @@ int run_slam_loop_old(int argc, char** argv)
     SLAM.Shutdown();
 
     // Tracking time statistics
-    sort(vTimesTrack.begin(),vTimesTrack.end());
+    sort(vTimesTrack.begin(), vTimesTrack.end());
     float totaltime = 0;
-    for(int ni=0; ni<nImages; ni++)
-    {
-        totaltime+=vTimesTrack[ni];
+    for (int ni = 0; ni < nImages; ni++) {
+        totaltime += vTimesTrack[ni];
     }
     cout << "-------" << endl << endl;
-    cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
-    cout << "mean tracking time: " << totaltime/nImages << endl;
+    cout << "median tracking time: " << vTimesTrack[nImages / 2] << endl;
+    cout << "mean tracking time: " << totaltime / nImages << endl;
 
     // Save camera trajectory
     SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
@@ -244,12 +239,10 @@ void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vecto
     // skip first three lines
     string s0;
 
-    while(!f.eof())
-    {
+    while (!f.eof()) {
         string s;
-        getline(f,s);
-        if(!s.empty())
-        {
+        getline(f, s);
+        if (!s.empty()) {
             stringstream ss;
             ss << s;
             double t;
@@ -261,126 +254,111 @@ void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vecto
         }
     }
 }
-void TransformRect(std::vector<double> &RectArr,cv::Rect& Roi, bool IsAbsolute = false)
+void TransformRect(std::vector<double> &RectArr, cv::Rect& Roi, bool IsAbsolute = false)
 {
-	
-	if(true == IsAbsolute)
-	{
-	    Roi.x = RectArr[0];
+
+    if (true == IsAbsolute) {
+        Roi.x = RectArr[0];
         Roi.y = RectArr[1];
-        Roi.width = RectArr[2]-RectArr[0];
-        Roi.height = RectArr[3]-RectArr[1];
-	}
-	else
-	{
-    int ymin = int(RectArr[0] * gImgHeight);
-    int xmin = int(RectArr[1] * gImgWidth);
-    int ymax = int(RectArr[2] * gImgHeight);
-    int xmax = int(RectArr[3] * gImgWidth);
-    Roi.x = xmin;
-    Roi.y = ymin;
-    Roi.width = xmax - xmin;
-    Roi.height = ymax - ymin;
-}
+        Roi.width = RectArr[2] - RectArr[0];
+        Roi.height = RectArr[3] - RectArr[1];
+    } else {
+        int ymin = int(RectArr[0] * gImgHeight);
+        int xmin = int(RectArr[1] * gImgWidth);
+        int ymax = int(RectArr[2] * gImgHeight);
+        int xmax = int(RectArr[3] * gImgWidth);
+        Roi.x = xmin;
+        Roi.y = ymin;
+        Roi.width = xmax - xmin;
+        Roi.height = ymax - ymin;
+    }
 }
 
 void enlarge_rectangle(cv::Rect& rectangle)
 {
-	if (rectangle.width >= gMinRectWidth && rectangle.height >= gMinRectHeight)
-	{
-		return;
-	}
-	if (rectangle.width < gMinRectWidth)
-	{	
-		int total_x_displacement = gMinRectWidth - rectangle.width;
-		int x_displacement = floor(total_x_displacement / 2);
+    if (rectangle.width >= gMinRectWidth && rectangle.height >= gMinRectHeight) {
+        return;
+    }
+    if (rectangle.width < gMinRectWidth) {
+        int total_x_displacement = gMinRectWidth - rectangle.width;
+        int x_displacement = floor(total_x_displacement / 2);
 
-		if ( ((rectangle.x - x_displacement) >= 0) && ((rectangle.x+rectangle.width+x_displacement) < gImgWidth) )
-		{
-			rectangle.x -= x_displacement;
-			rectangle.width = gMinRectWidth;
-		}
-		else if((rectangle.x+gMinRectWidth) <= gImgWidth)
-			rectangle.width = gMinRectWidth;
-	}
-	if (rectangle.height < gMinRectHeight) 
-	{
-		int total_y_displacement = gMinRectHeight - rectangle.height;
-		int y_displacement = floor(total_y_displacement / 2);
-		if ( ((rectangle.y - y_displacement) >= 0) && ((rectangle.y+rectangle.height+y_displacement) < gImgHeight) )
-		{
-			rectangle.y -= y_displacement;
-			rectangle.height = gMinRectHeight;
-		}
-		else if((rectangle.y+gMinRectHeight) <= gImgHeight)
-			rectangle.height = gMinRectHeight;
-	}
+        if (((rectangle.x - x_displacement) >= 0) && ((rectangle.x + rectangle.width + x_displacement) < gImgWidth)) {
+            rectangle.x -= x_displacement;
+            rectangle.width = gMinRectWidth;
+        } else if ((rectangle.x + gMinRectWidth) <= gImgWidth)
+            rectangle.width = gMinRectWidth;
+    }
+    if (rectangle.height < gMinRectHeight) {
+        int total_y_displacement = gMinRectHeight - rectangle.height;
+        int y_displacement = floor(total_y_displacement / 2);
+        if (((rectangle.y - y_displacement) >= 0) && ((rectangle.y + rectangle.height + y_displacement) < gImgHeight)) {
+            rectangle.y -= y_displacement;
+            rectangle.height = gMinRectHeight;
+        } else if ((rectangle.y + gMinRectHeight) <= gImgHeight)
+            rectangle.height = gMinRectHeight;
+    }
 }
-bool ExtractSemanticObjGrp(std::string jsonFilename,std::map<long unsigned int, std::vector<ORB_SLAM2::TrafficSign> > &SemanticObjGrp)
+bool ExtractSemanticObjGrp(std::string jsonFilename, std::map<long unsigned int, std::vector<ORB_SLAM2::TrafficSign> > &SemanticObjGrp)
 {
-	boost::property_tree::ptree pt;
-   	std::fstream jsonfile(jsonFilename);
-	if(false == jsonfile.is_open())
-	{
-		cout<<"Unable to open json file"<<endl;
-		return false;
-	}
-	
-	boost::property_tree::read_json(jsonfile, pt);
-	jsonfile.close();
-	
-	
-   for (ptree::iterator pt_iter = pt.begin(); pt_iter != pt.end(); pt_iter++)
-   {
-      std::string image_name = pt_iter->first; 
-      auto &traffic_sign_arr = pt_iter->second;
-      std::vector<ORB_SLAM2::TrafficSign> traffic_signs;
-      BOOST_FOREACH(boost::property_tree::ptree::value_type &node, traffic_sign_arr.get_child("traffic_signs"))
-      {
-         ORB_SLAM2::TrafficSign t;
-         t.classid = node.second.get<int>("class_id");
-         t.confidence = node.second.get<double>("confidence");
-         std::vector<double> r;
-         for (auto &temppt : node.second.get_child("rectangle"))
-         {	
-			r.push_back(temppt.second.get_value < double > ());	 
-         }	
-		TransformRect(r,t.Roi);		 
-		
-		 //enlarge_rectangle(t.Roi);
+    boost::property_tree::ptree pt;
+    std::fstream jsonfile(jsonFilename);
+    if (false == jsonfile.is_open()) {
+        cout << "Unable to open json file" << endl;
+        return false;
+    }
 
-         traffic_signs.push_back(t);
+    boost::property_tree::read_json(jsonfile, pt);
+    jsonfile.close();
 
-      }
-	
-      SemanticObjGrp.insert({stoul(image_name), traffic_signs });
-   }
-   
-   return true;;
+
+    for (ptree::iterator pt_iter = pt.begin(); pt_iter != pt.end(); pt_iter++) {
+        std::string image_name = pt_iter->first;
+        auto &traffic_sign_arr = pt_iter->second;
+        std::vector<ORB_SLAM2::TrafficSign> traffic_signs;
+        BOOST_FOREACH(boost::property_tree::ptree::value_type &node, traffic_sign_arr.get_child("traffic_signs"))
+        {
+            ORB_SLAM2::TrafficSign t;
+            t.classid = node.second.get<int>("class_id");
+            t.confidence = node.second.get<double>("confidence");
+            std::vector<double> r;
+            for (auto &temppt : node.second.get_child("rectangle")) {
+                r.push_back(temppt.second.get_value < double >());
+            }
+            TransformRect(r, t.Roi);
+
+            //enlarge_rectangle(t.Roi);
+
+            traffic_signs.push_back(t);
+
+        }
+
+        SemanticObjGrp.insert({stoul(image_name), traffic_signs});
+    }
+
+    return true;;
 }
 
 void show_interesting_object(std::map<long unsigned int, std::vector<ORB_SLAM2::TrafficSign> > &image_trafficsigns_map)
 {
-	
-   for (auto &map_item : image_trafficsigns_map)
-   {
 
-      std::cout << "image- " << map_item.first << ":" << std::endl;
-      for (auto &vector_item : map_item.second)
-      {
-         std::cout << "\ttraffic_signs: " << std::endl;
-         std::cout << "\t\tclass_id- "<< vector_item.classid << std::endl;
-         std::cout << "\t\tconfidance- "<< std::setprecision(16) << vector_item.confidence << std::endl;
-         std::cout << "\t\trectangle- [";
+    for (auto &map_item : image_trafficsigns_map) {
 
-         std::cout << vector_item.Roi.x << "  ";
-         std::cout << vector_item.Roi.y << "  ";
-         std::cout << vector_item.Roi.width << "  ";
-         std::cout << vector_item.Roi.height;
-         std::cout << "]" << std::endl;
-         std::cout << "----------------------------------------" << std::endl;
-      }
-   }
+        std::cout << "image- " << map_item.first << ":" << std::endl;
+        for (auto &vector_item : map_item.second) {
+            std::cout << "\ttraffic_signs: " << std::endl;
+            std::cout << "\t\tclass_id- " << vector_item.classid << std::endl;
+            std::cout << "\t\tconfidence- " << std::setprecision(16) << vector_item.confidence << std::endl;
+            std::cout << "\t\trectangle- [";
+
+            std::cout << vector_item.Roi.x << "  ";
+            std::cout << vector_item.Roi.y << "  ";
+            std::cout << vector_item.Roi.width << "  ";
+            std::cout << vector_item.Roi.height;
+            std::cout << "]" << std::endl;
+            std::cout << "----------------------------------------" << std::endl;
+        }
+    }
 }
 
 #define ORBSLAM2_USE_ORIGINAL_IMPLEMENTATION

@@ -22,10 +22,8 @@ if("${OpenCV_VERSION}" VERSION_LESS "2.4.3")
 endif()
 
 find_package(Eigen3 REQUIRED)
-find_package(Boost REQUIRED
-#    filesystem
-#    serialization
-)
+set(Boost_USE_STATIC_LIBS ON)
+find_package(Boost REQUIRED filesystem)
 if("${EIGEN3_VERSION}" VERSION_LESS "3.1.0")
 	message(FATAL_ERROR "Eigen3 > 3.1.0 not found.")
    endif()
@@ -86,46 +84,37 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include/orbslam2)
 install(EXPORT orb-slam2Config DESTINATION share/orb-slam2)
 # Build examples
 if(BUILD_EXAMPLES)
-add_executable(rgbd_tum
-Examples/RGB-D/rgbd_tum.cc)
-target_link_libraries(rgbd_tum ${PROJECT_NAME})
+#add_executable(rgbd_tum Examples/RGB-D/rgbd_tum.cc) target_link_libraries(rgbd_tum ${PROJECT_NAME})
 
-add_executable(stereo_kitti
-Examples/Stereo/stereo_kitti.cc)
-target_link_libraries(stereo_kitti ${PROJECT_NAME})
+#add_executable(stereo_kitti Examples/Stereo/stereo_kitti.cc) target_link_libraries(stereo_kitti ${PROJECT_NAME})
 
-add_executable(stereo_euroc
-Examples/Stereo/stereo_euroc.cc)
-target_link_libraries(stereo_euroc ${PROJECT_NAME})
+#add_executable(stereo_euroc Examples/Stereo/stereo_euroc.cc) target_link_libraries(stereo_euroc ${PROJECT_NAME})
 
-add_executable(mono_tum
-Examples/Monocular/mono_tum.cc)
-target_link_libraries(mono_tum ${PROJECT_NAME})
+#add_executable(mono_tum Examples/Monocular/mono_tum.cc) target_link_libraries(mono_tum ${PROJECT_NAME})
 
-add_executable(mono_kitti
-Examples/Monocular/mono_kitti.cc)
-target_link_libraries(mono_kitti ${PROJECT_NAME})
+#add_executable(mono_kitti Examples/Monocular/mono_kitti.cc) target_link_libraries(mono_kitti ${PROJECT_NAME})
 
-add_executable(mono_euroc
-Examples/Monocular/mono_euroc.cc)
-target_link_libraries(mono_euroc ${PROJECT_NAME})
+#add_executable(mono_euroc Examples/Monocular/mono_euroc.cc) target_link_libraries(mono_euroc ${PROJECT_NAME})
 
-add_executable(mono_video
-Examples/Monocular/mono_video.cc)
-target_link_libraries(mono_video ${PROJECT_NAME})
+#add_executable(mono_video Examples/Monocular/mono_video.cc) target_link_libraries(mono_video ${PROJECT_NAME})
 
-add_executable(semantic_monocular 
-Examples/Monocular/semantic_monocular.cc)
-
+add_executable(semantic_monocular Examples/Monocular/semantic_monocular.cc)
 target_link_libraries(semantic_monocular ${PROJECT_NAME} ${Boost_LIBRARIES})
 
-add_executable(semantic_monocular_video 
-Examples/Monocular/semantic_monocular_video.cpp)
-
-target_link_libraries(semantic_monocular_video ${PROJECT_NAME} ${Boost_LIBRARIES})
+#add_executable(semantic_monocular_video Examples/Monocular/semantic_monocular_video.cpp)
+#target_link_libraries(semantic_monocular_video ${PROJECT_NAME} ${Boost_LIBRARIES})
 endif()
 
 # Build tools
 add_executable(vocconv
 tools/vocconv.cc)
 target_link_libraries(vocconv ${PROJECT_NAME})
+
+target_sources(${PROJECT_NAME}
+    scripts\windows\bootstrap.bat
+    scripts\windows\build.bat
+    scripts\windows\run_slam_on_garching_test_drive.bat
+    scripts\linux\bootstrap.sh
+    scripts\linux\build.sh
+    scripts\linux\run_slam_on_garching_test_drive.sh
+    scripts\ros\build.sh)
