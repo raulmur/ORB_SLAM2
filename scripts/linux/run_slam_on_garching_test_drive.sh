@@ -1,7 +1,7 @@
 #!/bin/bash
 
-CurDir=$(dirname $0)
-ProjectDir=${CurDir}/../..
+ScriptDir=$(realpath $(dirname $0))
+ProjectDir=$(realpath ${ScriptDir}/../..)
 cd ${ProjectDir}
 
 OrbSlamPlatform=`uname -m`
@@ -21,8 +21,7 @@ then
     cd ${ProjectDir}/Vocabulary
     echo "Uncompress vocabulary ..."
     tar -xf ORBvoc.bin.tar.gz
-    cd ..
-
+    cd ${ProjectDir}
 fi
 
 ${ProjectDir}/${BuildDir}/mono_video \
