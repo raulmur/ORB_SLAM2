@@ -4,7 +4,7 @@
 #include <memory>
 #include <exception>
 
-namespace vocabulary_converter
+namespace vocconv
 {
 
 bool has_suffix(const std::string &str, const std::string &suffix)
@@ -96,7 +96,7 @@ void save_vocabulary(ORB_SLAM2::ORBVocabulary *voc, const std::string outfile)
     }
 }
 
-} // namespace vocabulary_converter
+} // namespace vocconv
 
 int main(int argc, char **argv)
 {
@@ -113,8 +113,8 @@ int main(int argc, char **argv)
 
     std::string input_file = argv[1];
     std::string output_file = argv[2];
-    vocabulary_converter::load_vocabulary(voc.get(), input_file);
-    vocabulary_converter::save_vocabulary(voc.get(), output_file);
+    vocconv::load_vocabulary(voc.get(), input_file);
+    vocconv::save_vocabulary(voc.get(), output_file);
 
     return 0;
 }

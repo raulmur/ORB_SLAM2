@@ -277,19 +277,19 @@ This mode can be used when you have a good map of your working area. In this mod
 ## 10.1 Vocabulary Converter
 
 ORB-SLAM2 supports different formats of vocabulary like text, binary and xml.
-We can convert vocabulary from one format to another using `vocabulary_converter` tool
+We can convert vocabulary from one format to another using `vocconv` tool
 
 ### Usage
 ```
-vocabulary_converter <input-file> <output-file>
+vocconv <input-file> <output-file>
 ```
 Format of the file is detected using file extention. Valid file extentions are `.txt`, `.bin`, `.xml`. ORB-SALM2 also use file extention to detect vocabulary format.
 
 ### Examples
 ```
-vocabulary_converter Vocabulary/ORBvoc.txt Vocabulary/ORBvoc.bin
-vocabulary_converter Vocabulary/ORBvoc.txt Vocabulary/ORBvoc.xml
-vocabulary_converter Vocabulary/ORBvoc.bin Vocabulary/ORBvoc.txt
+vocconv Vocabulary/ORBvoc.txt Vocabulary/ORBvoc.bin
+vocconv Vocabulary/ORBvoc.txt Vocabulary/ORBvoc.xml
+vocconv Vocabulary/ORBvoc.bin Vocabulary/ORBvoc.txt
 
 ```
 ### Note
