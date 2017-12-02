@@ -1,8 +1,8 @@
 #/bin/bash
 
-current_dir=$(dirname $0)
-project_dir=${current_dir}/../..
-cd ${project_dir}
+ScriptDir=$(realpath $(dirname $0))
+ProjectDir=$(realpath ${ScriptDir}/../..)
+cd ${ProjectDir}
 
 $(git whatchanged HEAD^! | grep docker/Dockerfile > /dev/null)
 dockerfile_status=$?
@@ -26,7 +26,7 @@ else
     echo "New docker image is not required"
 fi
 
-./docker/build-from-docker.sh
+${ProjectDir}/docker/build-from-docker.sh
 build_status=$?
 
 if [[ ${new_image_status} == "0" &&  ${build_status} == "0" ]]

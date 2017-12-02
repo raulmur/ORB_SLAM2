@@ -28,7 +28,8 @@ BuildDir="products/cmake.make.linux.${OrbSlamPlatform}.${OrbSlamToolset}.${OrbSl
 
 mkdir -p "${BuildDir}"
 
-cmake . -B${BuildDir} \
+cmake ${ProjectDir} \
+    -B${BuildDir} \
     -DCMAKE_BUILD_TYPE=${OrbSlamBuildtype} \
     -DBUILD_EXAMPLES=ON \
     -DCMAKE_INSTALL_PREFIX=/usr/local
