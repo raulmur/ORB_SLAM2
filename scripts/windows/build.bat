@@ -32,6 +32,6 @@ if not exist "%OrbSlamBuildDir%" mkdir "%OrbSlamBuildDir%"
 cd "%OrbSlamBuildDir%"
 
 call cmake.exe -G "%OrbSlamCMakeGeneratorName%" -DBUILD_EXAMPLES=ON -DVCPKG_TARGET_TRIPLET=%VcPkgTriplet% -DCMAKE_TOOLCHAIN_FILE="%VcPkgDir%\scripts\buildsystems\vcpkg.cmake" "%~dp0..\.."
-rem call cmake.exe --build . --config %OrbSlamBuildType%
+call cmake.exe --build . --config %OrbSlamBuildType%
 
 endlocal
