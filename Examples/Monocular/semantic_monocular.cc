@@ -154,7 +154,6 @@ int run_slam_loop(int argc, char** argv)
         return 1;
     }
 
-
     return 0;
 }
 
