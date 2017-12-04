@@ -9,7 +9,7 @@
 [travis_builds]: https://travis-ci.org/paul-michalik/ORB_SLAM2
 
 [appveyor_status]: https://ci.appveyor.com/api/projects/status/wxkv3tvxe9ddq1g2?svg=true
-[appveyor_builds]: https://ci.appveyor.com/project/shanmukhananda/orb-slam2
+[appveyor_builds]: https://ci.appveyor.com/project/paul-michalik/orb-slam2
 
 
 **13 Jan 2017**: OpenCV 3 and Eigen 3.3 are now supported.
