@@ -63,6 +63,6 @@
 #*.RTF   diff=astextplain
 
 ###############################################################################
-# Add files endings which have to keep Unix eol style wven on Windows platforms
+# Add files endings which have to keep Unix eol style when on Windows platforms
 ###############################################################################
 *.sh text eol=lf
