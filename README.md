@@ -8,7 +8,7 @@
 [travis_status]: https://travis-ci.org/paul-michalik/ORB_SLAM2.svg?branch=master
 [travis_builds]: https://travis-ci.org/paul-michalik/ORB_SLAM2
 
-[appveyor_status]: https://ci.appveyor.com/api/projects/status/wxkv3tvxe9ddq1g2?svg=true
+[appveyor_status]: https://ci.appveyor.com/api/projects/status/4ssat019nxuyoyna?svg=true
 [appveyor_builds]: https://ci.appveyor.com/project/paul-michalik/orb-slam2
 
 
