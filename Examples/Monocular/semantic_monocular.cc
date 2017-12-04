@@ -158,79 +158,6 @@ int run_slam_loop(int argc, char** argv)
     return 0;
 }
 
-int run_slam_loop_old(int argc, char** argv)
-{
-
-    if (argc < 4) {
-        cerr << endl << "Usage: ./semantic_monocular path_to_vocabulary path_to_camera_settings path_to_image_folder path_to_jsonfile" << endl;
-        return 1;
-    }
-    std::map<long unsigned int, std::vector<ORB_SLAM2::TrafficSign> > Trafic;
-
-
-    // Retrieve paths to images
-    vector<string> vstrImageFilenames;
-    vector<double> vTimestamps;
-    string strFile = string(argv[3]) + "/rgb.txt";
-    LoadImages(strFile, vstrImageFilenames, vTimestamps);
-
-    int nImages = vstrImageFilenames.size();
-
-
-    // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1], argv[2], ORB_SLAM2::System::MONOCULAR, true);
-    if ((argc >= 5) && (true == ExtractSemanticObjGrp(argv[4], Trafic))) {
-        SLAM.SetSemanticObjGrpContent(Trafic);
-    }
-    // Vector for tracking time statistics
-    vector<float> vTimesTrack;
-    vTimesTrack.resize(nImages);
-
-    cout << endl << "-------" << endl;
-    cout << "Start processing sequence ..." << endl;
-    cout << "Images in the sequence: " << nImages << endl << endl;
-
-    // Main loop
-    cv::Mat im;
-    for (int ni = 0; ni < nImages; ni++) {
-        // Read image from file
-        im = cv::imread(string(argv[3]) + "/" + vstrImageFilenames[ni], CV_LOAD_IMAGE_UNCHANGED);
-        double tframe = vTimestamps[ni];
-
-        if (im.empty()) {
-            cerr << endl << "Failed to load image at: "
-                << string(argv[3]) << "/" << vstrImageFilenames[ni] << endl;
-            return 1;
-        }
-        double ttrack = (double)cv::getTickCount();
-
-        // Pass the image to the SLAM system
-        SLAM.TrackMonocular(im, tframe);
-
-        ttrack = 1000 * (((double)cv::getTickCount() - ttrack) / cv::getTickFrequency());
-        vTimesTrack[ni] = ttrack;
-
-    }
-
-    // Stop all threads
-    SLAM.Shutdown();
-
-    // Tracking time statistics
-    sort(vTimesTrack.begin(), vTimesTrack.end());
-    float totaltime = 0;
-    for (int ni = 0; ni < nImages; ni++) {
-        totaltime += vTimesTrack[ni];
-    }
-    cout << "-------" << endl << endl;
-    cout << "median tracking time: " << vTimesTrack[nImages / 2] << endl;
-    cout << "mean tracking time: " << totaltime / nImages << endl;
-
-    // Save camera trajectory
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
-
-    return 0;
-}
-
 void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vector<double> &vTimestamps)
 {
     ifstream f;
@@ -336,7 +263,7 @@ bool ExtractSemanticObjGrp(std::string jsonFilename, std::map<long unsigned int,
         SemanticObjGrp.insert({stoul(image_name), traffic_signs});
     }
 
-    return true;;
+    return true;
 }
 
 void show_interesting_object(std::map<long unsigned int, std::vector<ORB_SLAM2::TrafficSign> > &image_trafficsigns_map)
@@ -361,13 +288,7 @@ void show_interesting_object(std::map<long unsigned int, std::vector<ORB_SLAM2::
     }
 }
 
-#define ORBSLAM2_USE_ORIGINAL_IMPLEMENTATION
-
 int main(int argc, char** argv)
 {
-#if ORBSLAM2_USE_ORIGINAL_IMPLEMENTATION
-    return run_slam_loop_old(argc, argv);
-#else
     return run_slam_loop(argc, argv);
-#endif
 }

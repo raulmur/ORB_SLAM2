@@ -17,7 +17,7 @@
                 },
                 {
                     "name": "CMAKE_TOOLCHAIN_FILE",
-                    "value": "${env.USERPROFILE}\\Software\\vcpkg\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
+                    "value": "${env.USERPROFILE}\\.vcpkg\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
                 }
             ]
         },
@@ -37,7 +37,7 @@
                 },
                 {
                     "name": "CMAKE_TOOLCHAIN_FILE",
-                    "value": "${env.USERPROFILE}\\Software\\vcpkg\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
+                    "value": "${env.USERPROFILE}\\.vcpkg\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
                 }
             ]
         },
@@ -45,7 +45,7 @@
             "name": "x64-Debug",
             "generator": "Ninja",
             "configurationType": "Debug",
-            "inheritEnvironments": [ "msvc_x64" ],
+            "inheritEnvironments": [ "msvc_x64_x64" ],
             "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
             "cmakeCommandArgs": "",
             "buildCommandArgs": "-v",
@@ -57,7 +57,7 @@
                 },
                 {
                     "name": "CMAKE_TOOLCHAIN_FILE",
-                    "value": "${env.USERPROFILE}\\Software\\vcpkg\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
+                    "value": "${env.USERPROFILE}\\.vcpkg\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
                 }
             ]
         },
@@ -65,7 +65,7 @@
             "name": "x64-Release",
             "generator": "Ninja",
             "configurationType": "RelWithDebInfo",
-            "inheritEnvironments": [ "msvc_x64" ],
+            "inheritEnvironments": [ "msvc_x64_x64" ],
             "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
             "cmakeCommandArgs": "",
             "buildCommandArgs": "-v",
@@ -77,7 +77,7 @@
                 },
                 {
                     "name": "CMAKE_TOOLCHAIN_FILE",
-                    "value": "${env.USERPROFILE}\\Software\\vcpkg\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
+                    "value": "${env.USERPROFILE}\\.vcpkg\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
                 }
             ]
         }
