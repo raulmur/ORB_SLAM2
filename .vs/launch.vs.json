@@ -8,10 +8,10 @@
       "projectTarget": "${buildRoot}\\semantic_monocular.exe",
       "name": "${buildRoot}\\semantic_monocular.exe",
       "args": [
-        "${projectDir}\\Vocabulary\\ORBvoc.txt",
+        "${projectDir}\\Vocabulary\\ORBvoc.bin",
         "${projectDir}\\Examples\\Monocular\\Garching-Test-Drive.yaml",
-        "${projectDir}\\data\\Garching_LoopClosure-5-images",
-        "${projectDir}\\data\\Garching_LoopClosure-5-features.json"
+        "${projectDir}\\data\\Garching_LoopClosure-3-images",
+        "${projectDir}\\data\\Garching_LoopClosure-3-features.json"
       ]
     }
   ]

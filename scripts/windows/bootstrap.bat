@@ -8,25 +8,41 @@ if NOT "%~1"=="" set "OrbSlamPlatform=%~1"
 if NOT "%~2"=="" set "OrbSlamToolset=%~2"
 if NOT "%~3"=="" set "OrbSlamBuildType=%~3" 
 
+rem ----------------------------------
+rem Locate vcpkg using environment variables
+rem ----------------------------------
 set "VcPkgDir=%~d0\Software\vcpkg\vcpkg"
+set "VcpkgTriplet=%OrbSlamPlatform%-windows-%OrbSlamToolset%"
+if defined VCPKG_ROOT_DIR if /i not "%VCPKG_ROOT_DIR%"=="" set "VcPkgDir=%VCPKG_ROOT_DIR%"
+if defined VCPKG_DEFAULT_TRIPLET if /i not "%VCPKG_DEFAULT_TRIPLET%"=="" set "VcpkgTriplet=%VCPKG_DEFAULT_TRIPLET%"
 
+rem ----------------------------------
+rem Try to look for vcpkg at default locations
+rem ----------------------------------
+if not exist "%VcPkgDir%" set "VcPkgDir=%~d0\Software\vcpkg\vcpkg"
+if not exist "%VcPkgDir%" set "VcPkgDir=%~d0\.vcpkg\vcpkg"
+if not exist "%VcPkgDir%" set "VcPkgDir=C:\Software\vcpkg\vcpkg"
+if not exist "%VcPkgDir%" set "VcPkgDir=C:\.vcpkg\vcpkg"
+if not exist "%VcPkgDir%" set "VcPkgDir=%USERPROFILE%\.vcpkg\vcpkg"
 if not exist "%VcPkgDir%" (
+	echo vcpkg not found, installing at %VcPkgDir%...
     git clone --recursive https://github.com/paul-michalik/vcpkg.git "%VcPkgDir%"
 ) else (
-    cd /d "%VcPkgDir%"
+	echo vcpkg found at %VcPkgDir%...
+    pushd "%VcPkgDir%"
     git pull --all --prune
+	popd 
 )
+
+if not exist "%VcPkgDir%" echo vcpkg path is not set correctly, bailing out & exit /b 1
 
 call "%VcPkgDir%"\bootstrap-vcpkg.bat
 
-if defined VCPKG_ROOT_DIR if /i not "%VCPKG_ROOT_DIR%"=="" set "VcPkgDir=%VCPKG_ROOT_DIR%"
-set "VcPkgTriplet=%OrbSlamPlatform%-windows-%OrbSlamToolset%"
-if defined VCPKG_DEFAULT_TRIPLET if /i not "%VCPKG_DEFAULT_TRIPLET%"=="" set "VcpkgTriplet=%VCPKG_DEFAULT_TRIPLET%"
-set "VcPkgPath=%VcPkgDir%\vcpkg.exe"
-
 echo. & echo Bootstrapping dependencies for triplet: %VcPkgTriplet% & echo.
 
-if not exist "%VcPkgDir%" echo vcpkg path is not set correctly, bailing out & exit /b 1
+set "VcPkgPath=%VcPkgDir%\vcpkg.exe"
+
+if not exist "%VcPkgPath%" echo vcpkg path is not set correctly, bailing out & exit /b 1
 
 rem ==============================
 rem Update and Install packages.

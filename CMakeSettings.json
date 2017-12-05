@@ -12,6 +12,10 @@
             "ctestCommandArgs": "",
             "variables": [
                 {
+                    "name": "BUILD_EXAMPLES",
+                    "value": "ON"
+                },
+                {
                     "name": "VCPKG_TARGET_TRIPLET",
                     "value": "x86-windows-v141"
                 },
@@ -31,6 +35,10 @@
             "buildCommandArgs": "-v",
             "ctestCommandArgs": "",
             "variables": [
+                {
+                    "name": "BUILD_EXAMPLES",
+                    "value": "ON"
+                },
                 {
                     "name": "VCPKG_TARGET_TRIPLET",
                     "value": "x86-windows-v141"
@@ -52,6 +60,10 @@
             "ctestCommandArgs": "",
             "variables": [
                 {
+                    "name": "BUILD_EXAMPLES",
+                    "value": "ON"
+                },
+                {
                     "name": "VCPKG_TARGET_TRIPLET",
                     "value": "x64-windows-v141"
                 },
@@ -71,6 +83,10 @@
             "buildCommandArgs": "-v",
             "ctestCommandArgs": "",
             "variables": [
+                {
+                    "name": "BUILD_EXAMPLES",
+                    "value": "ON"
+                },
                 {
                     "name": "VCPKG_TARGET_TRIPLET",
                     "value": "x64-windows-v141"
