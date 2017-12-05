@@ -36,7 +36,7 @@ if not exist "%VcPkgDir%" (
 
 if not exist "%VcPkgDir%" echo vcpkg path is not set correctly, bailing out & exit /b 1
 
-call "%VcPkgDir%"\bootstrap-vcpkg.bat
+call "%VcPkgDir%\bootstrap-vcpkg.bat"
 
 echo. & echo Bootstrapping dependencies for triplet: %VcPkgTriplet% & echo.
 
