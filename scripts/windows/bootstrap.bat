@@ -25,13 +25,13 @@ if not exist "%VcPkgDir%" set "VcPkgDir=C:\Software\vcpkg\vcpkg"
 if not exist "%VcPkgDir%" set "VcPkgDir=C:\.vcpkg\vcpkg"
 if not exist "%VcPkgDir%" set "VcPkgDir=%USERPROFILE%\.vcpkg\vcpkg"
 if not exist "%VcPkgDir%" (
-	echo vcpkg not found, installing at %VcPkgDir%...
+    echo vcpkg not found, installing at %VcPkgDir%...
     git clone --recursive https://github.com/paul-michalik/vcpkg.git "%VcPkgDir%"
 ) else (
-	echo vcpkg found at %VcPkgDir%...
+    echo vcpkg found at %VcPkgDir%...
     pushd "%VcPkgDir%"
     git pull --all --prune
-	popd 
+    popd 
 )
 
 if not exist "%VcPkgDir%" echo vcpkg path is not set correctly, bailing out & exit /b 1
