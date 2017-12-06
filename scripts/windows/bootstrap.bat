@@ -27,16 +27,16 @@ if not exist "%VcPkgDir%" set "VcPkgDir=%USERPROFILE%\.vcpkg\vcpkg"
 if not exist "%VcPkgDir%" (
     echo vcpkg not found, installing at %VcPkgDir%...
     git clone --recursive https://github.com/paul-michalik/vcpkg.git "%VcPkgDir%"
+    call "%VcPkgDir%\bootstrap-vcpkg.bat"
 ) else (
     echo vcpkg found at %VcPkgDir%...
-    pushd "%VcPkgDir%"
-    git pull --all --prune
-    popd 
+    rem Do not pull or update existing vcpkg installation
+    rem pushd "%VcPkgDir%"
+    rem git pull --all --prune
+    rem popd 
 )
 
 if not exist "%VcPkgDir%" echo vcpkg path is not set correctly, bailing out & exit /b 1
-
-call "%VcPkgDir%\bootstrap-vcpkg.bat"
 
 echo. & echo Bootstrapping dependencies for triplet: %VcPkgTriplet% & echo.
 
