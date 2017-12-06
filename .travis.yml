@@ -1,0 +1,10 @@
+sudo: required
+git:
+  depth: 1
+services:
+  - docker
+before_install:
+  - sudo apt-get install -y realpath
+  - chmod -R 777 *
+script:
+  - ./scripts/linux/ci_cd.sh

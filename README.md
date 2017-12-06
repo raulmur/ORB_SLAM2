@@ -1,6 +1,17 @@
 # ORB-SLAM2
 **Authors:** [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
 
+| Linux                                           | Windows                                             |
+|-------------------------------------------------|-----------------------------------------------------|
+| [![Build Status][travis_status]][travis_builds] | [![Build Status][appveyor_status]][appveyor_builds] |
+
+[travis_status]: https://travis-ci.org/paul-michalik/ORB_SLAM2.svg?branch=master
+[travis_builds]: https://travis-ci.org/paul-michalik/ORB_SLAM2
+
+[appveyor_status]: https://ci.appveyor.com/api/projects/status/4ssat019nxuyoyna?svg=true
+[appveyor_builds]: https://ci.appveyor.com/project/paul-michalik/orb-slam2
+
+
 **13 Jan 2017**: OpenCV 3 and Eigen 3.3 are now supported.
 
 **22 Dec 2016**: Added AR demo (see section 7).
@@ -83,14 +94,51 @@ Clone the repository:
 git clone https://github.com/raulmur/ORB_SLAM2.git ORB_SLAM2
 ```
 
-We provide a script `build.sh` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
+## 3.1 Building on Windows
+
+We use `vcpkg` package manager to install the dependencies. The script `bootstrap_windows.bat` assumes that `vcpkg` is installed from https://github.com/paul-michalik/vcpkg in `\Software\vcpkg\vcpkg`. Please follow the instructions in [Readme](https://github.com/paul-michalik/vcpkg/blob/master/README.md) to install `vcpkg` and modify `bootstrap_windows.bat` if other installation folder is used.
+
+There is a script that automates building of orb-slam2 and its dependencies
+for Windows. We provide a script `scripts/windows/build.bat` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
 ```
 cd ORB_SLAM2
-chmod +x build.sh
-./build.sh
+scripts/windows/build.bat
+```
+ 
+`scripts/windows/build.bat` takes following (optional) parameters:
+- Platform: `x86` or `x64`
+- Toolset: `v140`, `v141`
+- Configuration: `Debug`, `Release`
+
+Defaults correspond to:
+``` 
+scripts/windows/build.bat x86 v141 Debug
 ```
 
-This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono_tum**, **mono_kitti**, **rgbd_tum**, **stereo_kitti**, **mono_euroc** and **stereo_euroc** in *Examples* folder.
+`scripts/windows/build.bat` invokes `scripts/windows/bootstrap.bat` which installs all required dependencies via `vcpkg`. Please install `vcpkg` according to  
+
+## 3.2 Building on Ubuntu Linux
+
+We use `apt-get` package manager to install the dependencies. The script `scripts/linux/bootstrap.sh` will download and install all packages required to build the project.
+
+We provide a script `scripts/linux/build.sh` to build the *Thirdparty* libraries and *ORB-SLAM2*. Please make sure you have installed all required dependencies (see section 2). Execute:
+
+```
+cd ORB_SLAM2
+scripts/linux/build.sh
+```
+
+`scripts/linux/build.sh` takes following (optional) parameters:
+
+- Platform 
+- Toolset
+- Configuration
+
+Defaults correspond to:
+
+```
+scripts/linux/build.sh `uname -m` gcc.`gcc -dumpversion` Debug
+```
 
 # 4. Monocular Examples
 
@@ -123,6 +171,14 @@ This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono
 
 ```
 ./Examples/Monocular/mono_euroc Vocabulary/ORBvoc.txt Examples/Monocular/EuRoC.yaml PATH_TO_SEQUENCE/cam0/data Examples/Monocular/EuRoC_TimeStamps/SEQUENCE.txt 
+```
+
+```
+./Examples/Monocular/semantic_monocular_video VideoFile Vocabulary/ORBvoc.txt Examples/Monocular/CameraSetting.yaml [JsonFile] 
+```
+
+```
+./Examples/Monocular/semantic_monocular Vocabulary/ORBvoc.txt Examples/Monocular/KITTIX.yaml PATH_TO_DATASET_FOLDER/dataset/sequences/SEQUENCE_NUMBER [JsonFile] 
 ```
 
 # 5. Stereo Examples
@@ -238,3 +294,25 @@ This is the default mode. The system runs in parallal three threads: Tracking, L
 ### Localization Mode
 This mode can be used when you have a good map of your working area. In this mode the Local Mapping and Loop Closing are deactivated. The system localizes the camera in the map (which is no longer updated), using relocalization if needed. 
 
+# 10. Tools
+## 10.1 Vocabulary Converter
+
+ORB-SLAM2 supports different formats of vocabulary like text, binary and xml.
+We can convert vocabulary from one format to another using `vocconv` tool
+
+### Usage
+```
+vocconv <input-file> <output-file>
+```
+Format of the file is detected using file extention. Valid file extentions are `.txt`, `.bin`, `.xml`. ORB-SALM2 also use file extention to detect vocabulary format.
+
+### Examples
+```
+vocconv Vocabulary/ORBvoc.txt Vocabulary/ORBvoc.bin
+vocconv Vocabulary/ORBvoc.txt Vocabulary/ORBvoc.xml
+vocconv Vocabulary/ORBvoc.bin Vocabulary/ORBvoc.txt
+
+```
+### Note
+
+Although different input formats are supported it is recommended to use binary format, as it saves lot of loading time. ORB-SLAM2 loads binary vocabulary much faster compared to xml and text vocabulary

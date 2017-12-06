@@ -1,0 +1,10 @@
+# https://www.appveyor.com/docs/appveyor-yml
+
+image: Visual Studio 2017
+environment:
+  VCPKG_ROOT_DIR: C:\tools\vcpkg
+  VCPKG_DEFAULT_TRIPLET: x86-windows
+shallow_clone: true
+build_script:
+  - scripts\windows\build.bat x86 v141 Release
+cache: C:\tools\vcpkg\installed\

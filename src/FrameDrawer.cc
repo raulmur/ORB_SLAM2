@@ -28,13 +28,17 @@
 
 namespace ORB_SLAM2
 {
-
+	int gNewSemanticFeatureCount = 0;
+	int gOrgSemanticFeatureCount = 0;
 FrameDrawer::FrameDrawer(Map* pMap):mpMap(pMap)
 {
     mState=Tracking::SYSTEM_NOT_READY;
     mIm = cv::Mat(480,640,CV_8UC3, cv::Scalar(0,0,0));
 }
-
+void FrameDrawer::SetInterestingObject(std::vector<cv::Rect> &RoiList)
+{
+	mRoiList.assign(RoiList.begin(), RoiList.end());
+}
 cv::Mat FrameDrawer::DrawFrame()
 {
     cv::Mat im;
@@ -43,7 +47,8 @@ cv::Mat FrameDrawer::DrawFrame()
     vector<cv::KeyPoint> vCurrentKeys; // KeyPoints in current frame
     vector<bool> vbVO, vbMap; // Tracked MapPoints in current frame
     int state; // Tracking state
-
+	gNewSemanticFeatureCount = 0;
+	gOrgSemanticFeatureCount = 0;
     //Copy variables within scoped mutex
     {
         unique_lock<mutex> lock(mMutex);
@@ -105,23 +110,54 @@ cv::Mat FrameDrawer::DrawFrame()
                 // This is a match to a MapPoint in the map
                 if(vbMap[i])
                 {
-                    cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
-                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
+					if(vCurrentKeys[i].class_id != -1)
+					{
+						if(vCurrentKeys[i].class_id ==255)
+						{
+							gOrgSemanticFeatureCount++;
+							cv::rectangle(im,pt1,pt2,cv::Scalar(0,0,255));
+							cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,0,255),-1);
+						}
+						else
+						{
+							cv::rectangle(im,pt1,pt2,cv::Scalar(255,0,0));
+							cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(255,0,0),-1);
+							gNewSemanticFeatureCount++;
+						}
+
+					}
+					else
+					{
+						cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
+						cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
+					}
                     mnTracked++;
                 }
                 else // This is match to a "visual odometry" MapPoint created in the last frame
                 {
-                    cv::rectangle(im,pt1,pt2,cv::Scalar(255,0,0));
-                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(255,0,0),-1);
+					if(vCurrentKeys[i].class_id != -1)
+					{
+						cv::rectangle(im,pt1,pt2,cv::Scalar(255,255,255));
+						cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(255,255,255),-1);
+					}
+					else
+					{
+						cv::rectangle(im,pt1,pt2,cv::Scalar(255,0,0));
+						cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(255,0,0),-1);
+					}
                     mnTrackedVO++;
                 }
             }
         }
+		for(int Index = 0;Index <mRoiList.size();Index++)
+		{
+			cv::rectangle(im,mRoiList[Index],cv::Scalar(255,0,0));
+		}
     }
 
     cv::Mat imWithInfo;
     DrawTextInfo(im,state, imWithInfo);
-
+	
     return imWithInfo;
 }
 
@@ -144,6 +180,15 @@ void FrameDrawer::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
         s << "KFs: " << nKFs << ", MPs: " << nMPs << ", Matches: " << mnTracked;
         if(mnTrackedVO>0)
             s << ", + VO matches: " << mnTrackedVO;
+		if(gNewSemanticFeatureCount != 0)
+		{
+			s << " New Semantic = "<<gNewSemanticFeatureCount;
+			
+		}
+		if(gOrgSemanticFeatureCount != 0)
+		{
+			s << " Org Semantic = "<<gOrgSemanticFeatureCount;
+		}
     }
     else if(nState==Tracking::LOST)
     {

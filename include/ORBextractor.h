@@ -59,10 +59,19 @@ public:
     void operator()( cv::InputArray image, cv::InputArray mask,
       std::vector<cv::KeyPoint>& keypoints,
       cv::OutputArray descriptors);
-
+	 
     int inline GetLevels(){
         return nlevels;}
-
+		
+	int inline Getfeatures(){
+        return nfeatures;}
+		
+	int inline GetiniThFAST(){
+        return iniThFAST;}
+		
+	int inline GetminThFAST(){
+        return minThFAST;}
+		
     float inline GetScaleFactor(){
         return scaleFactor;}
 

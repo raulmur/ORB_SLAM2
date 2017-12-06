@@ -29,7 +29,7 @@
 #include <iostream>
 #include <typeinfo>
 #include <cassert>
-
+#include <algorithm>
 using namespace std;
 
 namespace g2o {

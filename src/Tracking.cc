@@ -36,7 +36,7 @@
 #include<iostream>
 
 #include<mutex>
-
+#include "KeySemanticObjGrp.h"
 
 using namespace std;
 
@@ -196,7 +196,8 @@ cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRe
         }
     }
 
-    mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
+	KeySemanticObjGrp *pTraficsignGrp = mpSystem->GetSemanticObjGrp();
+    mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,pTraficsignGrp);
 
     Track();
 
@@ -226,8 +227,9 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
 
     if((fabs(mDepthMapFactor-1.0f)>1e-5) || imDepth.type()!=CV_32F)
         imDepth.convertTo(imDepth,CV_32F,mDepthMapFactor);
-
-    mCurrentFrame = Frame(mImGray,imDepth,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
+	
+	KeySemanticObjGrp* pTraficsignGrp = mpSystem->GetSemanticObjGrp();
+    mCurrentFrame = Frame(mImGray,imDepth,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,pTraficsignGrp);
 
     Track();
 
@@ -254,12 +256,19 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
             cvtColor(mImGray,mImGray,CV_BGRA2GRAY);
     }
 
+	KeySemanticObjGrp* pTraficsignGrp = mpSystem->GetSemanticObjGrp();
+	std::vector<cv::Rect> RoiList;
+	if(pTraficsignGrp)
+	{
+		pTraficsignGrp->GetSemanticObjects(RoiList,Frame::nNextId);
+		mpFrameDrawer->SetInterestingObject(RoiList);
+	}
+	
     if(mState==NOT_INITIALIZED || mState==NO_IMAGES_YET)
-        mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
+        mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,pTraficsignGrp);
     else
-        mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
-
-    Track();
+        mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,pTraficsignGrp);
+   Track();
 
     return mCurrentFrame.mTcw.clone();
 }
@@ -1509,7 +1518,7 @@ void Tracking::Reset()
     {
         mpViewer->RequestStop();
         while(!mpViewer->isStopped())
-            usleep(3000);
+			std::this_thread::sleep_for(std::chrono::milliseconds(3));
     }
 
     // Reset Local Mapping

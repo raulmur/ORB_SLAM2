@@ -47,7 +47,7 @@ public:
 
     // Draw last processed frame.
     cv::Mat DrawFrame();
-
+	void SetInterestingObject(std::vector<cv::Rect> &RoiList);
 protected:
 
     void DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText);
@@ -64,7 +64,7 @@ protected:
     int mState;
 
     Map* mpMap;
-
+	std::vector<cv::Rect> mRoiList;
     std::mutex mMutex;
 };
 

@@ -1,3 +1,6 @@
+data/
+data.zip
+
 CMakeLists.txt.user
 Examples/Monocular/mono_euroc
 Examples/Monocular/mono_kitti
@@ -18,7 +21,17 @@ Thirdparty/g2o/build/
 Thirdparty/g2o/config.h
 Thirdparty/g2o/lib/
 Vocabulary/ORBvoc.txt
+Vocabulary/ORBvoc.bin
 build/
 *~
 lib/
+products/
+
+/.vs/tasks.vs.json
+/.vs/VSWorkspaceState.json
+/.vs/config
+/.vs/ORB_SLAM2
+/.vs/ProjectSettings.json
+/.vs/slnx.sqlite
+data/
 

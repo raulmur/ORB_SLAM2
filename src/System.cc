@@ -25,9 +25,20 @@
 #include <thread>
 #include <pangolin/pangolin.h>
 #include <iomanip>
+#include <chrono>
 
+bool has_suffix(const std::string &str, const std::string &suffix) {
+  std::size_t index = str.find(suffix, str.size() - suffix.size());
+  return (index != std::string::npos);
+}
 namespace ORB_SLAM2
 {
+
+bool has_suffix(const std::string &str, const std::string &suffix)
+{
+    std::size_t index = str.find(suffix, str.size() - suffix.size());
+    return (index != std::string::npos);
+}
 
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
                const bool bUseViewer):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
@@ -57,20 +68,39 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
        exit(-1);
     }
 
-
     //Load ORB Vocabulary
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
+    cout << "Vocabulary file = " << strVocFile << endl;
 
     mpVocabulary = new ORBVocabulary();
-    bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
+    bool bVocLoad = false;
+
+    // choose loading method based on file extension
+    if (has_suffix(strVocFile, ".txt"))
+        bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
+    else if(has_suffix(strVocFile, ".bin"))
+        bVocLoad = mpVocabulary->loadFromBinaryFile(strVocFile);
+    else if(has_suffix(strVocFile, ".xml"))
+    {
+        mpVocabulary->load(strVocFile); // throws on error
+        bVocLoad = true;
+    }
+
     if(!bVocLoad)
     {
         cerr << "Wrong path to vocabulary. " << endl;
-        cerr << "Falied to open at: " << strVocFile << endl;
-        exit(-1);
-    }
-    cout << "Vocabulary loaded!" << endl << endl;
+        cerr << "Failed to open at: " << strVocFile << endl;
+        //exit(-1);
+        cout << "Vocabulary not loaded!" << endl << endl;
+    } else
+        cout << "Vocabulary loaded!" << endl << endl;
 
+    std::chrono::steady_clock::time_point end= std::chrono::steady_clock::now();
+    std::cout << "Vocabulary loading time(ms): " 
+        << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() 
+        << std::endl;
+    
     //Create KeyFrame Database
     mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
 
@@ -131,7 +161,7 @@ cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const
             // Wait until Local Mapping has effectively stopped
             while(!mpLocalMapper->isStopped())
             {
-                usleep(1000);
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
 
             mpTracker->InformOnlyTracking(true);
@@ -182,8 +212,8 @@ cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const doub
             // Wait until Local Mapping has effectively stopped
             while(!mpLocalMapper->isStopped())
             {
-                usleep(1000);
-            }
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			}
 
             mpTracker->InformOnlyTracking(true);
             mbActivateLocalizationMode = false;
@@ -233,7 +263,7 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
             // Wait until Local Mapping has effectively stopped
             while(!mpLocalMapper->isStopped())
             {
-                usleep(1000);
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
 
             mpTracker->InformOnlyTracking(true);
@@ -306,14 +336,14 @@ void System::Shutdown()
     {
         mpViewer->RequestFinish();
         while(!mpViewer->isFinished())
-            usleep(5000);
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
 
     // Wait until all thread have effectively stopped
     while(!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished() || mpLoopCloser->isRunningGBA())
     {
-        usleep(5000);
-    }
+		std::this_thread::sleep_for(std::chrono::milliseconds(5));
+	}
 
     if(mpViewer)
         pangolin::BindToContext("ORB-SLAM2: Map Viewer");
@@ -487,6 +517,16 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
 {
     unique_lock<mutex> lock(mMutexState);
     return mTrackedKeyPointsUn;
+}
+
+KeySemanticObjGrp* System::GetSemanticObjGrp()
+{	
+	return &mSemanticObjGrp;
+}
+
+void System::SetSemanticObjGrpContent(traffic_sign_map_t const &InterestedObject)
+{
+	mSemanticObjGrp.SetSemanticObjGrpContent(InterestedObject);
 }
 
 } //namespace ORB_SLAM

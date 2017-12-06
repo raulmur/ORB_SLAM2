@@ -1,0 +1,156 @@
+{
+  "000000": {
+    "traffic_signs": [
+      {
+        "class_id": 0,
+        "confidence": 0.5797709226608276,
+        "rectangle": [
+          442,
+          410,
+          80,
+          80
+        ]
+      }
+    ]
+  },
+  "000002": {
+    "traffic_signs": [
+      {
+        "class_id": 1,
+        "confidence": 0.8730757832527161,
+        "rectangle": [
+          442,
+          410,
+          80,
+          80
+        ]
+      }
+    ]
+  },
+  "000003": {
+    "traffic_signs": [
+      {
+        "class_id": 2,
+        "confidence": 0.8730757832527161,
+        "rectangle": [
+          442,
+          410,
+          80,
+          80
+        ]
+      }
+    ]
+  },
+  "000004": {
+    "traffic_signs": [
+      {
+        "class_id": 2,
+        "confidence": 0.8730757832527161,
+        "rectangle": [
+          442,
+          410,
+          80,
+          80
+        ]
+      }
+    ]
+  },
+  "000005": {
+    "traffic_signs": [
+      {
+        "class_id": 2,
+        "confidence": 0.8730757832527161,
+        "rectangle": [
+          442,
+          410,
+          80,
+          80
+        ]
+      }
+    ]
+  },
+  "000006": {
+    "traffic_signs": [
+      {
+        "class_id": 2,
+        "confidence": 0.8730757832527161,
+        "rectangle": [
+          442,
+          410,
+          80,
+          80
+        ]
+      }
+    ]
+  },
+  "000007": {
+    "traffic_signs": [
+      {
+        "class_id": 2,
+        "confidence": 0.8730757832527161,
+        "rectangle": [
+          442,
+          410,
+          80,
+          80
+        ]
+      }
+    ]
+  },
+  "000008": {
+    "traffic_signs": [
+      {
+        "class_id": 2,
+        "confidence": 0.8730757832527161,
+        "rectangle": [
+          442,
+          410,
+          80,
+          80
+        ]
+      }
+    ]
+  },
+  "000009": {
+    "traffic_signs": [
+      {
+        "class_id": 2,
+        "confidence": 0.8730757832527161,
+        "rectangle": [
+          442,
+          410,
+          80,
+          80
+        ]
+      }
+    ]
+  },
+  "000010": {
+    "traffic_signs": [
+      {
+        "class_id": 2,
+        "confidence": 0.8730757832527161,
+        "rectangle": [
+          442,
+          410,
+          80,
+          80
+        ]
+      }
+    ]
+  },
+  "000011": {
+    "traffic_signs": [
+      {
+        "class_id": 2,
+        "confidence": 0.8730757832527161,
+        "rectangle": [
+          442,
+          410,
+          80,
+          80
+        ]
+      }
+    ]
+  }
+}

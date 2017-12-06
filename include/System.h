@@ -35,6 +35,7 @@
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
 #include "Viewer.h"
+#include "KeySemanticObjGrp.h"
 
 namespace ORB_SLAM2
 {
@@ -121,7 +122,9 @@ public:
     int GetTrackingState();
     std::vector<MapPoint*> GetTrackedMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
-
+	
+	KeySemanticObjGrp* GetSemanticObjGrp();
+	void SetSemanticObjGrpContent(traffic_sign_map_t const & InterestedObject);
 private:
 
     // Input sensor
@@ -174,6 +177,7 @@ private:
     std::vector<MapPoint*> mTrackedMapPoints;
     std::vector<cv::KeyPoint> mTrackedKeyPointsUn;
     std::mutex mMutexState;
+	KeySemanticObjGrp mSemanticObjGrp;
 };
 
 }// namespace ORB_SLAM

@@ -59,6 +59,7 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <vector>
+#include <iterator>
 
 #include "ORBextractor.h"
 
@@ -540,8 +541,7 @@ vector<cv::KeyPoint> ORBextractor::DistributeOctTree(const vector<cv::KeyPoint>&
                                        const int &maxX, const int &minY, const int &maxY, const int &N, const int &level)
 {
     // Compute how many initial nodes   
-    const int nIni = round(static_cast<float>(maxX-minX)/(maxY-minY));
-
+	const auto nIni = std::max(1,(int)round(static_cast<float>(maxX-minX)/(maxY-minY)));
     const float hX = static_cast<float>(maxX-minX)/nIni;
 
     list<ExtractorNode> lNodes;
@@ -777,7 +777,11 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
 
         vector<cv::KeyPoint> vToDistributeKeys;
         vToDistributeKeys.reserve(nfeatures*10);
-
+		if ((maxBorderX <= minBorderX) || (maxBorderY <= minBorderY))
+		{
+			nlevels = level;
+			break;
+		}
         const float width = (maxBorderX-minBorderX);
         const float height = (maxBorderY-minBorderY);
 

@@ -23,9 +23,12 @@
 #include "ORBmatcher.h"
 #include <thread>
 
+#define MIN_ORB_IMG_WIDTH 90 
+#define MIN_ORB_IMG_HEIGHT 90
+
 namespace ORB_SLAM2
 {
-
+void DrawKeypoint1( std::string title,cv::Mat Image, std::vector<cv::KeyPoint> &Keypoints1);
 long unsigned int Frame::nNextId=0;
 bool Frame::mbInitialComputations=true;
 float Frame::cx, Frame::cy, Frame::fx, Frame::fy, Frame::invfx, Frame::invfy;
@@ -58,9 +61,9 @@ Frame::Frame(const Frame &frame)
 }
 
 
-Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth,KeySemanticObjGrp* pTraficsignGrp)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractorLeft),mpORBextractorRight(extractorRight), mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),
-     mpReferenceKF(static_cast<KeyFrame*>(NULL))
+     mpReferenceKF(static_cast<KeyFrame*>(NULL)),mpTraficsignGrp(pTraficsignGrp)
 {
     // Frame ID
     mnId=nNextId++;
@@ -116,9 +119,9 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     AssignFeaturesToGrid();
 }
 
-Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth,KeySemanticObjGrp* pTraficsignGrp)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
-     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
+     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),mpTraficsignGrp(pTraficsignGrp)
 {
     // Frame ID
     mnId=nNextId++;
@@ -171,9 +174,9 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 }
 
 
-Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth,KeySemanticObjGrp* pTraficsignGrp)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
-     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
+     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),mpTraficsignGrp(pTraficsignGrp)
 {
     // Frame ID
     mnId=nNextId++;
@@ -186,7 +189,7 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     mvInvScaleFactors = mpORBextractorLeft->GetInverseScaleFactors();
     mvLevelSigma2 = mpORBextractorLeft->GetScaleSigmaSquares();
     mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
-
+	mpORBextractorSub = NULL;
     // ORB extraction
     ExtractORB(0,imGray);
 
@@ -244,12 +247,149 @@ void Frame::AssignFeaturesToGrid()
     }
 }
 
+ 
+ void Frame::LinearTransform(std::vector<cv::KeyPoint> &vKeys,cv::Rect &CropArea,int ClassId)
+ {
+	for(int Index = 0;Index<vKeys.size();Index++)
+	{
+
+		vKeys[Index].pt.x = CropArea.x + vKeys[Index].pt.x;
+		vKeys[Index].pt.y = CropArea.y + vKeys[Index].pt.y;
+		vKeys[Index].class_id = ClassId;
+
+	}
+ }
+ 
+ void Frame::ScaleBack(std::vector<cv::KeyPoint> &vKeys,double ScaleX,double ScaleY)
+ {
+	for(int Index = 0;Index<vKeys.size();Index++)
+	{
+
+		vKeys[Index].pt.x = round((double)vKeys[Index].pt.x / ScaleX);
+		vKeys[Index].pt.y = round((double)vKeys[Index].pt.y / ScaleY);
+
+	}
+ }
+ 
+ void Frame::UpdateOrgSemanticClassid(std::vector<cv::KeyPoint> &vKeys,int ClassId)
+ {
+	std::vector<cv::Rect> RoiList;
+	if ( (NULL != mpTraficsignGrp) && (true == mpTraficsignGrp->isLoaded))
+	{
+		mpTraficsignGrp->GetSemanticObjects(RoiList,mnId);
+		for(int SubImageIndex = 0;SubImageIndex<RoiList.size();SubImageIndex++)
+		{
+			for(int Index = 0;Index<vKeys.size();Index++)
+			{
+				if( (vKeys[Index].pt.x >= RoiList[SubImageIndex].x) && (vKeys[Index].pt.x < (RoiList[SubImageIndex].x + RoiList[SubImageIndex].width)))
+				{
+					if( (vKeys[Index].pt.y >= RoiList[SubImageIndex].y) && (vKeys[Index].pt.y < (RoiList[SubImageIndex].y + RoiList[SubImageIndex].height)))
+					{
+						vKeys[Index].class_id = ClassId;
+					}
+				}
+			}
+		}
+	}
+ }
+ 
+void Frame::ExtractORBInSubImage(const cv::Mat &im,std::vector<cv::KeyPoint> &AllSubImageKeypoints,cv::Mat &SubDescriptors)
+{
+	//mnScaleLevels
+	std::vector<cv::Rect> RoiList;
+	double ScaleX = 1;
+	double ScaleY = 1;
+	
+	if ( (NULL != mpTraficsignGrp) && (true == mpTraficsignGrp->isLoaded))
+	{
+		mpTraficsignGrp->GetSemanticObjects(RoiList,mnId);
+		if(!mpORBextractorSub)
+			mpORBextractorSub = new ORBextractor(mpORBextractorLeft->Getfeatures(),mfScaleFactor,mnScaleLevels,mpORBextractorLeft->GetiniThFAST(),mpORBextractorLeft->GetminThFAST());	
+
+		cv::Mat AllImageDescriptorList[50];
+		int DescriptorIndex = 0;
+		for(int SubImageIndex = 0;SubImageIndex<RoiList.size();SubImageIndex++)
+		{
+			std::vector<cv::KeyPoint> SubImageKeypoints;
+			cv::Mat SubImageDescriptors;
+			//width should be highier than height which is need for DistributeOctTree()
+			cv::Mat subimage(im(RoiList[SubImageIndex]));
+			cv::Mat scaleUpImg;
+			if(subimage.cols < MIN_ORB_IMG_WIDTH)				
+				ScaleX = (double)MIN_ORB_IMG_WIDTH / subimage.cols;
+			if(subimage.rows < MIN_ORB_IMG_HEIGHT)
+				ScaleY = (double)MIN_ORB_IMG_HEIGHT / subimage.rows;
+			cv::resize(subimage ,scaleUpImg,cv::Size(), ScaleX, ScaleY, cv::INTER_LINEAR );
+			(*mpORBextractorSub)(scaleUpImg,cv::Mat(),SubImageKeypoints,SubImageDescriptors);
+			if (SubImageKeypoints.size())
+			{
+				int ClassId = -1;
+				mpTraficsignGrp->GetSemanticObjectClassid(ClassId,mnId,SubImageIndex);
+				ScaleBack(SubImageKeypoints,ScaleX,ScaleY);
+				LinearTransform(SubImageKeypoints, RoiList[SubImageIndex],ClassId);
+				AllSubImageKeypoints.insert(AllSubImageKeypoints.end(), SubImageKeypoints.begin(), SubImageKeypoints.end());
+				AllImageDescriptorList[DescriptorIndex++] = SubImageDescriptors;
+			}
+		}
+		if (AllSubImageKeypoints.size())
+		{
+			 cv::vconcat(AllImageDescriptorList, DescriptorIndex, SubDescriptors);
+	
+		}
+	}
+}
+
 void Frame::ExtractORB(int flag, const cv::Mat &im)
 {
+		
     if(flag==0)
-        (*mpORBextractorLeft)(im,cv::Mat(),mvKeys,mDescriptors);
+	{
+		if ( (NULL != mpTraficsignGrp) && (true == mpTraficsignGrp->isLoaded))
+		{	
+			std::vector<cv::KeyPoint> SubImageKeypoints;
+			cv::Mat SubDescriptors;
+					
+			ExtractORBInSubImage(im,SubImageKeypoints,SubDescriptors);
+			if(SubImageKeypoints.size())
+			{	
+				cv::Mat OrgDescriptors;
+				(*mpORBextractorLeft)(im,cv::Mat(),mvKeys,OrgDescriptors);
+				UpdateOrgSemanticClassid(mvKeys,255);
+				mvKeys.insert(mvKeys.end(), SubImageKeypoints.begin(), SubImageKeypoints.end());
+				cv::vconcat(OrgDescriptors, SubDescriptors, mDescriptors);	
+				//DrawKeypoint1("Merge",im,SubImageKeypoints);
+				//cv::waitKey();
+			}
+			else
+				(*mpORBextractorLeft)(im,cv::Mat(),mvKeys,mDescriptors);
+		}
+		else		
+			(*mpORBextractorLeft)(im,cv::Mat(),mvKeys,mDescriptors);	
+		 
+	}
     else
-        (*mpORBextractorRight)(im,cv::Mat(),mvKeysRight,mDescriptorsRight);
+	{	
+		if ( (NULL != mpTraficsignGrp) && (true == mpTraficsignGrp->isLoaded))
+		{	
+			std::vector<cv::KeyPoint> SubImageKeypoints;
+			cv::Mat SubDescriptors;
+					
+			ExtractORBInSubImage(im,SubImageKeypoints,SubDescriptors);
+			if(SubImageKeypoints.size())
+			{	
+				cv::Mat OrgDescriptors;
+				(*mpORBextractorRight)(im,cv::Mat(),mvKeysRight,OrgDescriptors);
+				UpdateOrgSemanticClassid(mvKeysRight,255);
+				mvKeysRight.insert(mvKeysRight.end(), SubImageKeypoints.begin(), SubImageKeypoints.end());
+				cv::vconcat(OrgDescriptors, SubDescriptors, mDescriptorsRight);	
+			}
+			else
+				(*mpORBextractorRight)(im,cv::Mat(),mvKeysRight,mDescriptorsRight);
+		}
+		else		
+			(*mpORBextractorRight)(im,cv::Mat(),mvKeysRight,mDescriptorsRight);
+	}
+	
 }
 
 void Frame::SetPose(cv::Mat Tcw)
