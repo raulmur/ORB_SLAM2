@@ -587,6 +587,8 @@ void KeyFrame::SetBadFlag()
         mbBad = true;
     }
 
+    mpPreviousKeyFrame->mpNextKeyFrame = mpNextKeyFrame;
+    mpNextKeyFrame->mpPreviousKeyFrame = mpPreviousKeyFrame;
 
     mpMap->EraseKeyFrame(this);
     mpKeyFrameDB->erase(this);

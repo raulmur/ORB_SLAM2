@@ -810,8 +810,8 @@ float LocalMapping::ScaleRecovery()
 //        std::cout << "tTf_w_c = " << tTf_w_c.clone()
 //                  << "\n C_w = "  << C_w.clone() << std::endl;
 
-        A.push_back(tTf_w_c);
-        B.push_back(C_w);
+        A.push_back(C_w);
+        B.push_back(tTf_w_c);
     }
 
 
