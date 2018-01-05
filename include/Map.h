@@ -67,7 +67,7 @@ public:
     std::mutex mMutexPointCreation;
 
     bool IsMapScaled;
-
+    bool IsMapChanged;
 
 protected:
     std::set<MapPoint*> mspMapPoints;

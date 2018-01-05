@@ -159,6 +159,8 @@ g2o/core/robust_kernel_factory.cpp
 g2o/core/robust_kernel_factory.h
 g2o/core/robust_kernel_impl.cpp 
 g2o/core/robust_kernel_impl.h
+g2o/core/linear_solver_cholmod.h
+g2o/core/solver_cholmod.cpp
 #stuff
 g2o/stuff/string_tools.h
 g2o/stuff/color_macros.h 

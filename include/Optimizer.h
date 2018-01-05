@@ -45,6 +45,8 @@ public:
     void static LocalBundleAdjustment(KeyFrame* pKF, bool *pbStopFlag, Map *pMap, bool useOdometry);
 
     int static PoseOptimization(Frame* pFrame);
+    int static PoseOptimizationF(Frame *pFrame, Frame *pLastFrame);
+    int static PoseOptimizationKF(Frame *pFrame, KeyFrame *pLastKF);
 
     // if bFixScale is true, 6DoF optimization (stereo,rgbd), 7DoF otherwise (mono)
     void static OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* pCurKF,

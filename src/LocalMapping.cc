@@ -789,6 +789,8 @@ void LocalMapping::MapScaling()
     }
 
     mpMap->IsMapScaled = true;
+    mpMap->IsMapChanged = true;
+
 }
 float LocalMapping::ScaleRecovery()
 {
