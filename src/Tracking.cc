@@ -55,6 +55,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     float fy = fSettings["Camera.fy"];
     float cx = fSettings["Camera.cx"];
     float cy = fSettings["Camera.cy"];
+    useOdometry = fSettings["Initializer.UseOdometry"];
 
     cv::Mat K = cv::Mat::eye(3,3,CV_32F);
     K.at<float>(0,0) = fx;
@@ -230,14 +231,18 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
     mCurrentFrame = Frame(mImGray,imDepth,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
 
     Track();
-
-    return mCurrentFrame.mTcw.clone();
+	
+if(!mCurrentFrame.mTcw.empty()){
+    cv::Mat copyCurrent = mCurrentFrame.mTcw.inv();
+    }
+	return mCurrentFrame.mTcw.clone();
 }
 
 
 cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 {
     mImGray = im;
+
 
     if(mImGray.channels()==3)
     {
@@ -262,16 +267,57 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
     Track();
 
     return mCurrentFrame.mTcw.clone();
+
+}
+
+cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp, g2o::SE3Quat &TF_w_c)
+{
+    mImGray = im;
+
+
+    if(mImGray.channels()==3)
+    {
+        if(mbRGB)
+            cvtColor(mImGray,mImGray,CV_RGB2GRAY);
+        else
+            cvtColor(mImGray,mImGray,CV_BGR2GRAY);
+    }
+    else if(mImGray.channels()==4)
+    {
+        if(mbRGB)
+            cvtColor(mImGray,mImGray,CV_RGBA2GRAY);
+        else
+            cvtColor(mImGray,mImGray,CV_BGRA2GRAY);
+    }
+
+    if(mState==NOT_INITIALIZED || mState==NO_IMAGES_YET)
+        mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
+    else
+        mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
+
+
+    mCurrentFrame.SetOdomPose(TF_w_c);
+    Track();
+
+    return mCurrentFrame.mTcw.clone();
+
 }
 
 void Tracking::Track()
 {
     if(mState==NO_IMAGES_YET)
     {
-        mState = NOT_INITIALIZED;
+       mState = NOT_INITIALIZED;
     }
 
     mLastProcessedState=mState;
+
+
+//    // Different operation, according to whether the map is updated
+//    if(mCurrentFrame.mnId == (mnLastRelocFrameId + mLocalWindowSize))
+//    {
+//        mpMap->SetMapUpdateFlag(true);
+//    }
 
     // Get Map Mutex -> Map cannot be changed
     unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
@@ -420,6 +466,12 @@ void Tracking::Track()
         // If tracking were good, check if we insert a keyframe
         if(bOK)
         {
+            if(useOdometry)
+            {
+
+                // **** TODO update ****
+
+            }
             // Update motion model
             if(!mLastFrame.mTcw.empty())
             {
@@ -502,7 +554,8 @@ void Tracking::Track()
         mlFrameTimes.push_back(mlFrameTimes.back());
         mlbLost.push_back(mState==LOST);
     }
-
+    // The map change reset for next frame
+    mpMap->IsMapChanged = false;
 }
 
 
@@ -640,6 +693,18 @@ void Tracking::CreateInitialMapMonocular()
     KeyFrame* pKFini = new KeyFrame(mInitialFrame,mpMap,mpKeyFrameDB);
     KeyFrame* pKFcur = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
 
+    if(mpSystem->useOdometry)
+    {
+        // correct for origin of TF world
+        mO_w_c = mInitialFrame.GetOdomPose();
+        pKFini->SetOdomPose(Converter::toSE3Quat(cv::Mat::eye(4,4, CV_32F)));
+        g2o::SE3Quat T_w_c = mCurrentFrame.GetOdomPose();
+        pKFcur->SetOdomPose(mO_w_c.inverse() * T_w_c);
+    }
+
+    pKFini->SetPreviousKF(NULL);
+    pKFini->SetNextKF(pKFcur);
+    pKFcur->SetPreviousKF(pKFini);
 
     pKFini->ComputeBoW();
     pKFcur->ComputeBoW();
@@ -895,8 +960,25 @@ bool Tracking::TrackWithMotionModel()
         return false;
 
     // Optimize frame pose with all matches
-    Optimizer::PoseOptimization(&mCurrentFrame);
+    if(mpMap->IsMapScaled)
+    {
+        if(mpMap->IsMapChanged)
+        {
+//            Optimizer::PoseOptimizationKF(&mCurrentFrame, mpLastKeyFrame);
+            Optimizer::PoseOptimization(&mCurrentFrame);
 
+        }
+        else
+        {
+//            Optimizer::PoseOptimizationF(&mCurrentFrame, &mLastFrame);
+            Optimizer::PoseOptimization(&mCurrentFrame);
+
+        }
+    }
+    else
+    {
+        Optimizer::PoseOptimization(&mCurrentFrame);
+    }
     // Discard outliers
     int nmatchesMap = 0;
     for(int i =0; i<mCurrentFrame.N; i++)
@@ -931,13 +1013,30 @@ bool Tracking::TrackLocalMap()
 {
     // We have an estimation of the camera pose and some map points tracked in the frame.
     // We retrieve the local map and try to find matches to points in the local map.
-
     UpdateLocalMap();
 
     SearchLocalPoints();
 
     // Optimize Pose
-    Optimizer::PoseOptimization(&mCurrentFrame);
+    if(mpMap->IsMapScaled)
+    {
+        if(mpMap->IsMapChanged)
+        {
+//            Optimizer::PoseOptimizationKF(&mCurrentFrame, mpLastKeyFrame);
+            Optimizer::PoseOptimization(&mCurrentFrame);
+
+        }
+        else
+        {
+//            Optimizer::PoseOptimizationF(&mCurrentFrame, &mLastFrame);
+            Optimizer::PoseOptimization(&mCurrentFrame);
+
+        }
+    }
+    else
+    {
+        Optimizer::PoseOptimization(&mCurrentFrame);
+    }
     mnMatchesInliers = 0;
 
     // Update MapPoints Statistics
@@ -1062,10 +1161,21 @@ bool Tracking::NeedNewKeyFrame()
 
 void Tracking::CreateNewKeyFrame()
 {
+
+
     if(!mpLocalMapper->SetNotStop(true))
         return;
 
     KeyFrame* pKF = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
+
+    if(mpSystem->useOdometry)
+    {
+        g2o::SE3Quat currentOdomPose = mCurrentFrame.GetOdomPose();
+        pKF->SetOdomPose(mO_w_c.inverse() * currentOdomPose);
+    }
+
+    pKF->SetPreviousKF(mpLastKeyFrame);
+    mpLastKeyFrame->SetNextKF(pKF);
 
     mpReferenceKF = pKF;
     mCurrentFrame.mpReferenceKF = pKF;
@@ -1439,6 +1549,7 @@ bool Tracking::Relocalization()
 
                 int nGood = Optimizer::PoseOptimization(&mCurrentFrame);
 
+
                 if(nGood<10)
                     continue;
 
@@ -1469,6 +1580,7 @@ bool Tracking::Relocalization()
                             if(nGood+nadditional>=50)
                             {
                                 nGood = Optimizer::PoseOptimization(&mCurrentFrame);
+
 
                                 for(int io =0; io<mCurrentFrame.N; io++)
                                     if(mCurrentFrame.mvbOutlier[io])
@@ -1586,7 +1698,6 @@ void Tracking::InformOnlyTracking(const bool &flag)
 {
     mbOnlyTracking = flag;
 }
-
 
 
 } //namespace ORB_SLAM

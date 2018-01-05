@@ -19,7 +19,6 @@
 */
 
 #include "KeyFrame.h"
-#include "Converter.h"
 #include "ORBmatcher.h"
 #include<mutex>
 
@@ -54,6 +53,7 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
     }
 
     SetPose(F.mTcw);    
+    SetOdomPose(F.mTf_w_c);
 }
 
 void KeyFrame::ComputeBoW()
@@ -83,10 +83,23 @@ void KeyFrame::SetPose(const cv::Mat &Tcw_)
     Cw = Twc*center;
 }
 
+void KeyFrame::SetOdomPose(const g2o::SE3Quat &TF_w_c)
+{
+    unique_lock<mutex> lock(mMutexPose);
+    mTF_w_c = TF_w_c;
+}
+
+
 cv::Mat KeyFrame::GetPose()
 {
     unique_lock<mutex> lock(mMutexPose);
     return Tcw.clone();
+}
+
+g2o::SE3Quat KeyFrame::GetOdomPose()
+{
+    unique_lock<mutex> lock(mMutexPose);
+    return mTF_w_c;
 }
 
 cv::Mat KeyFrame::GetPoseInverse()
@@ -95,11 +108,13 @@ cv::Mat KeyFrame::GetPoseInverse()
     return Twc.clone();
 }
 
+
 cv::Mat KeyFrame::GetCameraCenter()
 {
     unique_lock<mutex> lock(mMutexPose);
     return Ow.clone();
 }
+
 
 cv::Mat KeyFrame::GetStereoCenter()
 {
@@ -118,6 +133,39 @@ cv::Mat KeyFrame::GetTranslation()
 {
     unique_lock<mutex> lock(mMutexPose);
     return Tcw.rowRange(0,3).col(3).clone();
+}
+
+void KeyFrame::UpdateTranslation(float s)
+{
+    unique_lock<mutex> lock(mMutexPose);
+
+    Tcw.at<float>(0,3) *= s;
+    Tcw.at<float>(1,3) *= s;
+    Tcw.at<float>(2,3) *= s;
+}
+
+void KeyFrame::SetPreviousKF(KeyFrame* PrevKF)
+{
+    unique_lock<mutex> lock(mMutexPose);
+    mpPreviousKeyFrame = PrevKF;
+}
+
+void KeyFrame::SetNextKF(KeyFrame *NextKF)
+{
+    unique_lock<mutex> lock(mMutexPose);
+    mpNextKeyFrame = NextKF;
+}
+
+KeyFrame* KeyFrame::GetPreviousKF()
+{
+    unique_lock<mutex> lock(mMutexPose);
+    return mpPreviousKeyFrame;
+}
+
+KeyFrame* KeyFrame::GetNextKF()
+{
+    unique_lock<mutex> lock(mMutexPose);
+    return mpNextKeyFrame;
 }
 
 void KeyFrame::AddConnection(KeyFrame *pKF, const int &weight)
@@ -539,6 +587,8 @@ void KeyFrame::SetBadFlag()
         mbBad = true;
     }
 
+    mpPreviousKeyFrame->mpNextKeyFrame = mpNextKeyFrame;
+    mpNextKeyFrame->mpPreviousKeyFrame = mpPreviousKeyFrame;
 
     mpMap->EraseKeyFrame(this);
     mpKeyFrameDB->erase(this);

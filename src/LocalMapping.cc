@@ -25,13 +25,20 @@
 
 #include<mutex>
 
+//using namespace Eigen;
+
 namespace ORB_SLAM2
 {
 
-LocalMapping::LocalMapping(Map *pMap, const float bMonocular):
+LocalMapping::LocalMapping(Map *pMap, const string &strSettingPath,  const float bMonocular):
     mbMonocular(bMonocular), mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap),
     mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true)
 {
+    // Load camera parameters from settings file
+    cv::FileStorage fsSettings(strSettingPath, cv::FileStorage::READ);
+    float temp = fsSettings["Initializer.KeyFrames"];
+    NumOfKeyFrames = (unsigned long) temp;
+    useOdometry = fsSettings["Initializer.UseOdometry"];
 }
 
 void LocalMapping::SetLoopCloser(LoopClosing* pLoopCloser)
@@ -46,7 +53,6 @@ void LocalMapping::SetTracker(Tracking *pTracker)
 
 void LocalMapping::Run()
 {
-
     mbFinished = false;
 
     while(1)
@@ -76,10 +82,18 @@ void LocalMapping::Run()
 
             if(!CheckNewKeyFrames() && !stopRequested())
             {
-                // Local BA
-                if(mpMap->KeyFramesInMap()>2)
-                    Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap);
 
+                // Local BA
+                if(useOdometry && mpMap->KeyFramesInMap()>NumOfKeyFrames && !mpMap->IsMapScaled)
+                    MapScaling();
+
+                if(mpMap->KeyFramesInMap()>2)
+                {
+                    if(useOdometry && mpMap->IsMapScaled)
+                        Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap, true);
+                        else if(!useOdometry)
+                        Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap, false);
+                }
                 // Check redundant local Keyframes
                 KeyFrameCulling();
             }
@@ -755,6 +769,63 @@ bool LocalMapping::isFinished()
 {
     unique_lock<mutex> lock(mMutexFinish);
     return mbFinished;
+}
+
+void LocalMapping::MapScaling()
+{
+    float scale = ScaleRecovery();
+    std::vector<KeyFrame*> UnscaledKF = mpMap->GetAllKeyFrames();
+    std::vector<MapPoint*> UnscaledMP = mpMap->GetAllMapPoints();
+
+    for(vector<KeyFrame*>::const_iterator itKF = UnscaledKF.begin(), itEndKF = UnscaledKF.end(); itKF!=itEndKF; itKF++)
+    {
+        KeyFrame* pKF = *itKF;
+        pKF->UpdateTranslation(scale);
+    }
+    for(vector<MapPoint*>::const_iterator itMP = UnscaledMP.begin(), itEndMP = UnscaledMP.end(); itMP!=itEndMP; itMP++)
+    {
+        MapPoint* pMP = *itMP;
+        pMP->UpdateWorldPos(scale);
+    }
+
+    mpMap->IsMapScaled = true;
+    mpMap->IsMapChanged = true;
+
+}
+float LocalMapping::ScaleRecovery()
+{
+    cout <<"Scale obtaining started " <<endl;
+
+    cv::Mat tTf_w_c, C_w, Tf_w_c, A, B, scale;
+
+    vector<KeyFrame*> MapKeyFrames = mpMap->GetAllKeyFrames();
+    for(vector<KeyFrame*>::const_iterator itKF=MapKeyFrames.begin(), itEndKF=MapKeyFrames.end(); itKF!=itEndKF; itKF++)
+    {
+        KeyFrame* pKF = *itKF;
+
+        // Camera pose & odometry pose
+        C_w = pKF->GetCameraCenter();
+        Tf_w_c = Converter::toCvMat(pKF->GetOdomPose());
+        tTf_w_c = Tf_w_c.rowRange(0,3).col(3).clone();
+
+        // see if odometry and camera movement prediction match up to order of magnitude
+//        std::cout << "tTf_w_c = " << tTf_w_c.clone()
+//                  << "\n C_w = "  << C_w.clone() << std::endl;
+
+        A.push_back(C_w);
+        B.push_back(tTf_w_c);
+    }
+
+
+    // opencv method
+    A.convertTo(A, CV_64F);
+    B.convertTo(B, CV_64F);
+    cv::solve(A, B, scale, cv::DECOMP_SVD);
+
+    std::cout <<"Scale obtained as " << scale.at<double>(0) <<std::endl;
+    float s = (float) scale.at<double>(0);
+//    std::cout << "Scale: " <<  s << std::endl;
+    return s;
 }
 
 } //namespace ORB_SLAM

@@ -70,6 +70,32 @@ bool VertexSE3Expmap::write(std::ostream& os) const {
 }
 
 
+
+EdgeSE3Odometry::EdgeSE3Odometry() : BaseBinaryEdge<6, SE3Quat, VertexSE3Expmap, VertexSE3Expmap>() {
+}
+
+
+bool EdgeSE3Odometry::read(std::istream& is){
+  return true;
+}
+
+bool EdgeSE3Odometry::write(std::ostream& os) const {
+  return true;
+}
+
+void EdgeSE3Odometry::computeError(){
+      // TODO: check if this is well implemented
+    const VertexSE3Expmap* v1 = static_cast<const VertexSE3Expmap*>(_vertices[0]);
+    const VertexSE3Expmap* v2 = static_cast<const VertexSE3Expmap*>(_vertices[1]);
+    SE3Quat obs(_measurement);
+    Vector6d wpError = (obs.inverse() * (v1->estimate() * v2->estimate().inverse())).log(); // orientation then position
+    Vector6d error;
+    error.segment<3>(0) = wpError.segment<3>(3);
+    error.segment<3>(3) = wpError.segment<3>(0);
+    _error = error;
+}
+
+
 EdgeSE3ProjectXYZ::EdgeSE3ProjectXYZ() : BaseBinaryEdge<2, Vector2d, VertexSBAPointXYZ, VertexSE3Expmap>() {
 }
 

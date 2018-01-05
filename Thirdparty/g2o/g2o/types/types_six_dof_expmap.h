@@ -76,6 +76,21 @@ public:
   }
 };
 
+class EdgeSE3Odometry: public BaseBinaryEdge<6, SE3Quat, VertexSE3Expmap, VertexSE3Expmap>{
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  EdgeSE3Odometry();
+
+  bool read(std::istream& is);
+
+  bool write(std::ostream& os) const;
+
+
+  void computeError();
+
+  //virtual void linearizeOplus();
+};
 
 class  EdgeSE3ProjectXYZ: public  BaseBinaryEdge<2, Vector2d, VertexSBAPointXYZ, VertexSE3Expmap>{
 public:

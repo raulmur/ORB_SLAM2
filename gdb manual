@@ -1,0 +1,25 @@
+# using gdb
+
+# enter "run" to run the executable main executed with "gdb main"
+# enter backtrace to see a backtrace of where the gdb was with executing until error
+# enter bt n for a backtrace with n innermost frames
+# enter breakpoint <command> to set a breakpoint at a specific command where the execution failed
+# enter condition #breakpointnumber to set a condition when to break at this breakpoint. 
+
+# optional
+# enter "set print pretty on"
+# control + L to clear screen output
+# x + pointer name gives value of variable stored 
+# set breakpoint example: at line 68 (gdb) break SubscribeHandler.cpp:68
+
+
+
+
+
+
+
+
+
+
+
+# more info see https://www.cs.cmu.edu/~gilpin/tutorial/

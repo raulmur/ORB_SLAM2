@@ -28,7 +28,7 @@
 #include "ORBextractor.h"
 #include "Frame.h"
 #include "KeyFrameDatabase.h"
-
+#include "Converter.h"
 #include <mutex>
 
 
@@ -47,8 +47,11 @@ public:
 
     // Pose functions
     void SetPose(const cv::Mat &Tcw);
+    void SetOdomPose(const g2o::SE3Quat &TF_w_c);
+    void UpdateTranslation(float s);
     cv::Mat GetPose();
     cv::Mat GetPoseInverse();
+    g2o::SE3Quat GetOdomPose();
     cv::Mat GetCameraCenter();
     cv::Mat GetStereoCenter();
     cv::Mat GetRotation();
@@ -93,6 +96,12 @@ public:
     // KeyPoint functions
     std::vector<size_t> GetFeaturesInArea(const float &x, const float  &y, const float  &r) const;
     cv::Mat UnprojectStereo(int i);
+
+    // neighbouring KF functions
+    KeyFrame* GetPreviousKF();
+    KeyFrame* GetNextKF();
+    void SetPreviousKF(KeyFrame* PrevKF);
+    void SetNextKF(KeyFrame* NextKF);
 
     // Image
     bool IsInImage(const float &x, const float &y) const;
@@ -188,6 +197,8 @@ public:
     const int mnMaxY;
     const cv::Mat mK;
 
+    bool isWorldFrame = false;
+
 
     // The following variables need to be accessed trough a mutex to be thread safe.
 protected:
@@ -198,6 +209,8 @@ protected:
     cv::Mat Ow;
 
     cv::Mat Cw; // Stereo middel point. Only for visualization
+
+
 
     // MapPoints associated to keypoints
     std::vector<MapPoint*> mvpMapPoints;
@@ -231,6 +244,14 @@ protected:
     std::mutex mMutexPose;
     std::mutex mMutexConnections;
     std::mutex mMutexFeatures;
+
+
+    // SE3 Odometry Pose
+      g2o::SE3Quat mTF_w_c;
+
+      // pointers to neighbouring keyframes in trajectory
+      KeyFrame *mpPreviousKeyFrame;
+      KeyFrame *mpNextKeyFrame;
 };
 
 } //namespace ORB_SLAM

@@ -134,6 +134,30 @@ Eigen::Matrix<double,3,3> Converter::toMatrix3d(const cv::Mat &cvMat3)
     return M;
 }
 
+Eigen::Matrix<double,6,6> Converter::toMatrix6d(const cv::Mat &cvMat6)
+{
+    Eigen::Matrix<double,6,6> eigenMat;
+    for(int i=0; i<6; i++)
+        for(int j=0; j<6; j++)
+            eigenMat(i,j) = cvMat6.at<float>(i,j);
+    return eigenMat;
+}
+
+
+Eigen::VectorXd toVectorXd(const cv::Mat &cvVector)
+{
+    Eigen::VectorXd V;
+
+    for(int i=0; i<cvVector.rows; i++)
+    {
+        V[i] = cvVector.at<double>(i);
+    }
+
+    return V;
+}
+
+
+
 std::vector<float> Converter::toQuaternion(const cv::Mat &M)
 {
     Eigen::Matrix<double,3,3> eigMat = toMatrix3d(M);
@@ -147,5 +171,15 @@ std::vector<float> Converter::toQuaternion(const cv::Mat &M)
 
     return v;
 }
+
+cv::Mat Converter::Normalize(const cv::Mat &R)
+{
+    cv::Mat U, D, Vt;
+    cv::SVDecomp(R, D, U, Vt);
+    cv::Mat normR = U*Vt;
+    return normR.clone();
+
+}
+
 
 } //namespace ORB_SLAM

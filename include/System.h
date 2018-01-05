@@ -53,7 +53,7 @@ public:
     enum eSensor{
         MONOCULAR=0,
         STEREO=1,
-        RGBD=2
+        RGBD=2,
     };
 
 public:
@@ -75,6 +75,7 @@ public:
     // Proccess the given monocular frame
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
     // Returns the camera pose (empty if tracking fails).
+//    cv::Mat TrackMonocular(const cv::Mat &im, const double &timestamp, cv::Mat &tf);
     cv::Mat TrackMonocular(const cv::Mat &im, const double &timestamp);
 
     // This stops local mapping thread (map building) and performs only camera tracking.
@@ -122,8 +123,14 @@ public:
     std::vector<MapPoint*> GetTrackedMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
-private:
 
+    void SetOdomPose(const cv::Mat& T_w_c);
+    g2o::SE3Quat mTF_w_c;
+
+    // To odometry or not to odometry
+    int useOdometry;
+
+private:
     // Input sensor
     eSensor mSensor;
 
@@ -174,6 +181,8 @@ private:
     std::vector<MapPoint*> mTrackedMapPoints;
     std::vector<cv::KeyPoint> mTrackedKeyPointsUn;
     std::mutex mMutexState;
+
+
 };
 
 }// namespace ORB_SLAM

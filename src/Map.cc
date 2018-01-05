@@ -27,6 +27,7 @@ namespace ORB_SLAM2
 
 Map::Map():mnMaxKFid(0),mnBigChangeIdx(0)
 {
+    IsMapScaled = false;
 }
 
 void Map::AddKeyFrame(KeyFrame *pKF)
@@ -128,6 +129,8 @@ void Map::clear()
     mnMaxKFid = 0;
     mvpReferenceMapPoints.clear();
     mvpKeyFrameOrigins.clear();
+
+    IsMapScaled = false;
 }
 
 } //namespace ORB_SLAM

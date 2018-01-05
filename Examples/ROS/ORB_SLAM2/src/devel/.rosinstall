@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/tim/ORB_SLAM2/Examples/ROS/ORB_SLAM2/src/devel/setup.sh

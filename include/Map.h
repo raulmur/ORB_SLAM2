@@ -66,6 +66,9 @@ public:
     // This avoid that two points are created simultaneously in separate threads (id conflict)
     std::mutex mMutexPointCreation;
 
+    bool IsMapScaled;
+    bool IsMapChanged;
+
 protected:
     std::set<MapPoint*> mspMapPoints;
     std::set<KeyFrame*> mspKeyFrames;
@@ -78,6 +81,7 @@ protected:
     int mnBigChangeIdx;
 
     std::mutex mMutexMap;
+
 };
 
 } //namespace ORB_SLAM
