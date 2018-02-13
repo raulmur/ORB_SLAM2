@@ -1,3 +1,24 @@
+# Modification from the orginal version: 
+Code included to input live video without using ROS.
+
+In case of Monocular, webcam is used to feed live video stream as input.
+
+In case of Stereo, raspberry pi compute module 3 is used to stream live stereo video to a remote PC running ORB-SLAM2. UV4L driver is installed for live video streaming from cm3 module to the remote PC.
+
+## For Monocular:
+Run command,
+
+```
+  ./Examples/Monocular/live_demo Vocabulary/ORBvoc.txt Examples/Monocular/settingsfile.yaml timetorun
+```
+
+## For Stereo:
+Run command,
+
+```
+  ./Examples/Stereo/stereo_live Vocabulary/ORBvoc.txt Examples/Stereo/settingsfile.yaml timetorun
+```
+
 # ORB-SLAM2
 **Authors:** [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
 

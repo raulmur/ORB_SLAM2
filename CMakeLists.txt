@@ -96,6 +96,13 @@ add_executable(stereo_euroc
 Examples/Stereo/stereo_euroc.cc)
 target_link_libraries(stereo_euroc ${PROJECT_NAME})
 
+add_executable(stereo_live
+Examples/Stereo/stereo_live.cc)
+target_link_libraries(stereo_live ${PROJECT_NAME})
+
+add_executable(stereo_rectifiedlive
+Examples/Stereo/stereo_rectifiedlive.cc)
+target_link_libraries(stereo_rectifiedlive ${PROJECT_NAME})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Monocular)
 
@@ -110,4 +117,9 @@ target_link_libraries(mono_kitti ${PROJECT_NAME})
 add_executable(mono_euroc
 Examples/Monocular/mono_euroc.cc)
 target_link_libraries(mono_euroc ${PROJECT_NAME})
+
+add_executable(live_demo
+Examples/Monocular/live_demo.cc)
+target_link_libraries(live_demo ${PROJECT_NAME})
+
 
