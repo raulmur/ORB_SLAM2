@@ -537,7 +537,7 @@ bool System::LoadMap(const string &filename)
     std::ifstream in(filename, std::ios_base::binary);
     if (!in)
     {
-        cerr << "Cannot Open Mapfile: " << mapfile << " , Create a new one" << std::endl;
+        cerr << "Cannot Open Mapfile: " << mapfile << " , You need create it first!" << std::endl;
         return false;
     }
     cout << "Loading Mapfile: " << mapfile << std::flush;
