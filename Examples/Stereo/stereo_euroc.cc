@@ -187,7 +187,7 @@ int main(int argc, char **argv)
     SLAM.SaveTrajectoryTUM("CameraTrajectory.txt");
 
     // Save customized Map
-    SLAM.SaveMap("MapPointandKeyFrame.bin")
+    SLAM.SaveMap("MapPointandKeyFrame.bin");
 
     return 0;
 }
