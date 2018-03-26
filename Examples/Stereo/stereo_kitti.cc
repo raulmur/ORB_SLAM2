@@ -124,6 +124,9 @@ int main(int argc, char **argv)
     // Save camera trajectory
     SLAM.SaveTrajectoryKITTI("CameraTrajectory.txt");
 
+    // Save customized Map
+    SLAM.SaveMap("MapPointandKeyFrame.bin")
+
     return 0;
 }
 

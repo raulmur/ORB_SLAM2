@@ -23,6 +23,7 @@
 
 #include "MapPoint.h"
 #include "KeyFrame.h"
+#include "Converter.h"
 #include <set>
 
 #include <mutex>
@@ -66,7 +67,14 @@ public:
     // This avoid that two points are created simultaneously in separate threads (id conflict)
     std::mutex mMutexPointCreation;
 
+    // Save map information into a binary file.
+    void Save( const string &filename );
+
 protected:
+
+    void SaveMapPoint( ofstream &f, MapPoint* mp );
+    void SaveKeyFrame( ofstream &f, KeyFrame* kf );
+
     std::set<MapPoint*> mspMapPoints;
     std::set<KeyFrame*> mspKeyFrames;
 
@@ -78,6 +86,10 @@ protected:
     int mnBigChangeIdx;
 
     std::mutex mMutexMap;
+
+    // It saves the Index of the MapPoints that matches the ORB featurepoint
+    std::map<MapPoint*, unsigned long int> mmpnMapPointsIdx; 
+    void GetMapPointsIdx();
 };
 
 } //namespace ORB_SLAM
