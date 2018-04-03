@@ -248,6 +248,13 @@ Based on tutorials on the internet, I edited several files in the `include` fold
 Type in `y` or `Y` then hit `enter` to save map. A binary file named `MapPointandKeyFrame.bin` would be saved under the `ORB SLAM2` directory.
 
 ### Load Map
-Sorry! Unfinished! Still debugging!!!
-I added the LoadMap function in the `System.cc` file. I'll push a new one after I figured out the `Segmentation fault (core dumped)` error.
+*Sorry! Unfinished! Still debugging!!!*
+
+I added the LoadMap function in the `System.cc` file. Please make sure the directory is set to your own directory when you `mySystemSetting->LoadSystemSetting` and `mpMap->Load`.
+
+The bug that I'm runiing into is:
+```
+addVertex: FATAL, a vertex with ID 6659 has already been registered with this graph
+```
+I'll push a new commit after I solve this error.
 
