@@ -56,6 +56,7 @@ public:
         RGBD=2
     };
 
+
 public:
 
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
@@ -115,7 +116,9 @@ public:
     // TODO: Save/Load functions
     // SaveMap(const string &filename);
     void SaveMap(const string &filename); 
+
     // LoadMap(const string &filename);
+    void LoadMap(const string &filename, SystemSetting* mySystemSetting);
 
     // Information from most recent processed frame
     // You can call this right after TrackMonocular (or stereo or RGBD)
@@ -175,6 +178,8 @@ private:
     std::vector<MapPoint*> mTrackedMapPoints;
     std::vector<cv::KeyPoint> mTrackedKeyPointsUn;
     std::mutex mMutexState;
+
+    std::string mySettingsFile;
 };
 
 }// namespace ORB_SLAM

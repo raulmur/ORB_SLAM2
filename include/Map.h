@@ -24,6 +24,9 @@
 #include "MapPoint.h"
 #include "KeyFrame.h"
 #include "Converter.h"
+#include "SystemSetting.h"
+#include "InitKeyFrame.h"
+#include "KeyFrameDatabase.h" //When loading the map, we need to add KeyFrame to KeyFrameDatabase.
 #include <set>
 
 #include <mutex>
@@ -35,6 +38,7 @@ namespace ORB_SLAM2
 
 class MapPoint;
 class KeyFrame;
+class SystemSetting;
 
 class Map
 {
@@ -69,6 +73,11 @@ public:
 
     // Save map information into a binary file.
     void Save( const string &filename );
+
+    // Load map from a binary file.
+    void Load( const string &filename, SystemSetting* mySystemSetting );
+    MapPoint* LoadMapPoint( ifstream &f );
+    KeyFrame* LoadKeyFrame( ifstream &f, SystemSetting* mySystemSetting );
 
 protected:
 

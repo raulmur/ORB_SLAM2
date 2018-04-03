@@ -111,6 +111,17 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     mpLoopCloser->SetTracker(mpTracker);
     mpLoopCloser->SetLocalMapper(mpLocalMapper);
+
+    //Load map
+    char IsLoadMap;
+    cout << "Do you want to load the map?(Y/N)" << endl;  
+        cin >> IsLoadMap;
+        SystemSetting *mySystemSetting = new SystemSetting(mpVocabulary);  
+        mySystemSetting->LoadSystemSetting("/home/liuzhen/catkin_ws/src/ORB_SLAM2-master/Examples/ROS/ORB_SLAM2/Asus.yaml");  
+        if(IsLoadMap == 'Y' || IsLoadMap == 'y'){  
+            mpMap->Load("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/MapPointandKeyFrame.bin",mySystemSetting);  
+    }
+
 }
 
 cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp)
@@ -479,7 +490,12 @@ void System::SaveTrajectoryKITTI(const string &filename)
 
 void System::SaveMap(const string &filename)  
 {  
-   mpMap->Save(filename);   
+    mpMap->Save(filename);
+}
+
+void System::LoadMap(const string &filename,SystemSetting* mySystemSetting)  
+{
+    mpMap->Load(filename, mySystemSetting); 
 }
 
 
