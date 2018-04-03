@@ -238,3 +238,16 @@ This is the default mode. The system runs in parallal three threads: Tracking, L
 ### Localization Mode
 This mode can be used when you have a good map of your working area. In this mode the Local Mapping and Loop Closing are deactivated. The system localizes the camera in the map (which is no longer updated), using relocalization if needed. 
 
+
+# 10. My Developement
+Based on tutorials on the internet, I edited several files in the `include` folder and the `src` folder. Then I edited `Examples/Monocular/mono_kitti.cc` file, and use `KITTI dataset 04` as my debugging exmaple.
+### Save Map
+```
+./Examples/Monocular/mono_kitti Vocabulary/ORBvoc.txt Examples/Monocular/KITTI04-12.yaml /media/boom/HDD/KITTI/dataset/04
+```
+Type in `y` or `Y` then hit `enter` to save map. A binary file named `MapPointandKeyFrame.bin` would be saved under the `ORB SLAM2` directory.
+
+### Load Map
+Sorry! Unfinished! Still debugging!!!
+I added the LoadMap function in the `System.cc` file. I'll push a new one after I figured out the `Segmentation fault (core dumped)` error.
+
