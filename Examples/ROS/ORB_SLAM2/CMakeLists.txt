@@ -87,6 +87,15 @@ target_link_libraries(Stereo
 ${LIBS}
 )
 
+# Node for ZED camera
+rosbuild_add_executable(Zed
+src/ros_zed.cc
+)
+
+target_link_libraries(Zed
+${LIBS}
+)
+
 # Node for RGB-D camera
 rosbuild_add_executable(RGBD
 src/ros_rgbd.cc
