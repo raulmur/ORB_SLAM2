@@ -27,3 +27,4 @@ lib/
 *kdev4*
 CameraTrajectory.txt
 MapPointandKeyFrame.bin
+Examples/Stereo/stereo_zed
