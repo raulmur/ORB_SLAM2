@@ -198,6 +198,9 @@ void LoadZEDImages(const string &strPathToSequence, vector<string> &vstrImageLef
     if(nwrongmatch != 0){
         cerr << "There are "<< nwrongmatch << " wrong matches."<< endl;
     }
+    else{
+        cout << "Dataset images match perfectly." << endl;
+    }
 
     string strPrefixLeft = strPathToSequence + "/left/";
     string strPrefixRight = strPathToSequence + "/right/";
