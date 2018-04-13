@@ -102,6 +102,16 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         mpTracker->SetViewer(mpViewer);
     }
 
+    //Load map
+    char IsLoadMap;
+    cout << "Do you want to load the map?(Y/N)" << endl;  
+        cin >> IsLoadMap;
+        SystemSetting *mySystemSetting = new SystemSetting(mpVocabulary);  
+        mySystemSetting->LoadSystemSetting("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/Examples/ROS/ORB_SLAM2/Asus.yaml");  
+        if(IsLoadMap == 'Y' || IsLoadMap == 'y'){  
+            mpMap->Load("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/MapPointandKeyFrame.bin",mySystemSetting);  
+    }
+
     //Set pointers between threads
     mpTracker->SetLocalMapper(mpLocalMapper);
     mpTracker->SetLoopClosing(mpLoopCloser);
@@ -112,15 +122,15 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpLoopCloser->SetTracker(mpTracker);
     mpLoopCloser->SetLocalMapper(mpLocalMapper);
 
-    //Load map
-    char IsLoadMap;
-    cout << "Do you want to load the map?(Y/N)" << endl;  
-        cin >> IsLoadMap;
-        SystemSetting *mySystemSetting = new SystemSetting(mpVocabulary);  
-        mySystemSetting->LoadSystemSetting("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/Examples/ROS/ORB_SLAM2/Asus.yaml");  
-        if(IsLoadMap == 'Y' || IsLoadMap == 'y'){  
-            mpMap->Load("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/MapPointandKeyFrame.bin",mySystemSetting);  
-    }
+    // //Load map
+    // char IsLoadMap;
+    // cout << "Do you want to load the map?(Y/N)" << endl;  
+    //     cin >> IsLoadMap;
+    //     SystemSetting *mySystemSetting = new SystemSetting(mpVocabulary);  
+    //     mySystemSetting->LoadSystemSetting("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/Examples/ROS/ORB_SLAM2/Asus.yaml");  
+    //     if(IsLoadMap == 'Y' || IsLoadMap == 'y'){  
+    //         mpMap->Load("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/MapPointandKeyFrame.bin",mySystemSetting);  
+    // }
 
 }
 
@@ -260,12 +270,12 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
 
     // Check reset
     {
-    unique_lock<mutex> lock(mMutexReset);
-    if(mbReset)
-    {
-        mpTracker->Reset();
-        mbReset = false;
-    }
+        unique_lock<mutex> lock(mMutexReset);
+        if(mbReset)
+        {
+            mpTracker->Reset();
+            mbReset = false;
+        }
     }
 
     cv::Mat Tcw = mpTracker->GrabImageMonocular(im,timestamp);

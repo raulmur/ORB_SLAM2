@@ -98,6 +98,10 @@ add_executable(stereo_euroc
 Examples/Stereo/stereo_euroc.cc)
 target_link_libraries(stereo_euroc ${PROJECT_NAME})
 
+add_executable(stereo_zed
+Examples/Stereo/stereo_zed.cc)
+target_link_libraries(stereo_zed ${PROJECT_NAME})
+
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Monocular)
 
