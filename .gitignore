@@ -26,3 +26,4 @@ build/
 lib/
 *kdev4*
 CameraTrajectory.txt
+MapPointandKeyFrame.bin
