@@ -252,7 +252,7 @@ Type in `y` or `Y` then hit `enter` to save map. A binary file named `MapPointan
 
 I added the LoadMap function in the `System.cc` file. Please make sure the directory is set to your own directory when you `mySystemSetting->LoadSystemSetting` and `mpMap->Load`.
 
-I fixed the segmentation fualt bug when laoding large maps. Now the maps can be loaded connections between map and the current frame cannot be built.
+I fixed the segmentation fault bug when loading large maps. Now the maps can be loaded, but connections between map and the current frame cannot be built.
 
 I'll push a new commit after I solve this error.
 
