@@ -337,10 +337,14 @@ void Map::Load ( const string &filename, SystemSetting* mySystemSetting )
    cerr<<"Parent Load OVER!"<<endl;
    for ( auto mp: vmp )
    {
+       // cout << "Now mp = "<< mp << endl;
        if(mp)
        {
+            // cout << "compute for mp = "<< mp << endl;
             mp->ComputeDistinctiveDescriptors();
+            // cout << "Computed Distinctive Descriptors." << endl;
             mp->UpdateNormalAndDepth();
+            // cout << "Updated Normal And Depth." << endl;
         }
    }
     f.close();

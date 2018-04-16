@@ -107,7 +107,8 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     cout << "Do you want to load the map?(Y/N)" << endl;  
         cin >> IsLoadMap;
         SystemSetting *mySystemSetting = new SystemSetting(mpVocabulary);  
-        mySystemSetting->LoadSystemSetting("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/Examples/ROS/ORB_SLAM2/Asus.yaml");  
+        mySystemSetting->LoadSystemSetting("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/Examples/Stereo/zed0000012643.yaml");
+        // mySystemSetting->LoadSystemSetting("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/Examples/Stereo/KITTI04-12.yaml");
         if(IsLoadMap == 'Y' || IsLoadMap == 'y'){  
             mpMap->Load("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/MapPointandKeyFrame.bin",mySystemSetting);  
     }

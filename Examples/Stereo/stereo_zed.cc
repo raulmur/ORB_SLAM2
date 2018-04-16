@@ -53,6 +53,17 @@ int main(int argc, char **argv)
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
 
+    // Choose if you need Pure Localization
+    // char IsPureLocalization;
+    // cout << "Do you want to run pure localization? (Y/N)" << endl;  
+    // cin >> IsPureLocalization;  
+    // if(IsPureLocalization == 'Y' || IsPureLocalization == 'y'){
+    //     SLAM.ActivateLocalizationMode();
+    // }
+    // else{
+    //     SLAM.DeactivateLocalizationMode();
+    // }
+
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
     vTimesTrack.resize(nImages);
