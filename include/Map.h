@@ -28,6 +28,7 @@
 #include "InitKeyFrame.h"
 #include "KeyFrameDatabase.h" //When loading the map, we need to add KeyFrame to KeyFrameDatabase.
 #include <set>
+#include "Frame.h" // Used for initializing frame.nNextId and mnId
 
 #include <mutex>
 
@@ -99,6 +100,7 @@ protected:
     // It saves the Index of the MapPoints that matches the ORB featurepoint
     std::map<MapPoint*, unsigned long int> mmpnMapPointsIdx; 
     void GetMapPointsIdx();
+    void SaveFrameID( ofstream &f );
 };
 
 } //namespace ORB_SLAM

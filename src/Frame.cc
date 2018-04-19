@@ -64,6 +64,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
 {
     // Frame ID
     mnId=nNextId++;
+    cout << "Now Frame ID = " << mnId << endl;
 
     // Scale Level Info
     mnScaleLevels = mpORBextractorLeft->GetLevels();
@@ -225,6 +226,12 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     mb = mbf/fx;
 
     AssignFeaturesToGrid();
+}
+
+Frame::Frame( long unsigned int i )
+{
+    nNextId = i+1;
+    mnId = nNextId;
 }
 
 void Frame::AssignFeaturesToGrid()
@@ -677,6 +684,11 @@ cv::Mat Frame::UnprojectStereo(const int &i)
     }
     else
         return cv::Mat();
+}
+
+void Frame::UpdatenNextId( unsigned int i )
+{
+    nNextId = i;
 }
 
 } //namespace ORB_SLAM

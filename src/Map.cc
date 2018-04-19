@@ -144,7 +144,7 @@ void Map::Save ( const string& filename )
     f.write((char*)&nMapPoints, sizeof(nMapPoints) );
     //Save MapPoint sequentially
     for ( auto mp: mspMapPoints )
-    //Save MapPoint
+        //Save MapPoint
         SaveMapPoint( f, mp );
 
     //Grab the index of each MapPoint, count from 0, in which we initialized mmpnMapPointsIdx  
@@ -180,6 +180,9 @@ void Map::Save ( const string& filename )
             f.write((char*)&weight, sizeof(weight));
         }
     }
+
+    // Save last Frame ID
+    SaveFrameID(f);
 
     f.close();
     cerr<<"Map Saving Finished!"<<endl;
@@ -266,6 +269,11 @@ void Map::GetMapPointsIdx()
     }
 }
 
+void Map::SaveFrameID( ofstream &f)
+{
+
+}
+
 // Load map from file
 void Map::Load ( const string &filename, SystemSetting* mySystemSetting )
 {
@@ -301,6 +309,13 @@ void Map::Load ( const string &filename, SystemSetting* mySystemSetting )
         AddKeyFrame(kf);
         kf_by_order.push_back(kf);
     }
+
+    if(mnMaxKFid>0){
+        Frame temp_frame = Frame( mnMaxKFid );
+    }
+
+    cerr<<"Max KeyFrame ID is: " << mnMaxKFid <<endl;
+    
 
     cerr<<"KeyFrame Load OVER!"<<endl;
 

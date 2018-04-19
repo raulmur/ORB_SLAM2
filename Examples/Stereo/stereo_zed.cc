@@ -19,15 +19,15 @@
 */
 
 
-#include<iostream>
-#include<algorithm>
-#include<fstream>
-#include<iomanip>
-#include<chrono>
+#include <iostream>
+#include <algorithm>
+#include <fstream>
+#include <iomanip>
+#include <chrono>
 
-#include<opencv2/core/core.hpp>
+#include <opencv2/core/core.hpp>
 
-#include<System.h>
+#include <System.h>
 
 using namespace std;
 
@@ -41,6 +41,8 @@ int main(int argc, char **argv)
         cerr << endl << "Usage: ./stereo_kitti path_to_vocabulary path_to_settings path_to_sequence" << endl;
         return 1;
     }
+ 
+
 
     // Retrieve paths to images
     vector<string> vstrImageLeft;

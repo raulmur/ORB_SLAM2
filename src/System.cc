@@ -26,6 +26,10 @@
 #include <pangolin/pangolin.h>
 #include <iomanip>
 
+// Get current directory of the system
+#include <unistd.h>  
+#include <dirent.h>
+
 namespace ORB_SLAM2
 {
 
@@ -104,13 +108,23 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     //Load map
     char IsLoadMap;
+
+    //get the current absoulte path  
+    std::string cwd = getcwd(NULL, 0);
+    cout << "The current dir is : " << cwd << endl; 
+    string strPathSystemSetting = cwd + "/Examples/Stereo/zed0000012643.yaml";
+    cout << "Your setting file path is : " << strPathSystemSetting << endl; 
+    
+    string strPathMap = cwd + "/MapPointandKeyFrame.bin";
+    cout << "Your map file path would be : " << strPathMap << endl; 
+
     cout << "Do you want to load the map?(Y/N)" << endl;  
-        cin >> IsLoadMap;
-        SystemSetting *mySystemSetting = new SystemSetting(mpVocabulary);  
-        mySystemSetting->LoadSystemSetting("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/Examples/Stereo/zed0000012643.yaml");
-        // mySystemSetting->LoadSystemSetting("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/Examples/Stereo/KITTI04-12.yaml");
-        if(IsLoadMap == 'Y' || IsLoadMap == 'y'){  
-            mpMap->Load("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/MapPointandKeyFrame.bin",mySystemSetting);  
+    cin >> IsLoadMap;
+    SystemSetting *mySystemSetting = new SystemSetting(mpVocabulary);  
+    mySystemSetting->LoadSystemSetting(strPathSystemSetting);
+    // mySystemSetting->LoadSystemSetting("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/Examples/Stereo/KITTI04-12.yaml");
+    if(IsLoadMap == 'Y' || IsLoadMap == 'y'){  
+        mpMap->Load(strPathMap, mySystemSetting);
     }
 
     //Set pointers between threads
