@@ -64,7 +64,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
 {
     // Frame ID
     mnId=nNextId++;
-    cout << "Now Frame ID = " << mnId << endl;
+    cout << "Frame::Frame (line 67) : Now Frame ID = " << mnId << endl;
 
     // Scale Level Info
     mnScaleLevels = mpORBextractorLeft->GetLevels();
@@ -229,9 +229,9 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
 }
 
 Frame::Frame( long unsigned int i )
-{
+{   
+    mnId = i;
     nNextId = i+1;
-    mnId = nNextId;
 }
 
 void Frame::AssignFeaturesToGrid()

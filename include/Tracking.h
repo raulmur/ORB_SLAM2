@@ -127,6 +127,13 @@ protected:
     void MonocularInitialization();
     void CreateInitialMapMonocular();
 
+    // Map initialization for stereo and RGB-D when reloading a map.
+    void StereoInitializationWithMap();
+
+    // Map initialization for monocular when reloading a map.
+    void MonocularInitializationWithMap();
+
+
     void CheckReplacedInLastFrame();
     bool TrackReferenceKeyFrame();
     void UpdateLastFrame();

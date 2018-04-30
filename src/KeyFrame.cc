@@ -72,7 +72,7 @@ KeyFrame::KeyFrame(InitKeyFrame &initkf, Map *pMap, KeyFrameDatabase *pKFDB, vec
     mbFirstConnection(true), mpParent(NULL), mbNotErase(false), mbToBeErased(false), mbBad(false),
     mHalfBaseline(initkf.b/2), mpMap(pMap)
 {
-    mnId = nNextId ++;
+    nNextId++;
 }
 
 
@@ -323,19 +323,24 @@ void KeyFrame::UpdateConnections()
     {
         MapPoint* pMP = *vit;
 
-        if(!pMP)
+        if(!pMP){
+            // cout << "KeyFrame::UpdateConnections() 327: !pMP " << endl;
             continue;
+        }
 
-        if(pMP->isBad())
+        if(pMP->isBad()){
+            // cout << "KeyFrame::UpdateConnections() 331: pMP->isBad() " << endl;
             continue;
+        }
 
         map<KeyFrame*,size_t> observations = pMP->GetObservations();
-
+        // cout << "KeyFrame::UpdateConnections() 337 : There are "<< observations.size() << " other keyframes seeing the same point." << endl;
         for(map<KeyFrame*,size_t>::iterator mit=observations.begin(), mend=observations.end(); mit!=mend; mit++)
         {
             if(mit->first->mnId==mnId)
                 continue;
             KFcounter[mit->first]++;
+            // cout << "KeyFrame::UpdateConnections() : KFcounter[" << mit->first << "] = " << KFcounter[mit->first] << endl;
         }
     }
 
@@ -362,6 +367,7 @@ void KeyFrame::UpdateConnections()
         {
             vPairs.push_back(make_pair(mit->second,mit->first));
             (mit->first)->AddConnection(this,mit->second);
+            // cout << "KeyFrame::UpdateConnections() : (" << (mit->first) << ")->AddConnection(" << mit->second << ")" << endl;
         }
     }
 
@@ -379,7 +385,7 @@ void KeyFrame::UpdateConnections()
         lKFs.push_front(vPairs[i].second);
         lWs.push_front(vPairs[i].first);
     }
-
+    cout << "KeyFrame::UpdateConnections() 385 : vPairs.size() = " << vPairs.size() << endl;
     {
         unique_lock<mutex> lockCon(mMutexConnections);
 
@@ -389,7 +395,8 @@ void KeyFrame::UpdateConnections()
         mvOrderedWeights = vector<int>(lWs.begin(), lWs.end());
 
         if(mbFirstConnection && mnId!=0)
-        {
+        {   
+            cout << "KeyFrame::UpdateConnections() 396 : Now mbFirstConnection is True; mnId = " << mnId << endl;
             mpParent = mvpOrderedConnectedKeyFrames.front();
             mpParent->AddChild(this);
             mbFirstConnection = false;

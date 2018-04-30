@@ -76,8 +76,25 @@ int main(int argc, char **argv)
 
     // Main loop
     cv::Mat imLeft, imRight;
+    bool man_insert;
+    char type_in;
+    cout << "Do you want to manually feed in the images? (y/n)" << endl;
+    cin >> type_in;
+    if(type_in == 'Y' || type_in == 'y'){  
+        man_insert = true;
+    }
+    else{
+        man_insert = false;
+    }
+
     for(int ni=0; ni<nImages; ni++)
-    {
+    {   
+        if(man_insert){
+            cout << "Please type something in so that we can load another image." << endl;
+            cin >> type_in;
+        }
+        
+
         // Read left and right images from file
         imLeft = cv::imread(vstrImageLeft[ni],CV_LOAD_IMAGE_UNCHANGED);
         imRight = cv::imread(vstrImageRight[ni],CV_LOAD_IMAGE_UNCHANGED);
@@ -115,12 +132,14 @@ int main(int argc, char **argv)
             T = vTimestamps[ni+1]-tframe;
         else if(ni>0)
             T = tframe-vTimestamps[ni-1];
+        // cout << "stereo_zed.cc :: Now Time gap =" << T << endl;
 
         if(ttrack<T)
             usleep((T-ttrack)*1e6);
+        // usleep(0.03*1e6);
     }
 
-    cout << "Load all images. Now trying to shut down." << endl << endl;
+    cout << "Read all images. Now trying to shut down." << endl << endl;
     // Stop all threads
     SLAM.Shutdown();
 

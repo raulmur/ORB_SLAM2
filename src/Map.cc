@@ -133,25 +133,29 @@ void Map::clear()
 void Map::Save ( const string& filename )
 {
     //Print the information of the saving map
-    cerr<<"Map Saving to "<<filename <<endl;
+    cerr<<"Map.cc :: Map Saving to "<<filename <<endl;
     ofstream f;
     f.open(filename.c_str(), ios_base::out|ios::binary);
-    //Print The number of MapPoints
-    cerr << "The number of MapPoints is :"<<mspMapPoints.size()<<endl;
 
     //Number of MapPoints
     unsigned long int nMapPoints = mspMapPoints.size();
     f.write((char*)&nMapPoints, sizeof(nMapPoints) );
     //Save MapPoint sequentially
-    for ( auto mp: mspMapPoints )
+    for ( auto mp: mspMapPoints ){
         //Save MapPoint
         SaveMapPoint( f, mp );
+        // cerr << "Map.cc :: Saving map point number: " << mp->mnId << endl;
+    }
+
+    //Print The number of MapPoints
+    cerr << "Map.cc :: The number of MapPoints is :"<<mspMapPoints.size()<<endl;
+        
 
     //Grab the index of each MapPoint, count from 0, in which we initialized mmpnMapPointsIdx  
     GetMapPointsIdx(); 
 
     //Print the number of KeyFrames
-    cerr <<"The number of KeyFrames:"<<mspKeyFrames.size()<<endl;
+    cerr <<"Map.cc :: The number of KeyFrames:"<<mspKeyFrames.size()<<endl;
     //Number of KeyFrames
     unsigned long int nKeyFrames = mspKeyFrames.size();
     f.write((char*)&nKeyFrames, sizeof(nKeyFrames));
@@ -162,7 +166,7 @@ void Map::Save ( const string& filename )
 
     for (auto kf:mspKeyFrames )
     {
-        //Get parent of ccurrent KeyFrame and save the ID of this parent
+        //Get parent of current KeyFrame and save the ID of this parent
         KeyFrame* parent = kf->GetParent();
         unsigned long int parent_id = ULONG_MAX;
         if ( parent )
@@ -182,10 +186,10 @@ void Map::Save ( const string& filename )
     }
 
     // Save last Frame ID
-    SaveFrameID(f);
+    // SaveFrameID(f);
 
     f.close();
-    cerr<<"Map Saving Finished!"<<endl;
+    cerr<<"Map.cc :: Map Saving Finished!"<<endl;
 }
 
 void Map::SaveMapPoint( ofstream& f, MapPoint* mp)
@@ -202,6 +206,7 @@ void Map::SaveKeyFrame( ofstream &f, KeyFrame* kf )
 {
 //Save the ID and timesteps of current KeyFrame
     f.write((char*)&kf->mnId, sizeof(kf->mnId));
+    cout << "saving kf->mnId = " << kf->mnId <<endl;
     f.write((char*)&kf->mTimeStamp, sizeof(kf->mTimeStamp));
     //Save the Pose Matrix of current KeyFrame
     cv::Mat Tcw = kf->GetPose();
@@ -242,19 +247,23 @@ void Map::SaveKeyFrame( ofstream &f, KeyFrame* kf )
         f.write((char*)&kp.octave, sizeof(kp.octave));
 
         //Save the Descriptors of current ORB features
+        f.write((char*)&kf->mDescriptors.cols, sizeof(kf->mDescriptors.cols)); //kf->mDescriptors.cols is always 32 here.
         for (int j = 0; j < kf->mDescriptors.cols; j ++ )
-                f.write((char*)&kf->mDescriptors.at<unsigned char>(i,j), sizeof(char));
+            f.write((char*)&kf->mDescriptors.at<unsigned char>(i,j), sizeof(char));
 
         //Save the index of MapPoints that corresponds to current ORB features
         unsigned long int mnIdx;
         MapPoint* mp = kf->GetMapPoint(i);
         if (mp == NULL  )
-                mnIdx = ULONG_MAX;
+            mnIdx = ULONG_MAX;
         else
-                mnIdx = mmpnMapPointsIdx[mp];
+            mnIdx = mmpnMapPointsIdx[mp];
 
         f.write((char*)&mnIdx, sizeof(mnIdx));
     }
+
+    // Save BoW for relocalization.
+    // f.write((char*)&kf->mBowVec, sizeof(kf->mBowVec));
 }
 
 // Get the Index of the MapPoints that matches the ORB featurepoint
@@ -269,15 +278,15 @@ void Map::GetMapPointsIdx()
     }
 }
 
-void Map::SaveFrameID( ofstream &f)
-{
+// void Map::SaveFrameID( ofstream &f)
+// {
 
-}
+// }
 
 // Load map from file
-void Map::Load ( const string &filename, SystemSetting* mySystemSetting )
+void Map::Load ( const string &filename, SystemSetting* mySystemSetting, KeyFrameDatabase* mpKeyFrameDatabase )
 {
-    cerr << "Map reading from:"<<filename<<endl;
+    cerr << "Map.cc :: Map reading from:"<<filename<<endl;
     ifstream f;
     f.open( filename.c_str() );
 
@@ -286,7 +295,7 @@ void Map::Load ( const string &filename, SystemSetting* mySystemSetting )
     f.read((char*)&nMapPoints, sizeof(nMapPoints));
 
     // Then read MapPoints one after another, and add them into the map
-    cerr<<"The number of MapPoints:"<<nMapPoints<<endl;
+    cerr<<"Map.cc :: The number of MapPoints:"<<nMapPoints<<endl;
     for ( unsigned int i = 0; i < nMapPoints; i ++ )
     {
         MapPoint* mp = LoadMapPoint(f);
@@ -299,7 +308,7 @@ void Map::Load ( const string &filename, SystemSetting* mySystemSetting )
     // Read the number of KeyFrames
     unsigned long int nKeyFrames;
     f.read((char*)&nKeyFrames, sizeof(nKeyFrames));
-    cerr<<"The number of KeyFrames:"<<nKeyFrames<<endl;
+    cerr<<"Map.cc :: The number of KeyFrames:"<<nKeyFrames<<endl;
 
     // Then read KeyFrames one after another, and add them into the map
     vector<KeyFrame*>kf_by_order;
@@ -308,22 +317,23 @@ void Map::Load ( const string &filename, SystemSetting* mySystemSetting )
         KeyFrame* kf = LoadKeyFrame(f, mySystemSetting);
         AddKeyFrame(kf);
         kf_by_order.push_back(kf);
+        mpKeyFrameDatabase->add(kf);
     }
 
     if(mnMaxKFid>0){
         Frame temp_frame = Frame( mnMaxKFid );
     }
 
-    cerr<<"Max KeyFrame ID is: " << mnMaxKFid <<endl;
+    cerr<<"Map.cc :: Max KeyFrame ID is: " << mnMaxKFid << ", and I set mnId to this number" <<endl;
     
 
-    cerr<<"KeyFrame Load OVER!"<<endl;
+    cerr<<"Map.cc :: KeyFrame Load OVER!"<<endl;
 
     // Read Spanning Tree(open loop trajectory)
     map<unsigned long int, KeyFrame*> kf_by_id;
     for ( auto kf: mspKeyFrames )
         kf_by_id[kf->mnId] = kf;
-    cerr<<"Start Load The Parent!"<<endl;
+    cerr<<"Map.cc :: Start Load The Parent!"<<endl;
     for( auto kf: kf_by_order )
     {
         // Read parent_id of current KeyFrame.
@@ -349,7 +359,7 @@ void Map::Load ( const string &filename, SystemSetting* mySystemSetting )
             kf->AddConnection(kf_by_id[id],weight);
         }
    }
-   cerr<<"Parent Load OVER!"<<endl;
+   cerr<<"Map.cc :: Parent Load OVER!"<<endl;
    for ( auto mp: vmp )
    {
        // cout << "Now mp = "<< mp << endl;
@@ -363,7 +373,7 @@ void Map::Load ( const string &filename, SystemSetting* mySystemSetting )
         }
    }
     f.close();
-    cerr<<"Load IS OVER!"<<endl;
+    cerr<<"Map.cc :: Load IS OVER!"<<endl;
     return;
 }
 
@@ -454,9 +464,12 @@ KeyFrame* Map::LoadKeyFrame( ifstream &f, SystemSetting* mySystemSetting )
         //f.read((char*)&fDepthValue, sizeof(float));
         //KeypointDepth.push_back(fDepthValue);
 
+        
         // Read descriptors of keypoints
-        for ( int j = 0; j < 32; j ++ )
-                f.read((char*)&initkf.Descriptors.at<unsigned char>(i,j),sizeof(char));
+        f.read((char*)&initkf.Descriptors.cols, sizeof(initkf.Descriptors.cols));
+        // for ( int j = 0; j < 32; j ++ ) // Since initkf.Descriptors.cols is always 32, for loop may also write like this.
+        for ( int j = 0; j < initkf.Descriptors.cols; j ++ )
+            f.read((char*)&initkf.Descriptors.at<unsigned char>(i,j),sizeof(char));
 
         // Read the mapping from keypoints to MapPoints.
         unsigned long int mpidx;
@@ -468,6 +481,9 @@ KeyFrame* Map::LoadKeyFrame( ifstream &f, SystemSetting* mySystemSetting )
         else
                 vpMapPoints[i] = vmp[mpidx];
     }
+
+    // Read BoW for relocalization.
+    // f.read((char*)&initkf.mBowVec, sizeof(initkf.mBowVec));
 
     initkf.vRight = vector<float>(initkf.N,-1);
     initkf.vDepth = vector<float>(initkf.N,-1);

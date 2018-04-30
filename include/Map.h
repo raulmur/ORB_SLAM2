@@ -40,6 +40,7 @@ namespace ORB_SLAM2
 class MapPoint;
 class KeyFrame;
 class SystemSetting;
+class KeyFrameDatabase;
 
 class Map
 {
@@ -76,7 +77,7 @@ public:
     void Save( const string &filename );
 
     // Load map from a binary file.
-    void Load( const string &filename, SystemSetting* mySystemSetting );
+    void Load( const string &filename, SystemSetting* mySystemSetting, KeyFrameDatabase* mpKeyFrameDatabase);
     MapPoint* LoadMapPoint( ifstream &f );
     KeyFrame* LoadKeyFrame( ifstream &f, SystemSetting* mySystemSetting );
 

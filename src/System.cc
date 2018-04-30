@@ -124,7 +124,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mySystemSetting->LoadSystemSetting(strPathSystemSetting);
     // mySystemSetting->LoadSystemSetting("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/Examples/Stereo/KITTI04-12.yaml");
     if(IsLoadMap == 'Y' || IsLoadMap == 'y'){  
-        mpMap->Load(strPathMap, mySystemSetting);
+        mpMap->Load(strPathMap, mySystemSetting, mpKeyFrameDatabase);
     }
 
     //Set pointers between threads
@@ -350,6 +350,7 @@ void System::Shutdown()
     }
 
     // Wait until all thread have effectively stopped
+    cout << "System trying to shut down......(This may take long when map is large!)" << endl;
     while(!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished() || mpLoopCloser->isRunningGBA())
     {
         usleep(5000);
@@ -518,10 +519,10 @@ void System::SaveMap(const string &filename)
     mpMap->Save(filename);
 }
 
-void System::LoadMap(const string &filename,SystemSetting* mySystemSetting)  
-{
-    mpMap->Load(filename, mySystemSetting); 
-}
+// void System::LoadMap(const string &filename,SystemSetting* mySystemSetting)  
+// {
+//     mpMap->Load(filename, mySystemSetting); 
+// }
 
 
 int System::GetTrackingState()
