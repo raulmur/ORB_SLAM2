@@ -890,12 +890,10 @@ int ORBmatcher::Fuse(KeyFrame *pKF, const vector<MapPoint *> &vpMapPoints, const
         const float radius = th*pKF->mvScaleFactors[nPredictedLevel];
 
         const vector<size_t> vIndices = pKF->GetFeaturesInArea(u,v,radius);
-
         if(vIndices.empty())
             continue;
 
         // Match to the most similar keypoint in the radius
-
         const cv::Mat dMP = pMP->GetDescriptor();
 
         int bestDist = 256;

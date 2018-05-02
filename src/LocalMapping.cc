@@ -77,8 +77,10 @@ void LocalMapping::Run()
             if(!CheckNewKeyFrames() && !stopRequested())
             {
                 // Local BA
-                if(mpMap->KeyFramesInMap()>2)
+                
+                if(mpMap->KeyFramesInMap()>2){
                     Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap);
+                }
 
                 // Check redundant local Keyframes
                 KeyFrameCulling();
@@ -459,6 +461,7 @@ void LocalMapping::SearchInNeighbors()
         nn=20;
     const vector<KeyFrame*> vpNeighKFs = mpCurrentKeyFrame->GetBestCovisibilityKeyFrames(nn);
     vector<KeyFrame*> vpTargetKFs;
+
     for(vector<KeyFrame*>::const_iterator vit=vpNeighKFs.begin(), vend=vpNeighKFs.end(); vit!=vend; vit++)
     {
         KeyFrame* pKFi = *vit;
@@ -485,7 +488,6 @@ void LocalMapping::SearchInNeighbors()
     for(vector<KeyFrame*>::iterator vit=vpTargetKFs.begin(), vend=vpTargetKFs.end(); vit!=vend; vit++)
     {
         KeyFrame* pKFi = *vit;
-
         matcher.Fuse(pKFi,vpMapPointMatches);
     }
 

@@ -73,6 +73,15 @@ KeyFrame::KeyFrame(InitKeyFrame &initkf, Map *pMap, KeyFrameDatabase *pKFDB, vec
     mHalfBaseline(initkf.b/2), mpMap(pMap)
 {
     nNextId++;
+
+    mGrid.resize(mnGridCols);
+    for(int i=0; i<mnGridCols;i++)
+    {
+        mGrid[i].resize(mnGridRows);
+        for(int j=0; j<mnGridRows; j++)
+            mGrid[i][j] = initkf.vGrid[i][j];
+    }
+
 }
 
 
@@ -324,23 +333,20 @@ void KeyFrame::UpdateConnections()
         MapPoint* pMP = *vit;
 
         if(!pMP){
-            // cout << "KeyFrame::UpdateConnections() 327: !pMP " << endl;
             continue;
         }
 
         if(pMP->isBad()){
-            // cout << "KeyFrame::UpdateConnections() 331: pMP->isBad() " << endl;
             continue;
         }
 
         map<KeyFrame*,size_t> observations = pMP->GetObservations();
-        // cout << "KeyFrame::UpdateConnections() 337 : There are "<< observations.size() << " other keyframes seeing the same point." << endl;
+
         for(map<KeyFrame*,size_t>::iterator mit=observations.begin(), mend=observations.end(); mit!=mend; mit++)
         {
             if(mit->first->mnId==mnId)
                 continue;
             KFcounter[mit->first]++;
-            // cout << "KeyFrame::UpdateConnections() : KFcounter[" << mit->first << "] = " << KFcounter[mit->first] << endl;
         }
     }
 
@@ -385,7 +391,7 @@ void KeyFrame::UpdateConnections()
         lKFs.push_front(vPairs[i].second);
         lWs.push_front(vPairs[i].first);
     }
-    cout << "KeyFrame::UpdateConnections() 385 : vPairs.size() = " << vPairs.size() << endl;
+
     {
         unique_lock<mutex> lockCon(mMutexConnections);
 
@@ -396,7 +402,6 @@ void KeyFrame::UpdateConnections()
 
         if(mbFirstConnection && mnId!=0)
         {   
-            cout << "KeyFrame::UpdateConnections() 396 : Now mbFirstConnection is True; mnId = " << mnId << endl;
             mpParent = mvpOrderedConnectedKeyFrames.front();
             mpParent->AddChild(this);
             mbFirstConnection = false;
@@ -617,7 +622,7 @@ vector<size_t> KeyFrame::GetFeaturesInArea(const float &x, const float &y, const
     for(int ix = nMinCellX; ix<=nMaxCellX; ix++)
     {
         for(int iy = nMinCellY; iy<=nMaxCellY; iy++)
-        {
+        {   
             const vector<size_t> vCell = mGrid[ix][iy];
             for(size_t j=0, jend=vCell.size(); j<jend; j++)
             {
@@ -630,7 +635,6 @@ vector<size_t> KeyFrame::GetFeaturesInArea(const float &x, const float &y, const
             }
         }
     }
-
     return vIndices;
 }
 

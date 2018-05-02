@@ -118,7 +118,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     string strPathMap = cwd + "/MapPointandKeyFrame.bin";
     cout << "Your map file path would be : " << strPathMap << endl; 
 
-    cout << "Do you want to load the map?(Y/N)" << endl;  
+    cout << "Do you want to load the map?(y/n)" << endl;  
     cin >> IsLoadMap;
     SystemSetting *mySystemSetting = new SystemSetting(mpVocabulary);  
     mySystemSetting->LoadSystemSetting(strPathSystemSetting);

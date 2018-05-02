@@ -310,7 +310,6 @@ vector<KeyFrame*> KeyFrameDatabase::DetectRelocalizationCandidates(Frame *F)
             {
                 vpRelocCandidates.push_back(pKFi);
                 spAlreadyAddedKF.insert(pKFi);
-                cout <<"KeyFrameDatabase::DetectRelocalizationCandidates() : checkpoint2.4, si = " << si <<", pushback pKFi->mnId = " << pKFi->mnId << endl;
             }
         }
     }
