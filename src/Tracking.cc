@@ -290,8 +290,10 @@ void Tracking::Track()
 
         mpFrameDrawer->Update(this);
 
-        if(mState!=OK)
+        if(mState!=OK){
+            cout << "mState!=OK, return."<< endl;
             return;
+        }
     }
 
     else if(mState==NOT_INITIALIZED && mpMap->GetMaxKFid() > 0)
@@ -309,13 +311,17 @@ void Tracking::Track()
 
         mpFrameDrawer->Update(this);
 
-        if(mState!=OK)
+        if(mState!=OK){
+            cout << "mState!=OK, return."<< endl;
+            mState = NOT_INITIALIZED;
             return;
+        }
     }
 
     else
     {
         // System is initialized. Track Frame.
+        // cout << "System is initialized. Track Frame." << endl;
         bool bOK;
 
         // Initial camera pose estimation using motion model or relocalization (if tracking is lost)
@@ -530,7 +536,7 @@ void Tracking::Track()
 
     // Store frame pose information to retrieve the complete camera trajectory afterwards.
     if(!mCurrentFrame.mTcw.empty())
-    {
+    {   
         cv::Mat Tcr = mCurrentFrame.mTcw*mCurrentFrame.mpReferenceKF->GetPoseInverse();
         mlRelativeFramePoses.push_back(Tcr);
         mlpReferences.push_back(mpReferenceKF);
@@ -1061,7 +1067,7 @@ bool Tracking::TrackWithMotionModel()
     }
 
     if(nmatches<20){
-        cout << "Tracking::TrackWithMotionModel() : nmatches<20, return" << endl;
+        // cout << "Tracking::TrackWithMotionModel() : nmatches<20, return" << endl;
         return false;
     }
 

@@ -112,7 +112,8 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //get the current absoulte path  
     std::string cwd = getcwd(NULL, 0);
     cout << "The current dir is : " << cwd << endl; 
-    string strPathSystemSetting = cwd + "/Examples/Stereo/zed0000012643.yaml";
+    string strPathSystemSetting = cwd + "/" + strSettingsFile.c_str();
+
     cout << "Your setting file path is : " << strPathSystemSetting << endl; 
     
     string strPathMap = cwd + "/MapPointandKeyFrame.bin";
@@ -136,16 +137,6 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     mpLoopCloser->SetTracker(mpTracker);
     mpLoopCloser->SetLocalMapper(mpLocalMapper);
-
-    // //Load map
-    // char IsLoadMap;
-    // cout << "Do you want to load the map?(Y/N)" << endl;  
-    //     cin >> IsLoadMap;
-    //     SystemSetting *mySystemSetting = new SystemSetting(mpVocabulary);  
-    //     mySystemSetting->LoadSystemSetting("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/Examples/ROS/ORB_SLAM2/Asus.yaml");  
-    //     if(IsLoadMap == 'Y' || IsLoadMap == 'y'){  
-    //         mpMap->Load("/home/boom/MY_ORB_SLAM2/ORB_SLAM2/MapPointandKeyFrame.bin",mySystemSetting);  
-    // }
 
 }
 

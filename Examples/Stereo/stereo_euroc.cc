@@ -187,7 +187,11 @@ int main(int argc, char **argv)
     SLAM.SaveTrajectoryTUM("CameraTrajectory.txt");
 
     // Save customized Map
-    SLAM.SaveMap("MapPointandKeyFrame.bin");
+    char IsSaveMap;  
+    cout << "Do you want to save the map?(y/n)" << endl;  
+    cin >> IsSaveMap;  
+    if(IsSaveMap == 'Y' || IsSaveMap == 'y')  
+        SLAM.SaveMap("MapPointandKeyFrame.bin");
 
     return 0;
 }

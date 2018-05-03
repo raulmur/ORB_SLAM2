@@ -204,9 +204,9 @@ void Map::SaveMapPoint( ofstream& f, MapPoint* mp)
 
 void Map::SaveKeyFrame( ofstream &f, KeyFrame* kf )
 {
-//Save the ID and timesteps of current KeyFrame
+    //Save the ID and timesteps of current KeyFrame
     f.write((char*)&kf->mnId, sizeof(kf->mnId));
-    cout << "saving kf->mnId = " << kf->mnId <<endl;
+    // cout << "saving kf->mnId = " << kf->mnId <<endl;
     f.write((char*)&kf->mTimeStamp, sizeof(kf->mTimeStamp));
     //Save the Pose Matrix of current KeyFrame
     cv::Mat Tcw = kf->GetPose();
