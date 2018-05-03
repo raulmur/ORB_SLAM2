@@ -239,20 +239,24 @@ This is the default mode. The system runs in parallal three threads: Tracking, L
 This mode can be used when you have a good map of your working area. In this mode the Local Mapping and Loop Closing are deactivated. The system localizes the camera in the map (which is no longer updated), using relocalization if needed. 
 
 
-# 10. My Developement
-Based on tutorials on the internet, I edited several files in the `include` folder and the `src` folder. Then I edited `Examples/Monocular/mono_kitti.cc` file, and use `KITTI dataset 04` as my debugging exmaple.
+# 10. Saving and Loading Map (My Developement)
+Based on tutorials on the internet, I edited several files in the `include` folder and the `src` folder. Then I edited `Examples/Monocular/mono_kitti.cc` file, and use `KITTI dataset 08` as my debugging exmaple.
+
+Now, saving and loading function for stereo camera has finished. I'm still working the codes for mono camera.
+
+In our lab, we are using a popular stereo camera called ZED camera, so I build a my own `stereo_zed.cc` and the corresponding `yaml` file.
+
+### Notice!!!!
+Errors like `addVertex：FATAL` still exist. Saving a loaded map may also lead to `Segmentation fault (core dumped)`, I'm still debugging.
+
+### Example Command
+```
+cd ~/$XXXX$/ORB_SLAM2
+./Examples/Stereo/stereo_kitti Vocabulary/ORBvoc.txt Examples/Stereo/KITTI04-12.yaml /$XXXX$/KITTI/dataset/sequences/08
+```
+
 ### Save Map
-```
-./Examples/Monocular/mono_kitti Vocabulary/ORBvoc.txt Examples/Monocular/KITTI04-12.yaml /media/boom/HDD/KITTI/dataset/04
-```
-Type in `y` or `Y` then hit `enter` to save map. A binary file named `MapPointandKeyFrame.bin` would be saved under the `ORB SLAM2` directory.
+When you are asked `Do you want to save the map?(y/n)`. Just type in `y` or `Y` then hit `enter` to save a map. A binary file named `MapPointandKeyFrame.bin` would be saved under the `ORB SLAM2` directory.
 
 ### Load Map
-*Sorry! Unfinished! Still debugging!!!*
-
-I added the LoadMap function in the `System.cc` file. Please make sure the directory is set to your own directory when you `mySystemSetting->LoadSystemSetting` and `mpMap->Load`.
-
-I fixed the segmentation fault bug when loading large maps. Now the maps can be loaded, but connections between map and the current frame cannot be built.
-
-I'll push a new commit after I solve this error.
-
+After all images are processed, command line will show `Do you want to save the map?(y/n)`, Just type in `y` or `Y` then hit `enter` to load a map. The program will load a binary file named `MapPointandKeyFrame.bin` automatically.
