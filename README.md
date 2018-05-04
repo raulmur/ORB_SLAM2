@@ -242,12 +242,12 @@ This mode can be used when you have a good map of your working area. In this mod
 # 10. Saving and Loading Map (My Developement)
 Based on tutorials on the internet, I edited several files in the `include` folder and the `src` folder. Then I edited `Examples/Monocular/mono_kitti.cc` file, and use `KITTI dataset 08` as my debugging exmaple.
 
-Now, saving and loading function for stereo camera has finished. I'm still working the codes for mono camera.
+Now, saving and loading function may already work for stereo camera and monocular camera for KITTI dataset. I'm not planning to test other dataset. You are always welcome to right a pull request.
 
 In our lab, we are using a popular stereo camera called ZED camera, so I build a my own `stereo_zed.cc` and the corresponding `yaml` file.
 
 ### Notice!!!!
-Errors like `addVertex：FATAL` still exist. Saving a loaded map may also lead to `Segmentation fault (core dumped)`, I'm still debugging.
+Errors like `addVertex：FATAL` still exist. Other errors may hide themselves somewhere else. I'm still maintaining this code, so please let me know if you find a solution.
 
 ### Example Command
 ```
