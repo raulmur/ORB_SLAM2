@@ -48,28 +48,38 @@ int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoint
 
     const bool bFactor = th!=1.0;
 
+    // cout << "ORBmatcher::SearchByProjection : vpMapPoints.size() = " << vpMapPoints.size() << endl;
     for(size_t iMP=0; iMP<vpMapPoints.size(); iMP++)
     {
         MapPoint* pMP = vpMapPoints[iMP];
-        if(!pMP->mbTrackInView)
+        if(!pMP->mbTrackInView){
+            // cout << "ORBmatcher::SearchByProjection : pMP->mbTrackInView is false, continue;" << endl;
             continue;
+        }
 
-        if(pMP->isBad())
+        if(pMP->isBad()){
+            // cout << "ORBmatcher::SearchByProjection : pMP->isBad();" << endl;
             continue;
+        }
 
         const int &nPredictedLevel = pMP->mnTrackScaleLevel;
 
         // The size of the window will depend on the viewing direction
+        // cout << "ORBmatcher::SearchByProjection : The size of the window will depend on the viewing direction " << endl;
         float r = RadiusByViewingCos(pMP->mTrackViewCos);
+        // cout << "ORBmatcher::SearchByProjection : RadiusByViewingCos finished " << endl;
 
         if(bFactor)
             r*=th;
 
         const vector<size_t> vIndices =
                 F.GetFeaturesInArea(pMP->mTrackProjX,pMP->mTrackProjY,r*F.mvScaleFactors[nPredictedLevel],nPredictedLevel-1,nPredictedLevel);
+        // cout << "ORBmatcher::SearchByProjection : GetFeaturesInArea finished " << endl;
 
-        if(vIndices.empty())
+        if(vIndices.empty()){
+            // cout << "ORBmatcher::SearchByProjection : vIndices is empty. " << endl;
             continue;
+        }
 
         const cv::Mat MPdescriptor = pMP->GetDescriptor();
 
