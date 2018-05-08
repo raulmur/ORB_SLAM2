@@ -106,6 +106,14 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         mpTracker->SetViewer(mpViewer);
     }
 
+    // Choose to use pure localization mode
+    char IsPureLocalization;
+    cout << "Do you want to run pure localization?(y/n)" << endl;
+    cin >> IsPureLocalization;
+    if(IsPureLocalization == 'Y' || IsPureLocalization == 'y'){  
+        ActivateLocalizationMode();
+    }
+
     //Load map
     char IsLoadMap;
 

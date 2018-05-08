@@ -171,7 +171,7 @@ void KeyFrame::UpdateBestCovisibles()
     vPairs.reserve(mConnectedKeyFrameWeights.size());
     for(map<KeyFrame*,int>::iterator mit=mConnectedKeyFrameWeights.begin(), mend=mConnectedKeyFrameWeights.end(); mit!=mend; mit++){
         if(mit->first == 0){
-            cout << "KeyFrame::UpdateBestCovisibles() : The KF pointer mit->first = " << mit->first << ", This should not happen!" << endl;
+            // cout << "KeyFrame::UpdateBestCovisibles() : The KF pointer mit->first = " << mit->first << ", This should not happen!" << endl;
         }
         vPairs.push_back(make_pair(mit->second,mit->first));
     }
@@ -184,7 +184,7 @@ void KeyFrame::UpdateBestCovisibles()
     {
         lKFs.push_front(vPairs[i].second);
         if(vPairs[i].second == 0){
-            cout << "KeyFrame::UpdateBestCovisibles() : The KF pointer is 0. This should not happen!!!" << endl;
+            // cout << "KeyFrame::UpdateBestCovisibles() : The KF pointer is 0. This should not happen!!!" << endl;
         }
         lWs.push_front(vPairs[i].first);
     }
