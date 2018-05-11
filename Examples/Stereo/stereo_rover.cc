@@ -31,7 +31,7 @@
 
 using namespace std;
 
-void LoadZEDStereoImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
+void LoadRoverImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
                 vector<string> &vstrImageRight, vector<double> &vTimestamps);
 
 int main(int argc, char **argv)
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
     vector<string> vstrImageLeft;
     vector<string> vstrImageRight;
     vector<double> vTimestamps;
-    LoadZEDStereoImages(string(argv[3]), vstrImageLeft, vstrImageRight, vTimestamps);
+    LoadRoverImages(string(argv[3]), vstrImageLeft, vstrImageRight, vTimestamps);
 
     const int nImages = vstrImageLeft.size();
 
@@ -168,7 +168,7 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void LoadZEDStereoImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
+void LoadRoverImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
                 vector<string> &vstrImageRight, vector<double> &vTimestamps)
 {
     ifstream fTimesLeft;
@@ -177,10 +177,9 @@ void LoadZEDStereoImages(const string &strPathToSequence, vector<string> &vstrIm
     vector<double> vTimestampsRight;
     string strPathTimeFileLeft = strPathToSequence + "/left.txt";
     string strPathTimeFileRight = strPathToSequence + "/right.txt";
-
-    // Open the timestamp txt file.
     fTimesLeft.open(strPathTimeFileLeft.c_str());
     fTimesRight.open(strPathTimeFileRight.c_str());
+    // Read in all Timestamps for left images
     while(!fTimesLeft.eof()){
         string s_l;
         getline(fTimesLeft,s_l);
@@ -193,6 +192,7 @@ void LoadZEDStereoImages(const string &strPathToSequence, vector<string> &vstrIm
         }
     }
     
+    // Read in all Timestamps for right images
     while(!fTimesRight.eof()){
         string s_r;
         getline(fTimesRight,s_r);
@@ -210,7 +210,7 @@ void LoadZEDStereoImages(const string &strPathToSequence, vector<string> &vstrIm
     int i=0;
     int j=0;
     int nwrongmatch = 0;
-    // Filter out the unmatched images. Push back the valuable imges into vTimestamps.
+    // Pair all the images with timestamp gap < 0.03s
     while(i<nTimesLeft && j<nTimesright){
         if(vTimestampsLeft[i] == vTimestampsRight[j]){
             vTimestamps.push_back(vTimestampsLeft[i]);
@@ -244,7 +244,6 @@ void LoadZEDStereoImages(const string &strPathToSequence, vector<string> &vstrIm
     vstrImageLeft.resize(nTimes);
     vstrImageRight.resize(nTimes);
 
-    // Load the pointer of images
     for(int i=0; i<nTimes; i++)
     {
         stringstream ss;
