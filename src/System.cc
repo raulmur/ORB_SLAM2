@@ -352,11 +352,24 @@ void System::Shutdown()
     cout << "System trying to shut down......(This may take long when map is large!)" << endl;
     while(!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished() || mpLoopCloser->isRunningGBA())
     {
-        usleep(5000);
+        if(!mpLocalMapper->isFinished()){
+            cout<< "mpLocalMapper is not finished." <<endl;
+        }
+        if(!mpLoopCloser->isFinished()){
+            cout<< "mpLoopCloser is not finished." <<endl;
+        }
+        if(mpLoopCloser->isRunningGBA()){
+            cout<< "mpLoopCloser is still running. Try to RequestFinish" <<endl;
+            // Shall I add RunGlobalBundleAdjustment?
+            mpLoopCloser->RequestFinish();
+        }
+        usleep(50000);
     }
 
-    if(mpViewer)
+    if(mpViewer){
+        cout << "System::Shutdown() : pangolin::BindToContext" << endl;
         pangolin::BindToContext("ORB-SLAM2: Map Viewer");
+    }
     cout << "System shut down." << endl;
 
 }

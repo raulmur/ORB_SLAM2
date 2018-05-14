@@ -53,7 +53,17 @@ int main(int argc, char **argv)
     const int nImages = vstrImageLeft.size();
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
+    bool UseViewer;
+    char type_in;
+    cout << "Do you want use Viewer? (y/n)" << endl;
+    cin >> type_in;
+    if(type_in == 'Y' || type_in == 'y'){  
+        UseViewer = true;
+    }
+    else{
+        UseViewer = false;
+    }
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,UseViewer);
 
     // Choose if you need Pure Localization
     // char IsPureLocalization;
@@ -77,7 +87,6 @@ int main(int argc, char **argv)
     // Main loop
     cv::Mat imLeft, imRight;
     bool man_insert;
-    char type_in;
     cout << "Do you want to manually feed in the images? (y/n)" << endl;
     cin >> type_in;
     if(type_in == 'Y' || type_in == 'y'){  
@@ -87,8 +96,17 @@ int main(int argc, char **argv)
         man_insert = false;
     }
 
-    for(int ni=0; ni<nImages; ni++)
+    int nSkip;
+    cout << "How many images do you want me to jump at each iteration? "<< endl 
+    << "Type in a number. (For example, 1 means you want me to read images consecutively; 2 means I'll skip one image at a loop...)" << endl;
+    cin >> nSkip;
+    cout << "The value you entered is " << nSkip << endl;
+    int cout_gap = nImages/100 + 1;
+    for(int ni=0; ni<nImages; ni+=nSkip)
     {   
+        if (ni%cout_gap == 0){
+            cout << "Processed " << (ni/cout_gap) << "%" << endl;
+        }
         if(man_insert){
             cout << "Please type something in so that we can load another image." << endl;
             cin >> type_in;
@@ -209,29 +227,32 @@ void LoadZEDStereoImages(const string &strPathToSequence, vector<string> &vstrIm
     const int nTimesright = vTimestampsRight.size();
     int i=0;
     int j=0;
-    int nwrongmatch = 0;
+    int nWrongMatch = 0;
+    int nGoodMatch = 0;
     // Filter out the unmatched images. Push back the valuable imges into vTimestamps.
     while(i<nTimesLeft && j<nTimesright){
         if(vTimestampsLeft[i] == vTimestampsRight[j]){
             vTimestamps.push_back(vTimestampsLeft[i]);
             i++;
             j++;
+            nGoodMatch++;
         }
         else if(vTimestampsLeft[i] > vTimestampsRight[j]){
             cerr << "left timestamp = " << setiosflags(ios::fixed) << setprecision(6) << vTimestampsLeft[i] << " > ";
             cerr << setiosflags(ios::fixed) << setprecision(6) << vTimestampsRight[j] << " = right timestamp."<< endl;
             j++;
-            nwrongmatch++;
+            nWrongMatch++;
         }
         else{
             cerr << "left timestamp = " << setiosflags(ios::fixed) << setprecision(6) << vTimestampsLeft[i] << " < ";
             cerr << setiosflags(ios::fixed) << setprecision(6) << vTimestampsRight[j] << " = right timestamp."<< endl;
             i++;
-            nwrongmatch++;
+            nWrongMatch++;
         }
     }
-    if(nwrongmatch != 0){
-        cerr << "There are "<< nwrongmatch << " wrong matches."<< endl;
+    cout << "There are " << nGoodMatch << " matches to be processed." << endl;
+    if(nWrongMatch != 0){
+        cerr << "There are "<< nWrongMatch << " wrong matches."<< endl;
     }
     else{
         cout << "Dataset images match perfectly." << endl;
