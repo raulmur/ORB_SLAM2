@@ -350,7 +350,7 @@ void System::Shutdown()
 
     // Wait until all thread have effectively stopped
     cout << "System trying to shut down......(This may take long when map is large!)" << endl;
-    while(!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished() || mpLoopCloser->isRunningGBA())
+    while(!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished() )//|| mpLoopCloser->isRunningGBA())
     {
         if(!mpLocalMapper->isFinished()){
             cout<< "mpLocalMapper is not finished." <<endl;
@@ -361,7 +361,7 @@ void System::Shutdown()
         if(mpLoopCloser->isRunningGBA()){
             cout<< "mpLoopCloser is still running. Try to RequestFinish" <<endl;
             // Shall I add RunGlobalBundleAdjustment?
-            mpLoopCloser->RequestFinish();
+            // mpLoopCloser->RequestFinish();
         }
         usleep(50000);
     }

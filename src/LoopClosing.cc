@@ -63,11 +63,11 @@ void LoopClosing::Run()
         // Check if there are keyframes in the queue
         if(CheckNewKeyFrames())
         {
-            cout << "LoopClosing::Run() : There are keyframes in the queue." << endl;
+            // cout << "LoopClosing::Run() : There are keyframes in the queue." << endl;
             // Detect loop candidates and check covisibility consistency
             if(DetectLoop())
             {
-                cout << "LoopClosing::Run() : DetectLoop()" << endl;
+                // cout << "LoopClosing::Run() : DetectLoop()" << endl;
                // Compute similarity transformation [sR|t]
                // In the stereo/RGBD case s=1
                if(ComputeSim3())
@@ -682,7 +682,7 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
 
             while(!lpKFtoCheck.empty())
             {
-                cout << "LoopClosing::RunGlobalBundleAdjustment : !lpKFtoCheck.empty()"<< endl;
+                // cout << "LoopClosing::RunGlobalBundleAdjustment : !lpKFtoCheck.empty()"<< endl;
                 KeyFrame* pKF = lpKFtoCheck.front();
                 const set<KeyFrame*> sChilds = pKF->GetChilds();
                 cv::Mat Twc = pKF->GetPoseInverse();
@@ -709,7 +709,7 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
 
             for(size_t i=0; i<vpMPs.size(); i++)
             {
-                cout << "LoopClosing::RunGlobalBundleAdjustment : vpMPs.size() = " << vpMPs.size() << ", and now i = " << i << endl;
+                // cout << "LoopClosing::RunGlobalBundleAdjustment : vpMPs.size() = " << vpMPs.size() << ", and now i = " << i << endl;
                 MapPoint* pMP = vpMPs[i];
 
                 if(pMP->isBad())
@@ -746,7 +746,7 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
 
             mpLocalMapper->Release();
 
-            cout << "Map updated!" << endl;
+            // cout << "Map updated!" << endl;
         }
 
         mbFinishedGBA = true;
