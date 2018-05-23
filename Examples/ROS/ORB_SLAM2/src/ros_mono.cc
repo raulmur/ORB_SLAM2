@@ -31,6 +31,10 @@
 
 #include"../../../include/System.h"
 
+#include"../../../include/Converter.h"
+
+#include <tf/transform_broadcaster.h>
+
 using namespace std;
 
 class ImageGrabber
@@ -90,7 +94,18 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         return;
     }
 
-    mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec());
+    cv::Mat Tcw = mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec()).clone();
+    if(Tcw.empty())
+        return;
+    cv::Mat tcw = Tcw.rowRange(0,3).col(3);
+    // Publish tf transform
+    static tf::TransformBroadcaster br;
+    tf::Transform transform;
+    transform.setOrigin( tf::Vector3(tcw.at<float>(0), tcw.at<float>(1), tcw.at<float>(2)));
+    vector<float> r = ORB_SLAM2::Converter::toQuaternion(Tcw.rowRange(0,3).colRange(0,3));
+    tf::Quaternion q(r[0], r[1], r[2], r[3]);
+    transform.setRotation(q);
+    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "camera", "world")); // camera is the parent frame
 }
 
 
