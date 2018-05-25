@@ -111,7 +111,7 @@ int main(int argc, char **argv)
             cout << "Please type something in so that we can load another image." << endl;
             cin >> type_in;
         }
-        
+        cout << "Load in image #" << ni << endl;
 
         // Read left and right images from file
         imLeft = cv::imread(vstrImageLeft[ni],CV_LOAD_IMAGE_UNCHANGED);

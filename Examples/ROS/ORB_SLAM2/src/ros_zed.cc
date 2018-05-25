@@ -81,7 +81,17 @@ int main(int argc, char **argv)
     cin >> WhichCamera;  
     if(WhichCamera == 'S' || WhichCamera == 's'){
         // Create SLAM system. It initializes all system threads and gets ready to process frames.
-        ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
+        bool UseViewer;
+        char type_in;
+        cout << "Do you want use Viewer? (y/n)" << endl;
+        cin >> type_in;
+        if(type_in == 'Y' || type_in == 'y'){  
+            UseViewer = true;
+        }
+        else{
+            UseViewer = false;
+        }
+        ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO, UseViewer);
 
         ImageGrabber igb(&SLAM);
 
@@ -152,7 +162,17 @@ int main(int argc, char **argv)
     }
     else if(WhichCamera == 'M' || WhichCamera == 'm'){
         // Create SLAM system. It initializes all system threads and gets ready to process frames.
-        ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
+        bool UseViewer;
+        char type_in;
+        cout << "Do you want use Viewer? (y/n)" << endl;
+        cin >> type_in;
+        if(type_in == 'Y' || type_in == 'y'){  
+            UseViewer = true;
+        }
+        else{
+            UseViewer = false;
+        }
+        ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR, UseViewer);
 
         ImageGrabber igb(&SLAM);
 
