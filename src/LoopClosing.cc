@@ -30,6 +30,9 @@
 
 #include<mutex>
 #include<thread>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 
 namespace ORB_SLAM2
