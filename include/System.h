@@ -25,6 +25,7 @@
 #include<string>
 #include<thread>
 #include<opencv2/core/core.hpp>
+#include<condition_variable>
 
 #include "Tracking.h"
 #include "FrameDrawer.h"
@@ -85,6 +86,10 @@ public:
     // Returns true if there have been a big map change (loop closure, global BA)
     // since last call to this function
     bool MapChanged();
+
+    // Pause and resume mechanism 
+    void Pause();
+    void Resume();
 
     // Reset the system (clear map)
     void Reset();
@@ -159,6 +164,11 @@ private:
     std::thread* mptLocalMapping;
     std::thread* mptLoopClosing;
     std::thread* mptViewer;
+
+    // Pause flag
+    std::mutex mMutexPause;
+    condition_variable mCvResume;
+    bool mbPause;
 
     // Reset flag
     std::mutex mMutexReset;
