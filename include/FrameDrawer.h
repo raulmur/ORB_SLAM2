@@ -57,8 +57,10 @@ protected:
     int N;
     vector<cv::KeyPoint> mvCurrentKeys;
     vector<bool> mvbMap, mvbVO;
+    vector<bool> mvbUselessPoint, mvbDiscardedPoint; // For debug use
     bool mbOnlyTracking;
     int mnTracked, mnTrackedVO;
+    int mnUselessPoint, mnDiscardedPoint;           // For debug use
     vector<cv::KeyPoint> mvIniKeys;
     vector<int> mvIniMatches;
     int mState;

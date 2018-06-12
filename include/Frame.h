@@ -159,6 +159,9 @@ public:
     // Flag to identify outlier associations.
     std::vector<bool> mvbOutlier;
 
+    // Flag to identify Discarded matches.(For debug use)
+    std::vector<bool> mvbDiscarded;
+
     // Keypoints are assigned to cells in a grid to reduce matching complexity when projecting MapPoints.
     static float mfGridElementWidthInv;
     static float mfGridElementHeightInv;

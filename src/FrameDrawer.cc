@@ -42,6 +42,7 @@ cv::Mat FrameDrawer::DrawFrame()
     vector<int> vMatches; // Initialization: correspondeces with reference keypoints
     vector<cv::KeyPoint> vCurrentKeys; // KeyPoints in current frame
     vector<bool> vbVO, vbMap; // Tracked MapPoints in current frame
+    vector<bool> vbUselessPoint; // Useless MapPoints in current frame(outliers)
     int state; // Tracking state
 
     //Copy variables within scoped mutex
@@ -64,10 +65,14 @@ cv::Mat FrameDrawer::DrawFrame()
             vCurrentKeys = mvCurrentKeys;
             vbVO = mvbVO;
             vbMap = mvbMap;
+            vbUselessPoint = mvbUselessPoint;
         }
         else if(mState==Tracking::LOST)
         {
             vCurrentKeys = mvCurrentKeys;
+            vbVO = mvbVO;
+            vbMap = mvbMap;
+            vbUselessPoint = mvbUselessPoint;
         }
     } // destroy scoped mutex -> release mutex
 
@@ -90,6 +95,8 @@ cv::Mat FrameDrawer::DrawFrame()
     {
         mnTracked=0;
         mnTrackedVO=0;
+        mnUselessPoint=0; // For debug use
+        mnDiscardedPoint=0; // For debug use
         const float r = 5;
         const int n = vCurrentKeys.size();
         for(int i=0;i<n;i++)
@@ -115,6 +122,73 @@ cv::Mat FrameDrawer::DrawFrame()
                     cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(255,0,0),-1);
                     mnTrackedVO++;
                 }
+            }
+            else{
+                // cv::Point2f pt1,pt2;
+                // pt1.x=vCurrentKeys[i].pt.x-r;
+                // pt1.y=vCurrentKeys[i].pt.y-r;
+                // pt2.x=vCurrentKeys[i].pt.x+r;
+                // pt2.y=vCurrentKeys[i].pt.y+r;
+                // cv::rectangle(im,pt1,pt2,cv::Scalar(0,0,255));
+                cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,0,255),-1);
+                mnUselessPoint++;
+            }
+            if(mvbDiscardedPoint[i]){ // For debug use
+                cv::Point2f pt1,pt2;
+                pt1.x=vCurrentKeys[i].pt.x-10;
+                pt1.y=vCurrentKeys[i].pt.y-10;
+                pt2.x=vCurrentKeys[i].pt.x+10;
+                pt2.y=vCurrentKeys[i].pt.y+10;
+                cv::rectangle(im,pt1,pt2,cv::Scalar(155,255,25));
+                cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(155,255,25),-1);
+                mnDiscardedPoint++;
+            }
+        }
+    }
+    else if(mState==Tracking::LOST){
+        mnTracked=0;
+        mnTrackedVO=0;
+        mnUselessPoint=0; // For debug use
+        mnDiscardedPoint=0; // For debug use
+        const float r = 5;
+        const int n = vCurrentKeys.size();
+        for(int i=0;i<n;i++)
+        {
+            if(vbVO[i] || vbMap[i])
+            {
+                cv::Point2f pt1,pt2;
+                pt1.x=vCurrentKeys[i].pt.x-r;
+                pt1.y=vCurrentKeys[i].pt.y-r;
+                pt2.x=vCurrentKeys[i].pt.x+r;
+                pt2.y=vCurrentKeys[i].pt.y+r;
+
+                // This is a match to a MapPoint in the map
+                if(vbMap[i])
+                {
+                    cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
+                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
+                    mnTracked++;
+                }
+                else // This is match to a "visual odometry" MapPoint created in the last frame
+                {
+                    cv::rectangle(im,pt1,pt2,cv::Scalar(255,0,0));
+                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(255,0,0),-1);
+                    mnTrackedVO++;
+                }
+            }
+            else{
+                cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,0,255),-1);
+                mnUselessPoint++;
+            }
+            if(mvbDiscardedPoint[i]){ // For debug use
+                cv::Point2f pt1,pt2;
+                pt1.x=vCurrentKeys[i].pt.x-10;
+                pt1.y=vCurrentKeys[i].pt.y-10;
+                pt2.x=vCurrentKeys[i].pt.x+10;
+                pt2.y=vCurrentKeys[i].pt.y+10;
+                cv::rectangle(im,pt1,pt2,cv::Scalar(155,255,25));
+                cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(155,255,25),-1);
+                mnDiscardedPoint++;
             }
         }
     }
@@ -144,9 +218,27 @@ void FrameDrawer::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
         s << "KFs: " << nKFs << ", MPs: " << nMPs << ", Matches: " << mnTracked;
         if(mnTrackedVO>0)
             s << ", + VO matches: " << mnTrackedVO;
+        if(mnUselessPoint>0)
+            s << ", # of outliers: " << mnUselessPoint;
+        if(mnDiscardedPoint>=0)
+            s << ", # of discared matches: " << mnDiscardedPoint;
     }
     else if(nState==Tracking::LOST)
     {
+        if(!mbOnlyTracking)
+            s << "SLAM MODE |  ";
+        else
+            s << "LOCALIZATION | ";
+        int nKFs = mpMap->KeyFramesInMap();
+        int nMPs = mpMap->MapPointsInMap();
+        s << "KFs: " << nKFs << ", MPs: " << nMPs << ", Matches: " << mnTracked;
+        if(mnTrackedVO>0)
+            s << ", + VO matches: " << mnTrackedVO;
+        if(mnUselessPoint>0)
+            s << ", # of outliers: " << mnUselessPoint;
+        if(mnDiscardedPoint>=0)
+            s << ", # of discared matches: " << mnDiscardedPoint;
+
         s << " TRACK LOST. TRYING TO RELOCALIZE ";
     }
     else if(nState==Tracking::SYSTEM_NOT_READY)
@@ -172,6 +264,8 @@ void FrameDrawer::Update(Tracking *pTracker)
     N = mvCurrentKeys.size();
     mvbVO = vector<bool>(N,false);
     mvbMap = vector<bool>(N,false);
+    mvbUselessPoint = vector<bool>(N,false);
+    mvbDiscardedPoint = vector<bool>(N,false); // For debug use
     mbOnlyTracking = pTracker->mbOnlyTracking;
 
 
@@ -193,6 +287,30 @@ void FrameDrawer::Update(Tracking *pTracker)
                         mvbMap[i]=true;
                     else
                         mvbVO[i]=true;
+                }
+                else{
+
+                    mvbUselessPoint[i]=true;
+                }
+                if(pTracker->mCurrentFrame.mvbDiscarded[i]){ // For debug use
+                    mvbDiscardedPoint[i]=true;
+                }
+            }
+        }
+    }
+    else{
+        for(int i=0;i<N;i++)
+        {
+            MapPoint* pMP = pTracker->mCurrentFrame.mvpMapPoints[i];
+            if(pMP)
+            {
+                if(pTracker->mCurrentFrame.mvbOutlier[i])
+                {
+                    mvbUselessPoint[i]=true;
+                }
+
+                if(pTracker->mCurrentFrame.mvbDiscarded[i]){ // For debug use
+                    mvbDiscardedPoint[i]=true;
                 }
             }
         }
