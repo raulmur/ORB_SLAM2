@@ -264,13 +264,11 @@ Considering this feature doesn't hurt performance, and it is annonying to deal w
 
 #### Usage:
 
-This feature is integrated with `class System`. The path of mapfile can be set by adding `Map.mapfile: map.bin` to ORB_SLAM2's settings file. See the last few line of `Example/Monocular/TUM1.xml`.
+This feature is integrated with `class System`. The path of mapfile can be set by adding `Map.mapfile: map.bin` to ORB_SLAM2's settings file. See the last few line of [TUM1.yaml](Examples/Monocular/TUM1.yaml) for example.
 
-To save a map, you need construct `ORB_SLAM2::System` with the last parameter be `true`. Then the `System` will save map to mapfile specified in setting file when `ShutDown`.
+To save a map, you need construct `ORB_SLAM2::System` with the last parameter (is_save_map) be `true`. Then the `System` will save map to mapfile (create if non-existent, overwrite if existent) specified in then setting file when `ShutDown` (e.g. interrupted by ctrl+c).
 
-With a readable mapfile, map will be loaded automatically and `System` will run in localization mode, but you can change it to SLAM mode later.
-
-If you set a mapfile but it doesn't exist, `System` will create new map.
+With a readable mapfile, map will be loaded automatically and `System` will run in localization mode at first, but you can change it to SLAM mode later.
 
 mono_tum has been updated as a simple example of this functionality. An extra command line parameter(0 or 1) should be given to indicate whether you want to save map or not.
 
