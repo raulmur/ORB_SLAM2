@@ -238,8 +238,17 @@ This is the default mode. The system runs in parallal three threads: Tracking, L
 ### Localization Mode
 This mode can be used when you have a good map of your working area. In this mode the Local Mapping and Loop Closing are deactivated. The system localizes the camera in the map (which is no longer updated), using relocalization if needed. 
 
+# 10. Binary Format ORB Vocabulary
 
-# 10. Saving and Loading Map (My Developement)
+You can load ORB vocabulary in either text or binary format. The format is determined by suffix(.txt for text format and .bin for binary format).
+
+`build.sh` will generate a text-to-binary convertor `bin_vocabulary` in `Vocabulary/` . You can also find it as a target in `CMakeLists.txt`.
+
+`bin_vocabulary` will convert `./ORBvoc.txt` to `./ORBvoc.bin` and you can use the new `ORBvoc.bin` as  `PATH_TO_VOCABULARY`  wherever needed.
+
+PS: binary format is loaded faster and text format is more human-readable.
+
+# 11. Saving and Loading Map (My Developement)
 Based on tutorials on the internet, I edited several files in the `include` folder and the `src` folder. Then I edited `Examples/Monocular/mono_kitti.cc` file, and use `KITTI dataset 08` as my debugging exmaple.
 
 Now, saving and loading function may already work for stereo camera and monocular camera for KITTI dataset. I'm not planning to test other dataset. You are always welcome to right a pull request.
