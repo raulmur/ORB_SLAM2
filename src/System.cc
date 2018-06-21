@@ -30,6 +30,12 @@
 #include <unistd.h>  
 #include <dirent.h>
 
+static bool has_suffix(const std::string &str, const std::string &suffix) // Used when loading binary DBoW file.
+{
+    std::size_t index = str.find(suffix, str.size() - suffix.size());
+    return (index != std::string::npos);
+}
+
 namespace ORB_SLAM2
 {
 
@@ -66,7 +72,21 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
 
     mpVocabulary = new ORBVocabulary();
-    bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
+    bool bVocLoad = false; // chose loading method based on file extension
+
+    if (has_suffix(strVocFile, ".bin")){
+        cout << "loadFromBinaryFile......" << endl;
+        bVocLoad = mpVocabulary->loadFromBinaryFile(strVocFile);
+    }
+    else if(has_suffix(strVocFile, ".txt")){
+        cout << "loadFromTextFile......" << endl;
+        bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
+    }
+    else{
+        bVocLoad = false;
+    }
+    // bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
+
     if(!bVocLoad)
     {
         cerr << "Wrong path to vocabulary. " << endl;
