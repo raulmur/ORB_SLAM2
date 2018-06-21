@@ -381,7 +381,7 @@ void Tracking::Track()
                 if(!mbVO)
                 {
                     // In last frame we tracked enough MapPoints in the map
-
+                    cout << "Tracking.cc :: Now mbVO is false, means in the last frame we tracked enough MapPoints in the map(nmatchesMap>20);" << endl;
                     if(!mVelocity.empty())
                     {
                         cout << "Tracking.cc :: mVelocity not empty, TrackWithMotionModel();" << endl;
@@ -389,8 +389,8 @@ void Tracking::Track()
                     }
                     else
                     {
-                        bOK = TrackReferenceKeyFrame();
                         cout << "Tracking.cc :: mVelocity is empty, TrackReferenceKeyFrame();" << endl;
+                        bOK = TrackReferenceKeyFrame();
                     }
                 }
                 else
@@ -466,7 +466,7 @@ void Tracking::Track()
             // a local map and therefore we do not perform TrackLocalMap(). Once the system relocalizes
             // the camera we will use the local map again.
             if(bOK && !mbVO){
-                cout << "Tracking.cc :: bOK && !mbVO; means that there are few matches to MapPoints in the map." << endl;
+                cout << "Tracking.cc :: bOK && !mbVO; means that there are many matches in the map, so we can TrackLocalMap()." << endl;
                 bOK = TrackLocalMap();
             }
         }
@@ -1213,7 +1213,9 @@ bool Tracking::TrackWithMotionModel()
     }
 
     // Optimize frame pose with all matches
-    Optimizer::PoseOptimization(&mCurrentFrame);
+    cout << "Tracking::TrackWithMotionModel() : Now we put these " << nmatches << " into Optimizer::PoseOptimization()." << endl;
+    int nGoodMatches = Optimizer::PoseOptimization(&mCurrentFrame);
+    cout << "Tracking::TrackWithMotionModel() : After PoseOptimization, we found " << nGoodMatches << " good matches and " << (nmatches-nGoodMatches) << " bad matches among those " << nmatches << " matches." << endl;
 
     // Discard outliers
     int nmatchesMap = 0;
@@ -1262,6 +1264,7 @@ bool Tracking::TrackLocalMap()
     // cout << "Tracking::TrackLocalMap() : SearchLocalPoints() finished" << endl;
 
     // Optimize Pose
+    cout << "Tracking::TrackLocalMap() : Now we optimize the pose again." << endl;
     Optimizer::PoseOptimization(&mCurrentFrame);
     mnMatchesInliers = 0;
 
@@ -1290,16 +1293,16 @@ bool Tracking::TrackLocalMap()
     // Decide if the tracking was succesful
     // More restrictive if there was a relocalization recently
     if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers<50){
-        // cout << "Tracking::TrackLocalMap() : mnMatchesInliers<50, return" << endl;
+        cout << "Tracking::TrackLocalMap() : relocalization recently, and mnMatchesInliers = " << mnMatchesInliers << " < 50, return" << endl;
         return false;
     }
 
     if(mnMatchesInliers<30){
-        // cout << "Tracking::TrackLocalMap() : mnMatchesInliers<30, return" << endl;
+        cout << "Tracking::TrackLocalMap() : mnMatchesInliers = " << mnMatchesInliers << " < 30, return" << endl;
         return false;
     }
     else{
-        // cout << "Tracking::TrackLocalMap() : mnMatchesInliers = " << mnMatchesInliers << ", great!" << endl;
+        cout << "Tracking::TrackLocalMap() : mnMatchesInliers = " << mnMatchesInliers << ", great!" << endl;
         return true;
     }
 }
@@ -1699,6 +1702,7 @@ bool Tracking::Relocalization()
 
     int nCandidates=0;
 
+    cout <<"Tracking::Relocalization() : Try to localize in " << nKFs << " KeyFrames." << endl;
     for(int i=0; i<nKFs; i++)
     {
         KeyFrame* pKF = vpCandidateKFs[i];

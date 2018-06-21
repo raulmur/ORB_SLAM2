@@ -447,6 +447,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
     cv::Mat pose = Converter::toCvMat(SE3quat_recov);
     pFrame->SetPose(pose);
 
+    cout << "Optimizer::PoseOptimization() : nInitialCorrespondences = " << nInitialCorrespondences << ", nBad = " << nBad << endl;
     return nInitialCorrespondences-nBad;
 }
 

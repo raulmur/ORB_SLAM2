@@ -694,4 +694,34 @@ void Frame::UpdatenNextId( unsigned int i )
     nNextId = i;
 }
 
+void Frame::ClearBadDescriptor()
+{
+    mvBadDescriptor.clear();
+    mvBadDescriptorRadius.clear();
+}
+
+void Frame::SaveBadDescriptor(const float &x, const float  &y, const float  &r)
+{
+    cv::KeyPoint kp;
+    kp.pt.x=x;
+    kp.pt.y=y;
+    mvBadDescriptorRadius.push_back(r);
+    mvBadDescriptor.push_back(kp);
+}
+
+void Frame::ClearGoodDescriptor()
+{
+    mvGoodDescriptor.clear();
+    mvGoodDescriptorRadius.clear();
+}
+
+void Frame::SaveGoodDescriptor(const float &x, const float  &y, const float  &r)
+{
+    cv::KeyPoint kp;
+    kp.pt.x=x;
+    kp.pt.y=y;
+    mvGoodDescriptorRadius.push_back(r);
+    mvGoodDescriptor.push_back(kp);
+}
+
 } //namespace ORB_SLAM

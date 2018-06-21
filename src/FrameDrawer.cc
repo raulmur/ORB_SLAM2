@@ -79,6 +79,28 @@ cv::Mat FrameDrawer::DrawFrame()
     if(im.channels()<3) //this should be always true
         cvtColor(im,im,CV_GRAY2BGR);
 
+    // Now draw the good and bad descriptors
+    int nGoodDescriptor = mvGoodDescriptor.size();
+    for(int i=0; i<nGoodDescriptor; i++){
+        cv::Point2f pt1,pt2;
+        pt1.x=mvGoodDescriptor[i].pt.x-mvGoodDescriptorRadius[i];
+        pt1.y=mvGoodDescriptor[i].pt.y-mvGoodDescriptorRadius[i];
+        pt2.x=mvGoodDescriptor[i].pt.x+mvGoodDescriptorRadius[i];
+        pt2.y=mvGoodDescriptor[i].pt.y+mvGoodDescriptorRadius[i];
+        cv::rectangle(im,pt1,pt2,cv::Scalar(255,255,0));
+        cv::circle(im,mvGoodDescriptor[i].pt,1,cv::Scalar(255,255,0),-1);
+    }
+    int nBadDescriptor = mvBadDescriptor.size();
+    for(int i=0; i<nBadDescriptor; i++){
+        cv::Point2f pt1,pt2;
+        pt1.x=mvBadDescriptor[i].pt.x-mvBadDescriptorRadius[i];
+        pt1.y=mvBadDescriptor[i].pt.y-mvBadDescriptorRadius[i];
+        pt2.x=mvBadDescriptor[i].pt.x+mvBadDescriptorRadius[i];
+        pt2.y=mvBadDescriptor[i].pt.y+mvBadDescriptorRadius[i];
+        cv::rectangle(im,pt1,pt2,cv::Scalar(0,0,128));
+        cv::circle(im,mvBadDescriptor[i].pt,1,cv::Scalar(0,0,128),-1);
+    }
+
     //Draw
     if(state==Tracking::NOT_INITIALIZED) //INITIALIZING
     {
@@ -112,38 +134,33 @@ cv::Mat FrameDrawer::DrawFrame()
                 // This is a match to a MapPoint in the map
                 if(vbMap[i])
                 {
-                    cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
-                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
+                    cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0)); //BGR
+                    cv::circle(im,vCurrentKeys[i].pt,1,cv::Scalar(0,255,0),-1);
                     mnTracked++;
                 }
                 else // This is match to a "visual odometry" MapPoint created in the last frame
                 {
                     cv::rectangle(im,pt1,pt2,cv::Scalar(255,0,0));
-                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(255,0,0),-1);
+                    cv::circle(im,vCurrentKeys[i].pt,1,cv::Scalar(255,0,0),-1);
                     mnTrackedVO++;
                 }
             }
             else{
-                // cv::Point2f pt1,pt2;
-                // pt1.x=vCurrentKeys[i].pt.x-r;
-                // pt1.y=vCurrentKeys[i].pt.y-r;
-                // pt2.x=vCurrentKeys[i].pt.x+r;
-                // pt2.y=vCurrentKeys[i].pt.y+r;
-                // cv::rectangle(im,pt1,pt2,cv::Scalar(0,0,255));
-                cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,0,255),-1);
+                cv::circle(im,vCurrentKeys[i].pt,0,cv::Scalar(0,0,255),-1);
                 mnUselessPoint++;
             }
             if(mvbDiscardedPoint[i]){ // For debug use
                 cv::Point2f pt1,pt2;
-                pt1.x=vCurrentKeys[i].pt.x-10;
-                pt1.y=vCurrentKeys[i].pt.y-10;
-                pt2.x=vCurrentKeys[i].pt.x+10;
-                pt2.y=vCurrentKeys[i].pt.y+10;
-                cv::rectangle(im,pt1,pt2,cv::Scalar(155,255,25));
-                cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(155,255,25),-1);
+                pt1.x=vCurrentKeys[i].pt.x-r;
+                pt1.y=vCurrentKeys[i].pt.y-r;
+                pt2.x=vCurrentKeys[i].pt.x+r;
+                pt2.y=vCurrentKeys[i].pt.y+r;
+                cv::rectangle(im,pt1,pt2,cv::Scalar(255,0,255));
+                cv::circle(im,vCurrentKeys[i].pt,1,cv::Scalar(255,0,255),-1);
                 mnDiscardedPoint++;
             }
         }
+        
     }
     else if(mState==Tracking::LOST){
         mnTracked=0;
@@ -152,6 +169,29 @@ cv::Mat FrameDrawer::DrawFrame()
         mnDiscardedPoint=0; // For debug use
         const float r = 5;
         const int n = vCurrentKeys.size();
+
+        // Now draw the good and bad descriptors
+        int nGoodDescriptor = mvGoodDescriptor.size();
+        for(int i=0; i<nGoodDescriptor; i++){
+            cv::Point2f pt1,pt2;
+            pt1.x=mvGoodDescriptor[i].pt.x-mvGoodDescriptorRadius[i];
+            pt1.y=mvGoodDescriptor[i].pt.y-mvGoodDescriptorRadius[i];
+            pt2.x=mvGoodDescriptor[i].pt.x+mvGoodDescriptorRadius[i];
+            pt2.y=mvGoodDescriptor[i].pt.y+mvGoodDescriptorRadius[i];
+            cv::rectangle(im,pt1,pt2,cv::Scalar(255,255,0));
+            cv::circle(im,mvGoodDescriptor[i].pt,1,cv::Scalar(255,255,0),-1);
+        }
+        int nBadDescriptor = mvBadDescriptor.size();
+        for(int i=0; i<nBadDescriptor; i++){
+            cv::Point2f pt1,pt2;
+            pt1.x=mvBadDescriptor[i].pt.x-mvBadDescriptorRadius[i];
+            pt1.y=mvBadDescriptor[i].pt.y-mvBadDescriptorRadius[i];
+            pt2.x=mvBadDescriptor[i].pt.x+mvBadDescriptorRadius[i];
+            pt2.y=mvBadDescriptor[i].pt.y+mvBadDescriptorRadius[i];
+            cv::rectangle(im,pt1,pt2,cv::Scalar(0,0,128));
+            cv::circle(im,mvBadDescriptor[i].pt,1,cv::Scalar(0,0,128),-1);
+        }
+
         for(int i=0;i<n;i++)
         {
             if(vbVO[i] || vbMap[i])
@@ -166,31 +206,32 @@ cv::Mat FrameDrawer::DrawFrame()
                 if(vbMap[i])
                 {
                     cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
-                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
+                    cv::circle(im,vCurrentKeys[i].pt,1,cv::Scalar(0,255,0),-1);
                     mnTracked++;
                 }
                 else // This is match to a "visual odometry" MapPoint created in the last frame
                 {
                     cv::rectangle(im,pt1,pt2,cv::Scalar(255,0,0));
-                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(255,0,0),-1);
+                    cv::circle(im,vCurrentKeys[i].pt,1,cv::Scalar(255,0,0),-1);
                     mnTrackedVO++;
                 }
             }
             else{
-                cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,0,255),-1);
+                cv::circle(im,vCurrentKeys[i].pt,0,cv::Scalar(0,0,255),-1);
                 mnUselessPoint++;
             }
             if(mvbDiscardedPoint[i]){ // For debug use
                 cv::Point2f pt1,pt2;
-                pt1.x=vCurrentKeys[i].pt.x-10;
-                pt1.y=vCurrentKeys[i].pt.y-10;
-                pt2.x=vCurrentKeys[i].pt.x+10;
-                pt2.y=vCurrentKeys[i].pt.y+10;
-                cv::rectangle(im,pt1,pt2,cv::Scalar(155,255,25));
-                cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(155,255,25),-1);
+                pt1.x=vCurrentKeys[i].pt.x-r;
+                pt1.y=vCurrentKeys[i].pt.y-r;
+                pt2.x=vCurrentKeys[i].pt.x+r;
+                pt2.y=vCurrentKeys[i].pt.y+r;
+                cv::rectangle(im,pt1,pt2,cv::Scalar(255,0,255));
+                cv::circle(im,vCurrentKeys[i].pt,1,cv::Scalar(255,0,255),-1);
                 mnDiscardedPoint++;
             }
         }
+        
     }
 
     cv::Mat imWithInfo;
@@ -267,12 +308,24 @@ void FrameDrawer::Update(Tracking *pTracker)
     mvbUselessPoint = vector<bool>(N,false);
     mvbDiscardedPoint = vector<bool>(N,false); // For debug use
     mbOnlyTracking = pTracker->mbOnlyTracking;
+    mvBadDescriptor = pTracker->mCurrentFrame.mvBadDescriptor;  // For debug use, I'm trying to draw those points on the FrameDrawer that does not fit the DescriptorDistance requirement.
+    mvBadDescriptorRadius = pTracker->mCurrentFrame.mvBadDescriptorRadius;  // For debug use, I'm trying to draw those points on the FrameDrawer that does not fit the DescriptorDistance requirement.
+    mvGoodDescriptor = pTracker->mCurrentFrame.mvGoodDescriptor;  // For debug use.
+    mvGoodDescriptorRadius = pTracker->mCurrentFrame.mvGoodDescriptorRadius;  // For debug use.
 
 
     if(pTracker->mLastProcessedState==Tracking::NOT_INITIALIZED)
     {
         mvIniKeys=pTracker->mInitialFrame.mvKeys;
         mvIniMatches=pTracker->mvIniMatches;
+        for(int i=0;i<N;i++) // For debug use
+        {
+            MapPoint* pMP = pTracker->mCurrentFrame.mvpMapPoints[i];
+            if(pMP)
+            {
+                mvbUselessPoint[i]=true;
+            }
+        }
     }
     else if(pTracker->mLastProcessedState==Tracking::OK)
     {
@@ -289,8 +342,7 @@ void FrameDrawer::Update(Tracking *pTracker)
                         mvbVO[i]=true;
                 }
                 else{
-
-                    mvbUselessPoint[i]=true;
+                    mvbUselessPoint[i]=true;  // For debug use
                 }
                 if(pTracker->mCurrentFrame.mvbDiscarded[i]){ // For debug use
                     mvbDiscardedPoint[i]=true;
@@ -304,7 +356,7 @@ void FrameDrawer::Update(Tracking *pTracker)
             MapPoint* pMP = pTracker->mCurrentFrame.mvpMapPoints[i];
             if(pMP)
             {
-                if(pTracker->mCurrentFrame.mvbOutlier[i])
+                if(pTracker->mCurrentFrame.mvbOutlier[i])  // For debug use
                 {
                     mvbUselessPoint[i]=true;
                 }

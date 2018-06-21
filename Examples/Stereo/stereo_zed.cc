@@ -101,6 +101,11 @@ int main(int argc, char **argv)
     << "Type in a number. (For example, 1 means you want me to read images consecutively; 2 means I'll skip one image at a loop...)" << endl;
     cin >> nSkip;
     cout << "The value you entered is " << nSkip << endl;
+    if (nSkip < 1 ){
+        cerr << endl << "ERROR: Please type positive intergers only! QUIT." << endl;
+            return 1;
+    }
+    
     int cout_gap = nImages/100 + 1;
     for(int ni=0; ni<nImages; ni+=nSkip)
     {   

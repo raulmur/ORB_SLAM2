@@ -68,6 +68,11 @@ protected:
     Map* mpMap;
 
     std::mutex mMutex;
+
+    vector<cv::KeyPoint> mvBadDescriptor; //For debug use, I'm trying to draw those points on the FrameDrawer that does not fit the DescriptorDistance requirement.
+    vector<float> mvBadDescriptorRadius; //For debug use, I'm trying to draw those points on the FrameDrawer that does not fit the DescriptorDistance requirement.
+    vector<cv::KeyPoint> mvGoodDescriptor; //For debug use.
+    vector<float> mvGoodDescriptorRadius; //For debug use.
 };
 
 } //namespace ORB_SLAM

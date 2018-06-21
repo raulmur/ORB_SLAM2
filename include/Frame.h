@@ -102,6 +102,13 @@ public:
 
     void UpdatenNextId( unsigned int i );
 
+    void ClearBadDescriptor();//For debug use, I'm trying to draw those points on the FrameDrawer that does not fit the DescriptorDistance requirement.
+
+    void SaveBadDescriptor(const float &x, const float  &y, const float  &r);//For debug use, I'm trying to draw those points on the FrameDrawer that does not fit the DescriptorDistance requirement.
+
+    void ClearGoodDescriptor();//For debug use.
+    void SaveGoodDescriptor(const float &x, const float  &y, const float  &r);//For debug use.
+
 public:
     // Vocabulary used for relocalization.
     ORBVocabulary* mpORBvocabulary;
@@ -193,6 +200,11 @@ public:
     static float mnMaxY;
 
     static bool mbInitialComputations;
+
+    vector<cv::KeyPoint> mvBadDescriptor; //For debug use, I'm trying to draw those points on the FrameDrawer that does not fit the DescriptorDistance requirement.
+    vector<float> mvBadDescriptorRadius; //For debug use, I'm trying to draw those points on the FrameDrawer that does not fit the DescriptorDistance requirement.
+    vector<cv::KeyPoint> mvGoodDescriptor; //For debug use.
+    vector<float> mvGoodDescriptorRadius; //For debug use.
 
 
 private:
