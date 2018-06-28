@@ -53,6 +53,10 @@ public:
 
     ~ORBextractor(){}
 
+    static bool CompareSmall(std::pair<int,ExtractorNode*> &p1, std::pair<int,ExtractorNode*> &p2){
+        return (p1.first<p2.first);
+    }
+
     // Compute the ORB features and descriptors on an image.
     // ORB are dispersed on the image using an octree.
     // Mask is ignored in the current implementation.
