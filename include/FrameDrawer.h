@@ -48,6 +48,8 @@ public:
     // Draw last processed frame.
     cv::Mat DrawFrame();
 
+    bool mbSaveImage;
+
 protected:
 
     void DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText);
@@ -73,6 +75,7 @@ protected:
     vector<float> mvBadDescriptorRadius; //For debug use, I'm trying to draw those points on the FrameDrawer that does not fit the DescriptorDistance requirement.
     vector<cv::KeyPoint> mvGoodDescriptor; //For debug use.
     vector<float> mvGoodDescriptorRadius; //For debug use.
+
 };
 
 } //namespace ORB_SLAM

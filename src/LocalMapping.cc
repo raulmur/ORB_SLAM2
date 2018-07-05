@@ -32,6 +32,17 @@ LocalMapping::LocalMapping(Map *pMap, const float bMonocular):
     mbMonocular(bMonocular), mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap),
     mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true)
 {
+    // mpParams = pParams;
+    // mnLocalWindowSize = ConfigParam::GetLocalWindowSize();
+    // cout<<"mnLocalWindowSize:"<<mnLocalWindowSize<<endl;
+
+    // mbVINSInited = false;
+    // mbFirstTry = true;
+    // mbFirstVINSInited = false;
+
+    // mbUpdatingInitPoses = false;
+    // mbCopyInitKFs = false;
+    // mbInitGBAFinish = false;
 }
 
 void LocalMapping::SetLoopCloser(LoopClosing* pLoopCloser)
@@ -776,5 +787,51 @@ bool LocalMapping::isFinished()
     unique_lock<mutex> lock(mMutexFinish);
     return mbFinished;
 }
+
+
+
+//-------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------
+// For IMU
+// bool LocalMapping::GetMapUpdateFlagForTracking()
+// {
+//     unique_lock<mutex> lock(mMutexMapUpdateFlag);
+//     return mbMapUpdateFlagForTracking;
+// }
+
+// void LocalMapping::SetMapUpdateFlagInTracking(bool bflag)
+// {
+//     unique_lock<mutex> lock(mMutexMapUpdateFlag);
+//     mbMapUpdateFlagForTracking = bflag;
+//     if(bflag)
+//     {
+//         mpMapUpdateKF = mpCurrentKeyFrame;
+//     }
+// }
+
+// bool LocalMapping::GetVINSInited(void)
+// {
+//     unique_lock<mutex> lock(mMutexVINSInitFlag);
+//     return mbVINSInited;
+// }
+
+// void LocalMapping::SetVINSInited(bool flag)
+// {
+//     unique_lock<mutex> lock(mMutexVINSInitFlag);
+//     mbVINSInited = flag;
+// }
+
+// bool LocalMapping::GetFirstVINSInited(void)
+// {
+//     unique_lock<mutex> lock(mMutexFirstVINSInitFlag);
+//     return mbFirstVINSInited;
+// }
+
+// void LocalMapping::SetFirstVINSInited(bool flag)
+// {
+//     unique_lock<mutex> lock(mMutexFirstVINSInitFlag);
+//     mbFirstVINSInited = flag;
+// }
+
 
 } //namespace ORB_SLAM

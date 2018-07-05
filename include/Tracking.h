@@ -113,6 +113,10 @@ public:
     // True if local mapping is deactivated and we are performing only localization
     bool mbOnlyTracking;
 
+    // True if use the IMU Integrator
+    bool mbUseIMU;
+    float yaw_angle_accums;
+
     void Reset();
 
 protected:

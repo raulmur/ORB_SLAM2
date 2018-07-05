@@ -66,6 +66,7 @@ public:
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
     // Returns the camera pose (empty if tracking fails).
     cv::Mat TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp);
+    cv::Mat TrackStereoWithIMU(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp, const float current_yaw_angle_accums);
 
     // Process the given rgbd frame. Depthmap must be registered to the RGB frame.
     // Input image: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
@@ -125,6 +126,11 @@ public:
     int GetTrackingState();
     std::vector<MapPoint*> GetTrackedMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
+
+    // Self defined pointer to save images on my disk:
+    void SetSaveImageFlag();
+    void SetViewerIMUFlagTrue();
+    void SetViewerIMUFlagFalse();
 
 private:
 

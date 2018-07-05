@@ -121,9 +121,18 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //Initialize the Viewer thread and launch
     if(bUseViewer)
     {
+        char SaveImg;
+        cout << "Do you want to save images from the viewer?(y/n)" << endl;
+        cin >> SaveImg;
+        
         mpViewer = new Viewer(this, mpFrameDrawer,mpMapDrawer,mpTracker,strSettingsFile);
         mptViewer = new thread(&Viewer::Run, mpViewer);
         mpTracker->SetViewer(mpViewer);
+        
+        if(SaveImg == 'Y' || SaveImg == 'y'){  
+            mpViewer->mbSaveImg = true;
+            cout << "I'll save these images under the directiry of: '/$(HOME)/Pictures/ORB-SLAM2/'  or  '/$(HOME)/Pictures/ORB-SLAM2-IMU/'" << endl;
+        }
     }
 
     // Choose to use pure localization mode
@@ -209,6 +218,64 @@ cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const
         mbReset = false;
     }
     }
+
+    cv::Mat Tcw = mpTracker->GrabImageStereo(imLeft,imRight,timestamp);
+
+    unique_lock<mutex> lock2(mMutexState);
+    mTrackingState = mpTracker->mState;
+    mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
+    mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
+    return Tcw;
+}
+
+cv::Mat System::TrackStereoWithIMU(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp, const float current_yaw_angle_accums)
+{
+    if(mSensor!=STEREO)
+    {
+        cerr << "ERROR: you called TrackStereo but input sensor was not set to STEREO." << endl;
+        exit(-1);
+    }   
+
+    // Check mode change
+    {
+        unique_lock<mutex> lock(mMutexMode);
+        if(mbActivateLocalizationMode)
+        {
+            mpLocalMapper->RequestStop();
+
+            // Wait until Local Mapping has effectively stopped
+            while(!mpLocalMapper->isStopped())
+            {
+                usleep(1000);
+            }
+
+            mpTracker->InformOnlyTracking(true);
+            mbActivateLocalizationMode = false;
+        }
+        if(mbDeactivateLocalizationMode)
+        {
+            mpTracker->InformOnlyTracking(false);
+            mpLocalMapper->Release();
+            mbDeactivateLocalizationMode = false;
+        }
+    }
+
+    // Check reset
+    {
+    unique_lock<mutex> lock(mMutexReset);
+    if(mbReset)
+    {
+        mpTracker->Reset();
+        mbReset = false;
+    }
+    }
+
+    // Set IMU flags
+    if (mpTracker->mbUseIMU != true){
+        mpTracker->mbUseIMU = true;
+    }
+    // Update IMU yaw_angle_accums
+    mpTracker->yaw_angle_accums = current_yaw_angle_accums;
 
     cv::Mat Tcw = mpTracker->GrabImageStereo(imLeft,imRight,timestamp);
 
@@ -561,6 +628,18 @@ int System::GetTrackingState()
 {
     unique_lock<mutex> lock(mMutexState);
     return mTrackingState;
+}
+
+void System::SetSaveImageFlag(){
+    mpFrameDrawer->mbSaveImage = true; 
+}
+
+void System::SetViewerIMUFlagTrue(){
+    mpViewer->mbUseIMU = true; 
+}
+
+void System::SetViewerIMUFlagFalse(){
+    mpViewer->mbUseIMU = false; 
 }
 
 vector<MapPoint*> System::GetTrackedMapPoints()

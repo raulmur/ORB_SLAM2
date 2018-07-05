@@ -281,6 +281,25 @@ void Tracking::Track()
     // Get Map Mutex -> Map cannot be changed
     unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
 
+    cout << endl;
+    
+    // Different operation, according to whether the map is updated
+    // bool bMapUpdated = false;
+    // if(mpLocalMapper->GetMapUpdateFlagForTracking())
+    // {
+    //     bMapUpdated = true;
+    //     mpLocalMapper->SetMapUpdateFlagInTracking(false);
+    // }
+    // if(mpLoopClosing->GetMapUpdateFlagForTracking())
+    // {
+    //     bMapUpdated = true;
+    //     mpLoopClosing->SetMapUpdateFlagInTracking(false);
+    // }
+    // if(mCurrentFrame.mnId == mnLastRelocFrameId + 20)
+    // {
+    //     bMapUpdated = true;
+    // }
+
     if(mState==NOT_INITIALIZED && mpMap->GetMaxKFid() == 0)
     {
 
@@ -1183,8 +1202,22 @@ bool Tracking::TrackWithMotionModel()
 
     // cout << "Tracking::TrackWithMotionModel(line901) : mVelocity = " << mVelocity << endl;
     // cout << "Tracking::TrackWithMotionModel(line902) : mLastFrame.mTcw = " << mLastFrame.mTcw << endl;
-    mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw);
-    // mVelocity is a 4x4 SE3 matrix
+
+    // If UseIMU(only consider yaw angle), we add another rotation to Current Pose
+    if(mbUseIMU){
+        cv::Mat yawIMU = cv::Mat::eye(4,4,CV_32F);
+        yawIMU.at<float>(0,0) = cos(yaw_angle_accums);
+        yawIMU.at<float>(0,1) = -sin(yaw_angle_accums);
+        yawIMU.at<float>(1,0) = sin(yaw_angle_accums);
+        yawIMU.at<float>(1,1) = cos(yaw_angle_accums);
+        cout << "Tracking::TrackWithMotionModel() : yaw_angle_accums = " << yaw_angle_accums << endl;   
+        mCurrentFrame.SetPose(yawIMU*mVelocity*mLastFrame.mTcw);
+    }
+    else{
+        mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw);
+    }
+
+    // mVelocity is a 4x4 SE3 matrix. cv::Mat mVelocity = mCurrentFrame.mTcw*LastTwc
     // mLastFrame.mTcw is also a 4x4 SE3 matrix
 
     fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
@@ -1251,6 +1284,99 @@ bool Tracking::TrackWithMotionModel()
     }
     return nmatchesMap>=10;
 }
+
+// bool Tracking::TrackWithIMUYaw()
+// {
+//     ORBmatcher matcher(0.9,true);
+
+//     // Update last frame pose according to its reference keyframe
+//     // Create "visual odometry" points if in Localization Mode
+//     UpdateLastFrame();
+
+//     // cout << "Tracking::TrackWithMotionModel(line901) : mVelocity = " << mVelocity << endl;
+//     // cout << "Tracking::TrackWithMotionModel(line902) : mLastFrame.mTcw = " << mLastFrame.mTcw << endl;
+
+//     // If UseIMU(only consider yaw angle), we add another rotation to Current Pose
+//     if(mbUseIMU){
+//         cv::Mat yawIMU = cv::Mat::eye(4,4,CV_32F);
+//         yawIMU.at<float>(0,0) = cos(yaw_angle_accums);
+//         yawIMU.at<float>(0,1) = -sin(yaw_angle_accums);
+//         yawIMU.at<float>(1,0) = sin(yaw_angle_accums);
+//         yawIMU.at<float>(1,1) = cos(yaw_angle_accums);
+//         cout << "Tracking::TrackWithMotionModel() : yaw_angle_accums = " << yaw_angle_accums << endl;   
+//         mCurrentFrame.SetPose(yawIMU*mVelocity*mLastFrame.mTcw);
+//     }
+//     else{
+//         mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw);
+//     }
+//     // mVelocity is a 4x4 SE3 matrix. cv::Mat mVelocity = mCurrentFrame.mTcw*LastTwc
+//     // mLastFrame.mTcw is also a 4x4 SE3 matrix
+
+//     fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
+//     // cout << "Tracking::TrackWithMotionModel(line908) : This frame sees " << mCurrentFrame.mvpMapPoints.size() << " map points." << endl;
+
+//     // Project points seen in previous frame
+//     int th;
+//     if(mSensor!=System::STEREO)
+//         th=15;
+//     else
+//         th=7;
+//     int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
+//     cout << "Tracking::TrackWithMotionModel() : At first, nmatches = " << nmatches << endl; // Note, nmatches and nmatchesMap are different!! though they'll be equal at last.
+
+//     // If few matches, uses a wider window search
+//     if(nmatches<20)
+//     {
+//         cout << "Tracking::TrackWithMotionModel() : nmatches<20, uses a wider window search" << endl;
+//         fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
+//         nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR);
+//     }
+
+//     if(nmatches<20){
+//         cout << "Tracking::TrackWithMotionModel() : wider window search failed, nmatches<20, return" << endl;
+//         return false;
+//     }
+
+//     // Optimize frame pose with all matches
+//     cout << "Tracking::TrackWithMotionModel() : Now we put these " << nmatches << " into Optimizer::PoseOptimization()." << endl;
+//     int nGoodMatches = Optimizer::PoseOptimization(&mCurrentFrame);
+//     cout << "Tracking::TrackWithMotionModel() : After PoseOptimization, we found " << nGoodMatches << " good matches and " << (nmatches-nGoodMatches) << " bad matches among those " << nmatches << " matches." << endl;
+
+//     // Discard outliers
+//     int nmatchesMap = 0;
+//     for(int i =0; i<mCurrentFrame.N; i++)
+//     {
+//         if(mCurrentFrame.mvpMapPoints[i])
+//         {
+//             if(mCurrentFrame.mvbOutlier[i])
+//             {
+//                 MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
+
+//                 mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
+//                 mCurrentFrame.mvbOutlier[i]=false;
+//                 pMP->mbTrackInView = false;
+//                 pMP->mnLastFrameSeen = mCurrentFrame.mnId;
+//                 nmatches--;
+//                 mCurrentFrame.mvbDiscarded[i]=true; // For debug use
+//             }
+//             else if(mCurrentFrame.mvpMapPoints[i]->Observations()>0)
+//                 nmatchesMap++;
+//         }
+//     }    
+//     cout << "Tracking::TrackWithMotionModel() : After picking out outliers, nmatches = " << nmatches << " out of " << mCurrentFrame.N << " points." << endl;
+//     cout << "Tracking::TrackWithMotionModel() : nmatchesMap = " << nmatchesMap << endl;
+
+//     if(mbOnlyTracking)
+//     {
+//         mbVO = nmatchesMap<10;
+//         if(mbVO){
+//             cout << "Tracking::TrackWithMotionModel() : Not enough nmatchesMap, we should use VO in the next iteration. "<< endl;
+//         }
+//         return nmatches>20;
+//     }
+//     return nmatchesMap>=10;
+// }
+
 
 bool Tracking::TrackLocalMap()
 {

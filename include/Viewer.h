@@ -56,6 +56,9 @@ public:
 
     void Release();
 
+    bool mbSaveImg;
+    bool mbUseIMU;
+
 private:
 
     bool Stop();
