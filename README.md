@@ -237,4 +237,4 @@ This is the default mode. The system runs in parallal three threads: Tracking, L
 
 ### Localization Mode
 This mode can be used when you have a good map of your working area. In this mode the Local Mapping and Loop Closing are deactivated. The system localizes the camera in the map (which is no longer updated), using relocalization if needed. 
-
+###Just zhuangbi
