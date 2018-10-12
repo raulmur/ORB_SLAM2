@@ -23,7 +23,9 @@
 #include<algorithm>
 #include<fstream>
 #include<chrono>
-
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include<opencv2/core/core.hpp>
 
 #include<System.h>

@@ -25,7 +25,9 @@
 #include <thread>
 #include <pangolin/pangolin.h>
 #include <iomanip>
-
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 namespace ORB_SLAM2
 {
 
