@@ -107,7 +107,7 @@ void ViewerAR::Run()
 
     vector<Plane*> vpPlane;
 
-    while(1)
+    while(!pangolin::ShouldQuit())
     {
 
         if(menu_LocalizationMode && !bLocalizationMode)
@@ -152,7 +152,7 @@ void ViewerAR::Run()
         LoadCameraPose(Tcw);
 
         // Draw virtual things
-        if(status==2)
+        if(status==ORB_SLAM2::Tracking::OK)
         {
             if(menu_clear)
             {
@@ -232,7 +232,7 @@ void ViewerAR::Run()
         pangolin::FinishFrame();
         std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<size_t>(mT)));
     }
-
+    pangolin::Quit();
 }
 
 void ViewerAR::SetImagePose(const cv::Mat &im, const cv::Mat &Tcw, const int &status, const vector<cv::KeyPoint> &vKeys, const vector<ORB_SLAM2::MapPoint*> &vMPs)
@@ -287,22 +287,23 @@ void ViewerAR::LoadCameraPose(const cv::Mat &Tcw)
 
 void ViewerAR::PrintStatus(const int &status, const bool &bLocMode, cv::Mat &im)
 {
+    typedef ORB_SLAM2::Tracking tr;
     if(!bLocMode)
     {
         switch(status)
         {
-        case 1:  {AddTextToImage("SLAM NOT INITIALIZED",im,255,0,0); break;}
-        case 2:  {AddTextToImage("SLAM ON",im,0,255,0); break;}
-        case 3:  {AddTextToImage("SLAM LOST",im,255,0,0); break;}
+        case tr::NOT_INITIALIZED:  {AddTextToImage("SLAM NOT INITIALIZED",im,255,0,0); break;}
+        case tr::OK:  {AddTextToImage("SLAM ON",im,0,255,0); break;}
+        case tr::LOST:  {AddTextToImage("SLAM LOST",im,255,0,0); break;}
         }
     }
     else
     {
         switch(status)
         {
-        case 1:  {AddTextToImage("SLAM NOT INITIALIZED",im,255,0,0); break;}
-        case 2:  {AddTextToImage("LOCALIZATION ON",im,0,255,0); break;}
-        case 3:  {AddTextToImage("LOCALIZATION LOST",im,255,0,0); break;}
+        case tr::NOT_INITIALIZED:  {AddTextToImage("SLAM NOT INITIALIZED",im,255,0,0); break;}
+        case tr::OK:  {AddTextToImage("LOCALIZATION ON",im,0,255,0); break;}
+        case tr::LOST:  {AddTextToImage("LOCALIZATION LOST",im,255,0,0); break;}
         }
     }
 }
