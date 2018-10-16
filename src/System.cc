@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h> 
 
 static bool has_suffix(const std::string &str, const std::string &suffix)
 {
@@ -49,6 +50,8 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     "This is free software, and you are welcome to redistribute it" << endl <<
     "under certain conditions. See LICENSE.txt." << endl << endl;
 
+    cout<<"DDEBUG  -  is_save_map" <<is_save_map<<endl;
+
     cout << "Input sensor was set to: ";
 
     if(mSensor==MONOCULAR)
@@ -66,11 +69,19 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
        exit(-1);
     }
 
-    cv::FileNode mapfilen = fsSettings["Map.mapfile"];
+    cv::FileNode loadmapfilen = fsSettings["Map.loadMapfile"];
+    time_t rawtime;
+    struct tm * timeinfo;
+    char buffer[25];
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+
+    savemapfile = "map.bin";
+
     bool bReuseMap = false;
-    if (!mapfilen.empty())
+    if (!loadmapfilen.empty())
     {
-        mapfile = (string)mapfilen;
+        loadmapfile = (string)loadmapfilen;
     }
 
     //Load ORB Vocabulary
@@ -95,7 +106,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     //Create KeyFrame Database
     //Create the Map
-    if (!mapfile.empty() && LoadMap(mapfile))
+    if (!loadmapfile.empty() && LoadMap(loadmapfile))
     {
         bReuseMap = true;
     }
@@ -109,18 +120,23 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpFrameDrawer = new FrameDrawer(mpMap, bReuseMap);
     mpMapDrawer = new MapDrawer(mpMap, strSettingsFile);
 
+
+
     //Initialize the Tracking thread
     //(it will live in the main thread of execution, the one that called this constructor)
     mpTracker = new Tracking(this, mpVocabulary, mpFrameDrawer, mpMapDrawer,
                              mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor, bReuseMap);
 
+
     //Initialize the Local Mapping thread and launch
     mpLocalMapper = new LocalMapping(mpMap, mSensor==MONOCULAR);
     mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run,mpLocalMapper);
 
+
     //Initialize the Loop Closing thread and launch
     mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDatabase, mpVocabulary, mSensor!=MONOCULAR);
     mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, mpLoopCloser);
+
 
     //Initialize the Viewer thread and launch
     if(bUseViewer)
@@ -139,6 +155,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     mpLoopCloser->SetTracker(mpTracker);
     mpLoopCloser->SetLocalMapper(mpLocalMapper);
+
 }
 
 cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp)
@@ -347,7 +364,7 @@ void System::Shutdown()
     if(mpViewer)
         pangolin::BindToContext("ORB-SLAM2: Map Viewer");
     if (is_save_map)
-        SaveMap(mapfile);
+        SaveMap(savemapfile);
 }
 
 void System::SaveTrajectoryTUM(const string &filename)
@@ -522,13 +539,13 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
 
 void System::SaveMap(const string &filename)
 {
-    std::ofstream out(filename, std::ios_base::binary);
+    std::ofstream out(filename, std::ios_base::binary); 
     if (!out)
     {
-        cerr << "Cannot Write to Mapfile: " << mapfile << std::endl;
+        cerr << "Cannot Write to Mapfile: " << savemapfile << std::endl;
         exit(-1);
     }
-    cout << "Saving Mapfile: " << mapfile << std::flush;
+    cout << "Saving Mapfile: " << savemapfile << std::flush;
     boost::archive::binary_oarchive oa(out, boost::archive::no_header);
     oa << mpMap;
     oa << mpKeyFrameDatabase;
@@ -540,10 +557,10 @@ bool System::LoadMap(const string &filename)
     std::ifstream in(filename, std::ios_base::binary);
     if (!in)
     {
-        cerr << "Cannot Open Mapfile: " << mapfile << " , You need create it first!" << std::endl;
+        cerr << "Cannot Open Mapfile: " << loadmapfile << " , You need create it first!" << std::endl;
         return false;
     }
-    cout << "Loading Mapfile: " << mapfile << std::flush;
+    cout << "Loading Mapfile: " << loadmapfile << std::flush;
     boost::archive::binary_iarchive ia(in, boost::archive::no_header);
     ia >> mpMap;
     ia >> mpKeyFrameDatabase;

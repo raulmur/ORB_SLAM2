@@ -68,5 +68,5 @@ Viewer.ViewpointY: -0.7
 Viewer.ViewpointZ: -1.8
 Viewer.ViewpointF: 500
 
-Map.loadMapfile: loadMap.bin
+Map.loadMapfile: map_9F.bin
 # Map.saveMapfile: saveMap.bin

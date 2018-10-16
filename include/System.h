@@ -140,7 +140,8 @@ private:
     // Map structure that stores the pointers to all KeyFrames and MapPoints.
     Map* mpMap;
 
-    string mapfile;
+    string savemapfile;
+    string loadmapfile;
     bool is_save_map;
 
     // Tracker. It receives a frame and computes the associated camera pose.
