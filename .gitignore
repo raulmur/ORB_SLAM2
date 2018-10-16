@@ -21,4 +21,4 @@ Vocabulary/ORBvoc.txt
 build/
 *~
 lib/
-
+*.bin
