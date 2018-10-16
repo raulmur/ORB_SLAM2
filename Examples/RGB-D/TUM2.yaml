@@ -32,7 +32,7 @@ Camera.RGB: 1
 ThDepth: 40.0
 
 # Deptmap values factor 
-DepthMapFactor: 5208.0
+DepthMapFactor: 5.0
 
 #--------------------------------------------------------------------------------------------
 # ORB Parameters
@@ -68,3 +68,5 @@ Viewer.ViewpointY: -0.7
 Viewer.ViewpointZ: -1.8
 Viewer.ViewpointF: 500
 
+
+Map.mapfile: map.bin
