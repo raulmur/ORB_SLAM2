@@ -266,7 +266,12 @@ Considering this feature doesn't hurt performance, and it is annonying to deal w
 
 This feature is integrated with `class System`. The path of mapfile can be set by adding `Map.mapfile: map.bin` to ORB_SLAM2's settings file. See the last few line of [TUM1.yaml](Examples/Monocular/TUM1.yaml) for example.
 
-To save a map, you need construct `ORB_SLAM2::System` with the last parameter (is_save_map) be `true`. Then the `System` will save map to mapfile (create if non-existent, overwrite if existent) specified in then setting file when `ShutDown` (e.g. interrupted by ctrl+c).
+<!-- To save a map, you need construct `ORB_SLAM2::System` with the last parameter (is_save_map) be `true`. Then the `System` will save map to mapfile (create if non-existent, overwrite if existent) specified in then setting file when `ShutDown` (e.g. interrupted by ctrl+c). -->
+To save a map, add 'save' at the end of the rosrun command.
+**Example**
+ ```
+  rosrun ORB_SLAM2 RGBD PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE save
+```
 
 With a readable mapfile, map will be loaded automatically and `System` will run in localization mode at first, but you can change it to SLAM mode later.
 
