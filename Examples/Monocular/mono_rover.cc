@@ -22,36 +22,36 @@
 #include<iostream>
 #include<algorithm>
 #include<fstream>
-#include<iomanip>
 #include<chrono>
+#include<iomanip>
 
 #include<opencv2/core/core.hpp>
 
-#include<System.h>
+#include"System.h"
 
 using namespace std;
 
-void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
-                vector<string> &vstrImageRight, vector<double> &vTimestamps);
+void LoadRoverImages(const string &strSequence, vector<string> &vstrImageFilenames,
+                vector<double> &vTimestamps);
 
 int main(int argc, char **argv)
 {
     if(argc != 4)
     {
-        cerr << endl << "Usage: ./stereo_kitti path_to_vocabulary path_to_settings path_to_sequence" << endl;
+        cerr << endl << "Usage: ./mono_kitti path_to_vocabulary path_to_settings path_to_sequence" << endl;
         return 1;
     }
 
-    // Retrieve paths to images
-    vector<string> vstrImageLeft;
-    vector<string> vstrImageRight;
-    vector<double> vTimestamps;
-    LoadImages(string(argv[3]), vstrImageLeft, vstrImageRight, vTimestamps);
 
-    const int nImages = vstrImageLeft.size();
+    // Retrieve paths to images
+    vector<string> vstrImageFilenames;
+    vector<double> vTimestamps;
+    LoadRoverImages(string(argv[3]), vstrImageFilenames, vTimestamps);
+
+    int nImages = vstrImageFilenames.size();
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
@@ -59,34 +59,52 @@ int main(int argc, char **argv)
 
     cout << endl << "-------" << endl;
     cout << "Start processing sequence ..." << endl;
-    cout << "Images in the sequence: " << nImages << endl << endl;   
+    cout << "Images in the sequence: " << nImages << endl << endl;
 
     // Main loop
-    cv::Mat imLeft, imRight;
+    cv::Mat im;
+    bool man_insert;
+    char type_in;
+    cout << "Do you want to manually feed in the images? (y/n)" << endl;
+    cin >> type_in;
+    if(type_in == 'Y' || type_in == 'y'){  
+        man_insert = true;
+    }
+    else{
+        man_insert = false;
+    }
+
     for(int ni=0; ni<nImages; ni++)
     {
-        // Read left and right images from file
-        imLeft = cv::imread(vstrImageLeft[ni],CV_LOAD_IMAGE_UNCHANGED);
-        imRight = cv::imread(vstrImageRight[ni],CV_LOAD_IMAGE_UNCHANGED);
+        // sleep(1);
+        if(man_insert){
+            cout << "Please type something in so that we can load another image." << endl;
+            cin >> type_in;
+        }
+
+        // Read image from file
+        im = cv::imread(vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
         double tframe = vTimestamps[ni];
 
-        if(imLeft.empty())
+        if(im.empty())
         {
-            cerr << endl << "Failed to load image at: "
-                 << string(vstrImageLeft[ni]) << endl;
+            cerr << endl << "Failed to load image at: " << vstrImageFilenames[ni] << endl;
             return 1;
         }
 
 #ifdef COMPILEDWITHC11
+        // cout << "Using C11 steady_clock." << endl;
         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 #else
         std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
 #endif
 
-        // Pass the images to the SLAM system
-        SLAM.TrackStereo(imLeft,imRight,tframe);
+        // Pass the image to the SLAM system
+        cout << "Passing image " << ni << " to the SLAM system." << endl;
+        SLAM.TrackMonocular(im,tframe);
 
 #ifdef COMPILEDWITHC11
+        // cout << "Using C11 steady_clock." << endl;
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 #else
         std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
@@ -122,11 +140,10 @@ int main(int argc, char **argv)
     cout << "mean tracking time: " << totaltime/nImages << endl;
 
     // Save camera trajectory
-    SLAM.SaveTrajectoryKITTI("CameraTrajectory.txt");
-
-    // Save customized Map
+    // SaveTrajectoryKITTI cannot be used for monocular.
+    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
     char IsSaveMap;  
-    cout << "Do you want to save the map?(y/n)" << endl;  
+    cout << "Do you want to save the map?(Y/N)" << endl;  
     cin >> IsSaveMap;  
     if(IsSaveMap == 'Y' || IsSaveMap == 'y')  
         SLAM.SaveMap("MapPointandKeyFrame.bin");
@@ -134,11 +151,11 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
-                vector<string> &vstrImageRight, vector<double> &vTimestamps)
+void LoadRoverImages(const string &strPathToSequence, vector<string> &vstrImageFilenames, vector<double> &vTimestamps)
 {
     ifstream fTimes;
-    string strPathTimeFile = strPathToSequence + "/times.txt";
+    cout << "Now trying to load left images." << endl;
+    string strPathTimeFile = strPathToSequence + "/left.txt";
     fTimes.open(strPathTimeFile.c_str());
     while(!fTimes.eof())
     {
@@ -154,18 +171,16 @@ void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
         }
     }
 
-    string strPrefixLeft = strPathToSequence + "/image_0/";
-    string strPrefixRight = strPathToSequence + "/image_1/";
+    string strPrefixLeft = strPathToSequence + "/left/";
 
     const int nTimes = vTimestamps.size();
-    vstrImageLeft.resize(nTimes);
-    vstrImageRight.resize(nTimes);
+    vstrImageFilenames.resize(nTimes);
 
     for(int i=0; i<nTimes; i++)
     {
         stringstream ss;
-        ss << setfill('0') << setw(6) << i;
-        vstrImageLeft[i] = strPrefixLeft + ss.str() + ".png";
-        vstrImageRight[i] = strPrefixRight + ss.str() + ".png";
+        ss << setiosflags(ios::fixed) << setprecision(6) << vTimestamps[i];
+        // ss << setfill('0') << setw(6) << i;
+        vstrImageFilenames[i] = strPrefixLeft + ss.str() + ".png";
     }
 }

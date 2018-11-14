@@ -55,6 +55,7 @@ ${Pangolin_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/../../../Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/../../../Thirdparty/g2o/lib/libg2o.so
 ${PROJECT_SOURCE_DIR}/../../../lib/libORB_SLAM2.so
+-lboost_system
 )
 
 # Node for monocular camera
@@ -83,6 +84,15 @@ src/ros_stereo.cc
 )
 
 target_link_libraries(Stereo
+${LIBS}
+)
+
+# Node for ZED camera
+rosbuild_add_executable(Zed
+src/ros_zed.cc
+)
+
+target_link_libraries(Zed
 ${LIBS}
 )
 

@@ -70,6 +70,19 @@ MapPoint::MapPoint(const cv::Mat &Pos, Map* pMap, Frame* pFrame, const int &idxF
     mnId=nNextId++;
 }
 
+MapPoint::MapPoint(const cv::Mat &Pos, Map* pMap):// When loading map, we redefine MapPoint
+    mnFirstKFid(0), mnFirstFrame(0), nObs(0), mnTrackReferenceForFrame(0), mnLastFrameSeen(0), mnBALocalForKF(0), mnFuseCandidateForKF(0), mnLoopPointForKF(0), mnCorrectedByKF(0),
+    mnCorrectedReference(0), mnBAGlobalForKF(0), mpRefKF(static_cast<KeyFrame*>(NULL)), mnVisible(1), mnFound(1), mbBad(false),
+    mpReplaced(static_cast<MapPoint*>(NULL)), mfMinDistance(0), mfMaxDistance(0), mpMap(pMap)
+{
+    Pos.copyTo(mWorldPos);
+    mNormalVector = cv::Mat::zeros(3,1,CV_32F);
+
+    // MapPoints can be created from Tracking and Local Mapping. This mutex avoid conflicts with id.
+    unique_lock<mutex> lock(mpMap->mMutexPointCreation);
+    mnId=nNextId++;
+}
+
 void MapPoint::SetWorldPos(const cv::Mat &Pos)
 {
     unique_lock<mutex> lock2(mGlobalMutex);
@@ -94,6 +107,11 @@ KeyFrame* MapPoint::GetReferenceKeyFrame()
     unique_lock<mutex> lock(mMutexFeatures);
     return mpRefKF;
 }
+
+KeyFrame* MapPoint::SetReferenceKeyFrame(KeyFrame* RFKF)  // for map loading
+{  
+    return mpRefKF = RFKF;  // for map loading
+}  
 
 void MapPoint::AddObservation(KeyFrame* pKF, size_t idx)
 {
@@ -256,6 +274,8 @@ void MapPoint::ComputeDistinctiveDescriptors()
     if(observations.empty())
         return;
 
+    // cout << "Check point 1 " << endl;
+
     vDescriptors.reserve(observations.size());
 
     for(map<KeyFrame*,size_t>::iterator mit=observations.begin(), mend=observations.end(); mit!=mend; mit++)
@@ -269,27 +289,38 @@ void MapPoint::ComputeDistinctiveDescriptors()
     if(vDescriptors.empty())
         return;
 
+    // cout << "Check point 2 " << endl;
     // Compute distances between them
     const size_t N = vDescriptors.size();
+    // cout << "N = " << N << endl;
 
-    float Distances[N][N];
+    // float Distances[N][N];
+    // std::vector< std::vector<float> > Distances(rows, vector<int>(col, 0));
+    std::vector< std::vector<float> > Distances(N, vector<float>(N, 0));
+
     for(size_t i=0;i<N;i++)
     {
         Distances[i][i]=0;
         for(size_t j=i+1;j<N;j++)
         {
+            // cout << "i = " << i << endl;
+            // cout << "j = " << j << endl;
             int distij = ORBmatcher::DescriptorDistance(vDescriptors[i],vDescriptors[j]);
             Distances[i][j]=distij;
             Distances[j][i]=distij;
         }
     }
 
+    // cout << "Check point 3 " << endl;
     // Take the descriptor with least median distance to the rest
     int BestMedian = INT_MAX;
     int BestIdx = 0;
     for(size_t i=0;i<N;i++)
     {
-        vector<int> vDists(Distances[i],Distances[i]+N);
+        float Dist_tmp[N];
+        std::copy(Distances[i].begin(), Distances[i].end(), Dist_tmp);
+        // vector<int> vDists(Distances[i],Distances[i]+N);
+        vector<int> vDists(Dist_tmp, Dist_tmp+N);
         sort(vDists.begin(),vDists.end());
         int median = vDists[0.5*(N-1)];
 
@@ -304,6 +335,7 @@ void MapPoint::ComputeDistinctiveDescriptors()
         unique_lock<mutex> lock(mMutexFeatures);
         mDescriptor = vDescriptors[BestIdx].clone();
     }
+    // cout << "Check point 4 " << endl;
 }
 
 cv::Mat MapPoint::GetDescriptor()

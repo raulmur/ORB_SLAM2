@@ -19,19 +19,19 @@
 */
 
 
-#include<iostream>
-#include<algorithm>
-#include<fstream>
-#include<iomanip>
-#include<chrono>
+#include <iostream>
+#include <algorithm>
+#include <fstream>
+#include <iomanip>
+#include <chrono>
 
-#include<opencv2/core/core.hpp>
+#include <opencv2/core/core.hpp>
 
-#include<System.h>
+#include <System.h>
 
 using namespace std;
 
-void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
+void LoadRoverImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
                 vector<string> &vstrImageRight, vector<double> &vTimestamps);
 
 int main(int argc, char **argv)
@@ -41,17 +41,30 @@ int main(int argc, char **argv)
         cerr << endl << "Usage: ./stereo_kitti path_to_vocabulary path_to_settings path_to_sequence" << endl;
         return 1;
     }
+ 
+
 
     // Retrieve paths to images
     vector<string> vstrImageLeft;
     vector<string> vstrImageRight;
     vector<double> vTimestamps;
-    LoadImages(string(argv[3]), vstrImageLeft, vstrImageRight, vTimestamps);
+    LoadRoverImages(string(argv[3]), vstrImageLeft, vstrImageRight, vTimestamps);
 
     const int nImages = vstrImageLeft.size();
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
+
+    // Choose if you need Pure Localization
+    // char IsPureLocalization;
+    // cout << "Do you want to run pure localization? (Y/N)" << endl;  
+    // cin >> IsPureLocalization;  
+    // if(IsPureLocalization == 'Y' || IsPureLocalization == 'y'){
+    //     SLAM.ActivateLocalizationMode();
+    // }
+    // else{
+    //     SLAM.DeactivateLocalizationMode();
+    // }
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
@@ -63,8 +76,25 @@ int main(int argc, char **argv)
 
     // Main loop
     cv::Mat imLeft, imRight;
+    bool man_insert;
+    char type_in;
+    cout << "Do you want to manually feed in the images? (y/n)" << endl;
+    cin >> type_in;
+    if(type_in == 'Y' || type_in == 'y'){  
+        man_insert = true;
+    }
+    else{
+        man_insert = false;
+    }
+
     for(int ni=0; ni<nImages; ni++)
-    {
+    {   
+        if(man_insert){
+            cout << "Please type something in so that we can load another image." << endl;
+            cin >> type_in;
+        }
+        
+
         // Read left and right images from file
         imLeft = cv::imread(vstrImageLeft[ni],CV_LOAD_IMAGE_UNCHANGED);
         imRight = cv::imread(vstrImageRight[ni],CV_LOAD_IMAGE_UNCHANGED);
@@ -102,22 +132,26 @@ int main(int argc, char **argv)
             T = vTimestamps[ni+1]-tframe;
         else if(ni>0)
             T = tframe-vTimestamps[ni-1];
+        // cout << "stereo_zed.cc :: Now Time gap =" << T << endl;
 
         if(ttrack<T)
             usleep((T-ttrack)*1e6);
+        // usleep(0.03*1e6);
     }
 
+    cout << "Read all images. Now trying to shut down." << endl << endl;
     // Stop all threads
     SLAM.Shutdown();
 
     // Tracking time statistics
+    cout << "Calculating tracking time......" << endl << endl;
     sort(vTimesTrack.begin(),vTimesTrack.end());
     float totaltime = 0;
     for(int ni=0; ni<nImages; ni++)
     {
         totaltime+=vTimesTrack[ni];
     }
-    cout << "-------" << endl << endl;
+    cout << "---------------------" << endl << endl;
     cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
     cout << "mean tracking time: " << totaltime/nImages << endl;
 
@@ -134,28 +168,77 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
+void LoadRoverImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
                 vector<string> &vstrImageRight, vector<double> &vTimestamps)
 {
-    ifstream fTimes;
-    string strPathTimeFile = strPathToSequence + "/times.txt";
-    fTimes.open(strPathTimeFile.c_str());
-    while(!fTimes.eof())
-    {
-        string s;
-        getline(fTimes,s);
-        if(!s.empty())
-        {
-            stringstream ss;
-            ss << s;
-            double t;
-            ss >> t;
-            vTimestamps.push_back(t);
+    ifstream fTimesLeft;
+    ifstream fTimesRight;
+    vector<double> vTimestampsLeft;
+    vector<double> vTimestampsRight;
+    string strPathTimeFileLeft = strPathToSequence + "/left.txt";
+    string strPathTimeFileRight = strPathToSequence + "/right.txt";
+    fTimesLeft.open(strPathTimeFileLeft.c_str());
+    fTimesRight.open(strPathTimeFileRight.c_str());
+    // Read in all Timestamps for left images
+    while(!fTimesLeft.eof()){
+        string s_l;
+        getline(fTimesLeft,s_l);
+        if(!s_l.empty()){
+            stringstream ss_l;
+            double t_l;
+            ss_l << s_l;
+            ss_l >> t_l;
+            vTimestampsLeft.push_back(t_l);
         }
     }
+    
+    // Read in all Timestamps for right images
+    while(!fTimesRight.eof()){
+        string s_r;
+        getline(fTimesRight,s_r);
+        if(!s_r.empty()){
+            stringstream ss_r;
+            double t_r;
+            ss_r << s_r;
+            ss_r >> t_r;
+            vTimestampsRight.push_back(t_r);
+        }
+    }
+    
+    const int nTimesLeft = vTimestampsLeft.size();
+    const int nTimesright = vTimestampsRight.size();
+    int i=0;
+    int j=0;
+    int nwrongmatch = 0;
+    // Pair all the images with timestamp gap < 0.03s
+    while(i<nTimesLeft && j<nTimesright){
+        if(vTimestampsLeft[i] == vTimestampsRight[j]){
+            vTimestamps.push_back(vTimestampsLeft[i]);
+            i++;
+            j++;
+        }
+        else if(vTimestampsLeft[i] > vTimestampsRight[j]){
+            cerr << "left timestamp = " << setiosflags(ios::fixed) << setprecision(6) << vTimestampsLeft[i] << " > ";
+            cerr << setiosflags(ios::fixed) << setprecision(6) << vTimestampsRight[j] << " = right timestamp."<< endl;
+            j++;
+            nwrongmatch++;
+        }
+        else{
+            cerr << "left timestamp = " << setiosflags(ios::fixed) << setprecision(6) << vTimestampsLeft[i] << " < ";
+            cerr << setiosflags(ios::fixed) << setprecision(6) << vTimestampsRight[j] << " = right timestamp."<< endl;
+            i++;
+            nwrongmatch++;
+        }
+    }
+    if(nwrongmatch != 0){
+        cerr << "There are "<< nwrongmatch << " wrong matches."<< endl;
+    }
+    else{
+        cout << "Dataset images match perfectly." << endl;
+    }
 
-    string strPrefixLeft = strPathToSequence + "/image_0/";
-    string strPrefixRight = strPathToSequence + "/image_1/";
+    string strPrefixLeft = strPathToSequence + "/left/";
+    string strPrefixRight = strPathToSequence + "/right/";
 
     const int nTimes = vTimestamps.size();
     vstrImageLeft.resize(nTimes);
@@ -164,7 +247,8 @@ void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
     for(int i=0; i<nTimes; i++)
     {
         stringstream ss;
-        ss << setfill('0') << setw(6) << i;
+        ss << setiosflags(ios::fixed) << setprecision(6) << vTimestamps[i];
+        // ss << setfill('0') << setw(6) << i;
         vstrImageLeft[i] = strPrefixLeft + ss.str() + ".png";
         vstrImageRight[i] = strPrefixRight + ss.str() + ".png";
     }

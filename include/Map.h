@@ -23,7 +23,12 @@
 
 #include "MapPoint.h"
 #include "KeyFrame.h"
+#include "Converter.h"
+#include "SystemSetting.h"
+#include "InitKeyFrame.h"
+#include "KeyFrameDatabase.h" //When loading the map, we need to add KeyFrame to KeyFrameDatabase.
 #include <set>
+#include "Frame.h" // Used for initializing frame.nNextId and mnId
 
 #include <mutex>
 
@@ -34,6 +39,8 @@ namespace ORB_SLAM2
 
 class MapPoint;
 class KeyFrame;
+class SystemSetting;
+class KeyFrameDatabase;
 
 class Map
 {
@@ -66,7 +73,19 @@ public:
     // This avoid that two points are created simultaneously in separate threads (id conflict)
     std::mutex mMutexPointCreation;
 
+    // Save map information into a binary file.
+    void Save( const string &filename );
+
+    // Load map from a binary file.
+    void Load( const string &filename, SystemSetting* mySystemSetting, KeyFrameDatabase* mpKeyFrameDatabase);
+    MapPoint* LoadMapPoint( ifstream &f );
+    KeyFrame* LoadKeyFrame( ifstream &f, SystemSetting* mySystemSetting );
+
 protected:
+
+    void SaveMapPoint( ofstream &f, MapPoint* mp );
+    void SaveKeyFrame( ofstream &f, KeyFrame* kf );
+
     std::set<MapPoint*> mspMapPoints;
     std::set<KeyFrame*> mspKeyFrames;
 
@@ -78,6 +97,11 @@ protected:
     int mnBigChangeIdx;
 
     std::mutex mMutexMap;
+
+    // It saves the Index of the MapPoints that matches the ORB featurepoint
+    std::map<MapPoint*, unsigned long int> mmpnMapPointsIdx; 
+    void GetMapPointsIdx();
+    void SaveFrameID( ofstream &f );
 };
 
 } //namespace ORB_SLAM

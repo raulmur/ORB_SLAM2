@@ -42,6 +42,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
+
     // Retrieve paths to images
     vector<string> vstrImageFilenames;
     vector<double> vTimestamps;
@@ -64,6 +65,7 @@ int main(int argc, char **argv)
     cv::Mat im;
     for(int ni=0; ni<nImages; ni++)
     {
+        // sleep(1);
         // Read image from file
         im = cv::imread(vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
         double tframe = vTimestamps[ni];
@@ -75,15 +77,18 @@ int main(int argc, char **argv)
         }
 
 #ifdef COMPILEDWITHC11
+        // cout << "Using C11 steady_clock." << endl;
         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 #else
         std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
 #endif
 
         // Pass the image to the SLAM system
+        cout << "Passing image " << ni << " to the SLAM system." << endl;
         SLAM.TrackMonocular(im,tframe);
 
 #ifdef COMPILEDWITHC11
+        // cout << "Using C11 steady_clock." << endl;
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 #else
         std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
@@ -119,7 +124,13 @@ int main(int argc, char **argv)
     cout << "mean tracking time: " << totaltime/nImages << endl;
 
     // Save camera trajectory
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");    
+    // SaveTrajectoryKITTI cannot be used for monocular.
+    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+    char IsSaveMap;  
+    cout << "Do you want to save the map?(Y/N)" << endl;  
+    cin >> IsSaveMap;  
+    if(IsSaveMap == 'Y' || IsSaveMap == 'y')  
+        SLAM.SaveMap("MapPointandKeyFrame.bin");
 
     return 0;
 }

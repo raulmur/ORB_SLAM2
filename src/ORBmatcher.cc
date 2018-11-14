@@ -48,28 +48,38 @@ int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoint
 
     const bool bFactor = th!=1.0;
 
+    // cout << "ORBmatcher::SearchByProjection : vpMapPoints.size() = " << vpMapPoints.size() << endl;
     for(size_t iMP=0; iMP<vpMapPoints.size(); iMP++)
     {
         MapPoint* pMP = vpMapPoints[iMP];
-        if(!pMP->mbTrackInView)
+        if(!pMP->mbTrackInView){
+            // cout << "ORBmatcher::SearchByProjection : pMP->mbTrackInView is false, continue;" << endl;
             continue;
+        }
 
-        if(pMP->isBad())
+        if(pMP->isBad()){
+            // cout << "ORBmatcher::SearchByProjection : pMP->isBad();" << endl;
             continue;
+        }
 
         const int &nPredictedLevel = pMP->mnTrackScaleLevel;
 
         // The size of the window will depend on the viewing direction
+        // cout << "ORBmatcher::SearchByProjection : The size of the window will depend on the viewing direction " << endl;
         float r = RadiusByViewingCos(pMP->mTrackViewCos);
+        // cout << "ORBmatcher::SearchByProjection : RadiusByViewingCos finished " << endl;
 
         if(bFactor)
             r*=th;
 
         const vector<size_t> vIndices =
                 F.GetFeaturesInArea(pMP->mTrackProjX,pMP->mTrackProjY,r*F.mvScaleFactors[nPredictedLevel],nPredictedLevel-1,nPredictedLevel);
+        // cout << "ORBmatcher::SearchByProjection : GetFeaturesInArea finished " << endl;
 
-        if(vIndices.empty())
+        if(vIndices.empty()){
+            // cout << "ORBmatcher::SearchByProjection : vIndices is empty. " << endl;
             continue;
+        }
 
         const cv::Mat MPdescriptor = pMP->GetDescriptor();
 
@@ -890,12 +900,10 @@ int ORBmatcher::Fuse(KeyFrame *pKF, const vector<MapPoint *> &vpMapPoints, const
         const float radius = th*pKF->mvScaleFactors[nPredictedLevel];
 
         const vector<size_t> vIndices = pKF->GetFeaturesInArea(u,v,radius);
-
         if(vIndices.empty())
             continue;
 
         // Match to the most similar keypoint in the radius
-
         const cv::Mat dMP = pMP->GetDescriptor();
 
         int bestDist = 256;
@@ -1327,10 +1335,10 @@ int ORBmatcher::SearchBySim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint*> &
 
 int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono)
 {
-    int nmatches = 0;
+    int nmatches = 0; // For debug use
 
     // Rotation Histogram (to check rotation consistency)
-    vector<int> rotHist[HISTO_LENGTH];
+    vector<int> rotHist[HISTO_LENGTH]; // const int ORBmatcher::HISTO_LENGTH = 30;
     for(int i=0;i<HISTO_LENGTH;i++)
         rotHist[i].reserve(500);
     const float factor = 1.0f/HISTO_LENGTH;
@@ -1348,6 +1356,12 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
     const bool bForward = tlc.at<float>(2)>CurrentFrame.mb && !bMono;
     const bool bBackward = -tlc.at<float>(2)>CurrentFrame.mb && !bMono;
 
+    cout << "ORBmatcher::SearchByProjection() : There are " << LastFrame.N << " keypoints in the last frame, and ";
+    int nInlier=0; // For debug use
+    int nNegativeDepth=0; // For debug use
+    int nOutOfSeen=0; // For debug use
+    CurrentFrame.ClearBadDescriptor(); // For debug use
+    CurrentFrame.ClearGoodDescriptor(); // For debug use
     for(int i=0; i<LastFrame.N; i++)
     {
         MapPoint* pMP = LastFrame.mvpMapPoints[i];
@@ -1356,6 +1370,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
         {
             if(!LastFrame.mvbOutlier[i])
             {
+                nInlier++; // For debug use
                 // Project
                 cv::Mat x3Dw = pMP->GetWorldPos();
                 cv::Mat x3Dc = Rcw*x3Dw+tcw;
@@ -1364,16 +1379,22 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
                 const float yc = x3Dc.at<float>(1);
                 const float invzc = 1.0/x3Dc.at<float>(2);
 
-                if(invzc<0)
+                if(invzc<0){
+                    nNegativeDepth++; // For debug use
                     continue;
+                }
 
                 float u = CurrentFrame.fx*xc*invzc+CurrentFrame.cx;
                 float v = CurrentFrame.fy*yc*invzc+CurrentFrame.cy;
 
-                if(u<CurrentFrame.mnMinX || u>CurrentFrame.mnMaxX)
+                if(u<CurrentFrame.mnMinX || u>CurrentFrame.mnMaxX){
+                    nOutOfSeen++; // For debug use
                     continue;
-                if(v<CurrentFrame.mnMinY || v>CurrentFrame.mnMaxY)
+                }
+                if(v<CurrentFrame.mnMinY || v>CurrentFrame.mnMaxY){
+                    nOutOfSeen++; // For debug use
                     continue;
+                }
 
                 int nLastOctave = LastFrame.mvKeys[i].octave;
 
@@ -1423,10 +1444,11 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
                     }
                 }
 
-                if(bestDist<=TH_HIGH)
+                if(bestDist<=TH_HIGH) // TH_HIGH = 100
                 {
                     CurrentFrame.mvpMapPoints[bestIdx2]=pMP;
                     nmatches++;
+                    CurrentFrame.SaveGoodDescriptor(u,v,radius);
 
                     if(mbCheckOrientation)
                     {
@@ -1440,9 +1462,13 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
                         rotHist[bin].push_back(bestIdx2);
                     }
                 }
+                else{ //For debug use, I'm trying to draw those points on the FrameDrawer that does not fit the DescriptorDistance requirement.
+                    CurrentFrame.SaveBadDescriptor(u,v,radius);
+                }
             }
         }
     }
+    cout << nInlier << " of which are inliers, " << nNegativeDepth << " of which have negative depth; "<< nOutOfSeen++ << " of which are out of seen; " << nmatches << " of the seen points are pre-matches(<=TH_HIGH)." << endl; // For debug use
 
     //Apply rotation consistency
     if(mbCheckOrientation)
@@ -1465,6 +1491,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
             }
         }
     }
+    cout << "ORBmatcher::SearchByProjection() : After applying rotation consistency, " << nmatches << " matches left." << endl; // For debug use
 
     return nmatches;
 }

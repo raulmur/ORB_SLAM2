@@ -169,7 +169,7 @@ This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono
 # 7. ROS Examples
 
 ### Building the nodes for mono, monoAR, stereo and RGB-D
-1. Add the path including *Examples/ROS/ORB_SLAM2* to the ROS_PACKAGE_PATH environment variable. Open .bashrc file and add at the end the following line. Replace PATH by the folder where you cloned ORB_SLAM2:
+1. Add the path including *Examples/ROS/ORB_SLAM2* to the ROS_PACKAGE_PATH environment variable. Open .bashrc file and add **at the end** the following line. Replace PATH by the folder where you cloned ORB_SLAM2:
 
   ```
   export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:PATH/ORB_SLAM2/Examples/ROS
@@ -238,3 +238,34 @@ This is the default mode. The system runs in parallal three threads: Tracking, L
 ### Localization Mode
 This mode can be used when you have a good map of your working area. In this mode the Local Mapping and Loop Closing are deactivated. The system localizes the camera in the map (which is no longer updated), using relocalization if needed. 
 
+# 10. Binary Format ORB Vocabulary
+
+You can load ORB vocabulary in either text or binary format. The format is determined by suffix(.txt for text format and .bin for binary format).
+
+`build.sh` will generate a text-to-binary convertor `bin_vocabulary` in `Vocabulary/` . You can also find it as a target in `CMakeLists.txt`.
+
+`bin_vocabulary` will convert `./ORBvoc.txt` to `./ORBvoc.bin` and you can use the new `ORBvoc.bin` as  `PATH_TO_VOCABULARY`  wherever needed.
+
+PS: binary format is loaded faster and text format is more human-readable.
+
+# 11. Saving and Loading Map (My Developement)
+Based on tutorials on the internet, I edited several files in the `include` folder and the `src` folder. Then I edited `Examples/Monocular/mono_kitti.cc` file, and use `KITTI dataset 08` as my debugging exmaple.
+
+Now, saving and loading function may already work for stereo camera and monocular camera for KITTI dataset. I'm not planning to test other dataset. You are always welcome to right a pull request.
+
+In our lab, we are using a popular stereo camera called ZED camera, so I build a my own `stereo_zed.cc` and the corresponding `yaml` file.
+
+### Notice!!!!
+Errors like `addVertex：FATAL` still exist. Other errors may hide themselves somewhere else. I'm still maintaining this code, so please let me know if you find a solution.
+
+### Example Command
+```
+cd ~/$XXXX$/ORB_SLAM2
+./Examples/Stereo/stereo_kitti Vocabulary/ORBvoc.txt Examples/Stereo/KITTI04-12.yaml /$XXXX$/KITTI/dataset/sequences/08
+```
+
+### Save Map
+When you are asked `Do you want to save the map?(y/n)`. Just type in `y` or `Y` then hit `enter` to save a map. A binary file named `MapPointandKeyFrame.bin` would be saved under the `ORB SLAM2` directory.
+
+### Load Map
+After all images are processed, command line will show `Do you want to save the map?(y/n)`, Just type in `y` or `Y` then hit `enter` to load a map. The program will load a binary file named `MapPointandKeyFrame.bin` automatically.

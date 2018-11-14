@@ -199,7 +199,7 @@ vector<KeyFrame*> KeyFrameDatabase::DetectLoopCandidates(KeyFrame* pKF, float mi
 vector<KeyFrame*> KeyFrameDatabase::DetectRelocalizationCandidates(Frame *F)
 {
     list<KeyFrame*> lKFsSharingWords;
-
+    // cout <<"KeyFrameDatabase::DetectRelocalizationCandidates() : checkpoint1" << endl;
     // Search all keyframes that share a word with current frame
     {
         unique_lock<mutex> lock(mMutex);
@@ -207,29 +207,36 @@ vector<KeyFrame*> KeyFrameDatabase::DetectRelocalizationCandidates(Frame *F)
         for(DBoW2::BowVector::const_iterator vit=F->mBowVec.begin(), vend=F->mBowVec.end(); vit != vend; vit++)
         {
             list<KeyFrame*> &lKFs =   mvInvertedFile[vit->first];
-
+            // cout <<"KeyFrameDatabase::DetectRelocalizationCandidates() : checkpoint1.1, [vit->first] is:" << vit->first << endl;
             for(list<KeyFrame*>::iterator lit=lKFs.begin(), lend= lKFs.end(); lit!=lend; lit++)
             {
+                // cout <<"KeyFrameDatabase::DetectRelocalizationCandidates() : checkpoint1.2" << endl;
                 KeyFrame* pKFi=*lit;
                 if(pKFi->mnRelocQuery!=F->mnId)
                 {
                     pKFi->mnRelocWords=0;
                     pKFi->mnRelocQuery=F->mnId;
                     lKFsSharingWords.push_back(pKFi);
+                    // cout <<"KeyFrameDatabase::DetectRelocalizationCandidates() : checkpoint1.3, F->mnId = " << F->mnId << endl;
                 }
                 pKFi->mnRelocWords++;
+                // cout <<"KeyFrameDatabase::DetectRelocalizationCandidates() : checkpoint1.4" << endl;
             }
         }
     }
-    if(lKFsSharingWords.empty())
+    if(lKFsSharingWords.empty()){
+        // cout <<"KeyFrameDatabase::DetectRelocalizationCandidates() : checkpoint2" << endl;
         return vector<KeyFrame*>();
+    }
 
     // Only compare against those keyframes that share enough words
     int maxCommonWords=0;
     for(list<KeyFrame*>::iterator lit=lKFsSharingWords.begin(), lend= lKFsSharingWords.end(); lit!=lend; lit++)
     {
-        if((*lit)->mnRelocWords>maxCommonWords)
+        if((*lit)->mnRelocWords>maxCommonWords){
             maxCommonWords=(*lit)->mnRelocWords;
+            // cout <<"KeyFrameDatabase::DetectRelocalizationCandidates() : checkpoint2.1, maxCommonWords = " << maxCommonWords << endl;
+        }
     }
 
     int minCommonWords = maxCommonWords*0.8f;
@@ -249,6 +256,7 @@ vector<KeyFrame*> KeyFrameDatabase::DetectRelocalizationCandidates(Frame *F)
             float si = mpVoc->score(F->mBowVec,pKFi->mBowVec);
             pKFi->mRelocScore=si;
             lScoreAndMatch.push_back(make_pair(si,pKFi));
+            // cout <<"KeyFrameDatabase::DetectRelocalizationCandidates() : checkpoint2.2, similarity score = " << si << endl;
         }
     }
 
@@ -282,6 +290,7 @@ vector<KeyFrame*> KeyFrameDatabase::DetectRelocalizationCandidates(Frame *F)
 
         }
         lAccScoreAndMatch.push_back(make_pair(accScore,pBestKF));
+        // cout <<"KeyFrameDatabase::DetectRelocalizationCandidates() : checkpoint2.3, accScore = " << accScore <<", pBestKF->mnId = " << pBestKF->mnId << endl;
         if(accScore>bestAccScore)
             bestAccScore=accScore;
     }

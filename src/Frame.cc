@@ -43,7 +43,7 @@ Frame::Frame(const Frame &frame)
      mvKeysRight(frame.mvKeysRight), mvKeysUn(frame.mvKeysUn),  mvuRight(frame.mvuRight),
      mvDepth(frame.mvDepth), mBowVec(frame.mBowVec), mFeatVec(frame.mFeatVec),
      mDescriptors(frame.mDescriptors.clone()), mDescriptorsRight(frame.mDescriptorsRight.clone()),
-     mvpMapPoints(frame.mvpMapPoints), mvbOutlier(frame.mvbOutlier), mnId(frame.mnId),
+     mvpMapPoints(frame.mvpMapPoints), mvbOutlier(frame.mvbOutlier), mvbDiscarded(frame.mvbDiscarded), mnId(frame.mnId),
      mpReferenceKF(frame.mpReferenceKF), mnScaleLevels(frame.mnScaleLevels),
      mfScaleFactor(frame.mfScaleFactor), mfLogScaleFactor(frame.mfLogScaleFactor),
      mvScaleFactors(frame.mvScaleFactors), mvInvScaleFactors(frame.mvInvScaleFactors),
@@ -64,6 +64,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
 {
     // Frame ID
     mnId=nNextId++;
+    // cout << "Frame::Frame (line 67) : Now Frame ID = " << mnId << endl;
 
     // Scale Level Info
     mnScaleLevels = mpORBextractorLeft->GetLevels();
@@ -91,6 +92,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
 
     mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));    
     mvbOutlier = vector<bool>(N,false);
+    mvbDiscarded = vector<bool>(N,false); // For debug use
 
 
     // This is done only for the first Frame (or after a change in the calibration)
@@ -146,6 +148,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 
     mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));
     mvbOutlier = vector<bool>(N,false);
+    mvbDiscarded = vector<bool>(N,false); // For debug use
 
     // This is done only for the first Frame (or after a change in the calibration)
     if(mbInitialComputations)
@@ -203,6 +206,7 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
 
     mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));
     mvbOutlier = vector<bool>(N,false);
+    mvbDiscarded = vector<bool>(N,false); // For debug use
 
     // This is done only for the first Frame (or after a change in the calibration)
     if(mbInitialComputations)
@@ -225,6 +229,12 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     mb = mbf/fx;
 
     AssignFeaturesToGrid();
+}
+
+Frame::Frame( long unsigned int i )
+{   
+    mnId = i;
+    nNextId = i+1;
 }
 
 void Frame::AssignFeaturesToGrid()
@@ -677,6 +687,41 @@ cv::Mat Frame::UnprojectStereo(const int &i)
     }
     else
         return cv::Mat();
+}
+
+void Frame::UpdatenNextId( unsigned int i )
+{
+    nNextId = i;
+}
+
+void Frame::ClearBadDescriptor()
+{
+    mvBadDescriptor.clear();
+    mvBadDescriptorRadius.clear();
+}
+
+void Frame::SaveBadDescriptor(const float &x, const float  &y, const float  &r)
+{
+    cv::KeyPoint kp;
+    kp.pt.x=x;
+    kp.pt.y=y;
+    mvBadDescriptorRadius.push_back(r);
+    mvBadDescriptor.push_back(kp);
+}
+
+void Frame::ClearGoodDescriptor()
+{
+    mvGoodDescriptor.clear();
+    mvGoodDescriptorRadius.clear();
+}
+
+void Frame::SaveGoodDescriptor(const float &x, const float  &y, const float  &r)
+{
+    cv::KeyPoint kp;
+    kp.pt.x=x;
+    kp.pt.y=y;
+    mvGoodDescriptorRadius.push_back(r);
+    mvGoodDescriptor.push_back(kp);
 }
 
 } //namespace ORB_SLAM

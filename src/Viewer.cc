@@ -55,6 +55,7 @@ void Viewer::Run()
 {
     mbFinished = false;
     mbStopped = false;
+    mbUseIMU = false;
 
     pangolin::CreateWindowAndBind("ORB-SLAM2: Map Viewer",1024,768);
 
@@ -91,6 +92,8 @@ void Viewer::Run()
 
     bool bFollow = true;
     bool bLocalizationMode = false;
+
+    int img_num = 0;
 
     while(1)
     {
@@ -136,6 +139,20 @@ void Viewer::Run()
 
         cv::Mat im = mpFrameDrawer->DrawFrame();
         cv::imshow("ORB-SLAM2: Current Frame",im);
+        std::string homepath = getenv("HOME");
+        if(mbSaveImg && mpFrameDrawer->mbSaveImage){
+            char ad[128]={0};
+            if (mbUseIMU){
+                sprintf(ad, "%s/Pictures/ORB-SLAM2-IMU/ORB-SLAM2_img_%06d.jpg", homepath.c_str(), ++img_num);
+            }
+            else{
+                sprintf(ad, "%s/Pictures/ORB-SLAM2/ORB-SLAM2_img_%06d.jpg", homepath.c_str(), ++img_num);
+            }
+            
+            cv::imwrite(ad, im);
+            // Please see System.cc, I need to add current path.
+            mpFrameDrawer->mbSaveImage = false;
+        }
         cv::waitKey(mT);
 
         if(menuReset)
