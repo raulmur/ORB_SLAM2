@@ -26,6 +26,8 @@
 #include <pangolin/pangolin.h>
 #include <iomanip>
 
+using namespace std;
+
 namespace ORB_SLAM2
 {
 
@@ -131,7 +133,7 @@ cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const
             // Wait until Local Mapping has effectively stopped
             while(!mpLocalMapper->isStopped())
             {
-                usleep(1000);
+                this_thread::sleep_for(chrono::milliseconds(1));
             }
 
             mpTracker->InformOnlyTracking(true);
@@ -182,7 +184,7 @@ cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const doub
             // Wait until Local Mapping has effectively stopped
             while(!mpLocalMapper->isStopped())
             {
-                usleep(1000);
+                this_thread::sleep_for(chrono::milliseconds(1));
             }
 
             mpTracker->InformOnlyTracking(true);
@@ -233,7 +235,7 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
             // Wait until Local Mapping has effectively stopped
             while(!mpLocalMapper->isStopped())
             {
-                usleep(1000);
+                this_thread::sleep_for(chrono::milliseconds(1));
             }
 
             mpTracker->InformOnlyTracking(true);
@@ -306,13 +308,13 @@ void System::Shutdown()
     {
         mpViewer->RequestFinish();
         while(!mpViewer->isFinished())
-            usleep(5000);
+            this_thread::sleep_for(chrono::milliseconds(5));
     }
 
     // Wait until all thread have effectively stopped
     while(!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished() || mpLoopCloser->isRunningGBA())
     {
-        usleep(5000);
+        this_thread::sleep_for(chrono::milliseconds(5));
     }
 
     if(mpViewer)

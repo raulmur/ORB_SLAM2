@@ -166,7 +166,7 @@ int main(int argc, char **argv)
             T = tframe-vTimeStamp[ni-1];
 
         if(ttrack<T)
-            usleep((T-ttrack)*1e6);
+            this_thread::sleep_for(chrono::microseconds(int((T-ttrack)*1e6)));
     }
 
     // Stop all threads

@@ -25,6 +25,7 @@
 
 namespace ORB_SLAM2
 {
+using namespace std;
 
 long unsigned int KeyFrame::nNextId=0;
 

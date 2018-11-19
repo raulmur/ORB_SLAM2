@@ -102,7 +102,7 @@ int main(int argc, char **argv)
             T = tframe-vTimestamps[ni-1];
 
         if(ttrack<T)
-            usleep((T-ttrack)*1e6);
+            this_thread::sleep_for(chrono::microseconds(int((T-ttrack)*1e6)));
     }
 
     // Stop all threads
@@ -129,6 +129,8 @@ void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vecto
 {
     ifstream f;
     f.open(strFile.c_str());
+    if (!f.is_open())
+        throw std::runtime_error("Image list file does not exist!");
 
     // skip first three lines
     string s0;
