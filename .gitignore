@@ -22,3 +22,9 @@ build/
 *~
 lib/
 
+# CLion files
+.idea/
+
+# Mac files
+**/*.icloud
+**/.DS_Store
