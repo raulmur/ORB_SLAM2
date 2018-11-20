@@ -34,6 +34,8 @@ using namespace std;
 void LoadImages(const string &strSequence, vector<string> &vstrImageFilenames,
                 vector<double> &vTimestamps);
 
+void FeedImages(ORB_SLAM2::System& SLAM, const string &sequencePath);
+
 int main(int argc, char **argv)
 {
     if(argc != 4)
@@ -42,15 +44,31 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    // Create SLAM system. It initializes all system threads and gets ready to process frames.
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
+
+#ifdef __APPLE__
+    thread t(FeedImages, ref(SLAM), string(argv[3]));
+    SLAM.ViewerLoop();
+    t.join();
+#else
+    FeedImages(SLAM, string(argv[3]));
+#endif
+
+    // Save camera trajectory
+    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");    
+
+    return 0;
+}
+
+void FeedImages(ORB_SLAM2::System& SLAM, const string &sequencePath)
+{
     // Retrieve paths to images
     vector<string> vstrImageFilenames;
     vector<double> vTimestamps;
-    LoadImages(string(argv[3]), vstrImageFilenames, vTimestamps);
+    LoadImages(sequencePath, vstrImageFilenames, vTimestamps);
 
     int nImages = vstrImageFilenames.size();
-
-    // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
@@ -101,7 +119,7 @@ int main(int argc, char **argv)
             T = tframe-vTimestamps[ni-1];
 
         if(ttrack<T)
-            usleep((T-ttrack)*1e6);
+            this_thread::sleep_for(chrono::microseconds(int((T-ttrack)*1e6)));
     }
 
     // Stop all threads
@@ -117,11 +135,6 @@ int main(int argc, char **argv)
     cout << "-------" << endl << endl;
     cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
     cout << "mean tracking time: " << totaltime/nImages << endl;
-
-    // Save camera trajectory
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");    
-
-    return 0;
 }
 
 void LoadImages(const string &strPathToSequence, vector<string> &vstrImageFilenames, vector<double> &vTimestamps)

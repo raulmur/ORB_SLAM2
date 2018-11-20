@@ -33,6 +33,8 @@ using namespace std;
 void LoadImages(const string &strFile, vector<string> &vstrImageFilenames,
                 vector<double> &vTimestamps);
 
+void FeedImages(ORB_SLAM2::System& SLAM, const string &sequencePath);
+
 int main(int argc, char **argv)
 {
     if(argc != 4)
@@ -41,16 +43,32 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    // Create SLAM system. It initializes all system threads and gets ready to process frames.
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
+
+#ifdef __APPLE__
+    thread t(FeedImages, ref(SLAM), string(argv[3]));
+    SLAM.ViewerLoop();
+    t.join();
+#else
+    FeedImages(SLAM, string(argv[3]));
+#endif
+
+    // Save camera trajectory
+    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+
+    return 0;
+}
+
+void FeedImages(ORB_SLAM2::System& SLAM, const string &sequencePath)
+{
     // Retrieve paths to images
     vector<string> vstrImageFilenames;
     vector<double> vTimestamps;
-    string strFile = string(argv[3])+"/rgb.txt";
+    string strFile = sequencePath+"/rgb.txt";
     LoadImages(strFile, vstrImageFilenames, vTimestamps);
 
     int nImages = vstrImageFilenames.size();
-
-    // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
@@ -65,14 +83,16 @@ int main(int argc, char **argv)
     for(int ni=0; ni<nImages; ni++)
     {
         // Read image from file
-        im = cv::imread(string(argv[3])+"/"+vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
+        im = cv::imread(sequencePath+"/"+vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
         double tframe = vTimestamps[ni];
 
         if(im.empty())
         {
             cerr << endl << "Failed to load image at: "
-                 << string(argv[3]) << "/" << vstrImageFilenames[ni] << endl;
-            return 1;
+                 << sequencePath << "/" << vstrImageFilenames[ni] << endl;
+            // Stop all threads
+            SLAM.Shutdown();
+            return;
         }
 
 #ifdef COMPILEDWITHC11
@@ -102,7 +122,7 @@ int main(int argc, char **argv)
             T = tframe-vTimestamps[ni-1];
 
         if(ttrack<T)
-            usleep((T-ttrack)*1e6);
+            this_thread::sleep_for(chrono::microseconds(int((T-ttrack)*1e6)));
     }
 
     // Stop all threads
@@ -118,17 +138,14 @@ int main(int argc, char **argv)
     cout << "-------" << endl << endl;
     cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
     cout << "mean tracking time: " << totaltime/nImages << endl;
-
-    // Save camera trajectory
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
-
-    return 0;
 }
 
 void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vector<double> &vTimestamps)
 {
     ifstream f;
     f.open(strFile.c_str());
+    if (!f.is_open())
+        throw std::runtime_error("Image list file does not exist!");
 
     // skip first three lines
     string s0;
