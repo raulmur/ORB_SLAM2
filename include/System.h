@@ -122,6 +122,10 @@ public:
     std::vector<MapPoint*> GetTrackedMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
+    // In MacOS, the viewer loop cannot be run in non-main threads.
+    // When running on MacOS, the data feeding should be called in non-main threads,
+    // and the main thread should be in charge of the viewer loop, until it gets terminated.
+    void ViewerLoop();
 private:
 
     // Input sensor

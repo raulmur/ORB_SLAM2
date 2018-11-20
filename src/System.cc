@@ -25,6 +25,8 @@
 #include <thread>
 #include <pangolin/pangolin.h>
 #include <iomanip>
+#include <include/System.h>
+
 
 using namespace std;
 
@@ -100,7 +102,9 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     if(bUseViewer)
     {
         mpViewer = new Viewer(this, mpFrameDrawer,mpMapDrawer,mpTracker,strSettingsFile);
+#ifndef __APPLE__
         mptViewer = new thread(&Viewer::Run, mpViewer);
+#endif
         mpTracker->SetViewer(mpViewer);
     }
 
@@ -489,6 +493,10 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
 {
     unique_lock<mutex> lock(mMutexState);
     return mTrackedKeyPointsUn;
+}
+
+void System::ViewerLoop() {
+    mpViewer->Run();
 }
 
 } //namespace ORB_SLAM
