@@ -34,6 +34,9 @@ using namespace std;
 void LoadImages(const string &strPathLeft, const string &strPathRight, const string &strPathTimes,
                 vector<string> &vstrImageLeft, vector<string> &vstrImageRight, vector<double> &vTimeStamps);
 
+void FeedImages(ORB_SLAM2::System& SLAM, const string &settingsPath, const string &leftFolderPath,
+                const string &rightFolderPath, const string &timesFilePath);
+
 int main(int argc, char **argv)
 {
     if(argc != 6)
@@ -42,30 +45,53 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    // Create SLAM system. It initializes all system threads and gets ready to process frames.
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
+
+#ifdef __APPLE__
+    thread t(FeedImages, ref(SLAM), string(argv[2]), string(argv[3]), string(argv[4]), string(argv[5]));
+    SLAM.ViewerLoop();
+    t.join();
+#else
+    FeedImages(SLAM, string(argv[2]), string(argv[3]), string(argv[4]), string(argv[5]));
+#endif
+
+    return 0;
+}
+
+void FeedImages(ORB_SLAM2::System& SLAM, const string &settingsPath, const string &leftFolderPath,
+                const string &rightFolderPath, const string &timesFilePath)
+{
+
     // Retrieve paths to images
     vector<string> vstrImageLeft;
     vector<string> vstrImageRight;
     vector<double> vTimeStamp;
-    LoadImages(string(argv[3]), string(argv[4]), string(argv[5]), vstrImageLeft, vstrImageRight, vTimeStamp);
+    LoadImages(leftFolderPath, rightFolderPath, timesFilePath, vstrImageLeft, vstrImageRight, vTimeStamp);
 
     if(vstrImageLeft.empty() || vstrImageRight.empty())
     {
         cerr << "ERROR: No images in provided path." << endl;
-        return 1;
+        SLAM.Shutdown();
+        return;
     }
 
     if(vstrImageLeft.size()!=vstrImageRight.size())
     {
         cerr << "ERROR: Different number of left and right images." << endl;
-        return 1;
+        // Stop all threads
+        SLAM.Shutdown();
+        return;
     }
 
     // Read rectification parameters
-    cv::FileStorage fsSettings(argv[2], cv::FileStorage::READ);
+    cv::FileStorage fsSettings(settingsPath, cv::FileStorage::READ);
     if(!fsSettings.isOpened())
     {
         cerr << "ERROR: Wrong path to settings" << endl;
-        return -1;
+        // Stop all threads
+        SLAM.Shutdown();
+        return;
     }
 
     cv::Mat K_l, K_r, P_l, P_r, R_l, R_r, D_l, D_r;
@@ -87,10 +113,12 @@ int main(int argc, char **argv)
     int cols_r = fsSettings["RIGHT.width"];
 
     if(K_l.empty() || K_r.empty() || P_l.empty() || P_r.empty() || R_l.empty() || R_r.empty() || D_l.empty() || D_r.empty() ||
-            rows_l==0 || rows_r==0 || cols_l==0 || cols_r==0)
+       rows_l==0 || rows_r==0 || cols_l==0 || cols_r==0)
     {
         cerr << "ERROR: Calibration parameters to rectify stereo are missing!" << endl;
-        return -1;
+        // Stop all threads
+        SLAM.Shutdown();
+        return;
     }
 
     cv::Mat M1l,M2l,M1r,M2r;
@@ -99,9 +127,6 @@ int main(int argc, char **argv)
 
 
     const int nImages = vstrImageLeft.size();
-
-    // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
@@ -123,14 +148,18 @@ int main(int argc, char **argv)
         {
             cerr << endl << "Failed to load image at: "
                  << string(vstrImageLeft[ni]) << endl;
-            return 1;
+            // Stop all threads
+            SLAM.Shutdown();
+            return;
         }
 
         if(imRight.empty())
         {
             cerr << endl << "Failed to load image at: "
                  << string(vstrImageRight[ni]) << endl;
-            return 1;
+            // Stop all threads
+            SLAM.Shutdown();
+            return;
         }
 
         cv::remap(imLeft,imLeftRect,M1l,M2l,cv::INTER_LINEAR);
@@ -166,7 +195,7 @@ int main(int argc, char **argv)
             T = tframe-vTimeStamp[ni-1];
 
         if(ttrack<T)
-            usleep((T-ttrack)*1e6);
+            this_thread::sleep_for(chrono::microseconds(int((T-ttrack)*1e6)));
     }
 
     // Stop all threads
@@ -185,8 +214,6 @@ int main(int argc, char **argv)
 
     // Save camera trajectory
     SLAM.SaveTrajectoryTUM("CameraTrajectory.txt");
-
-    return 0;
 }
 
 void LoadImages(const string &strPathLeft, const string &strPathRight, const string &strPathTimes,

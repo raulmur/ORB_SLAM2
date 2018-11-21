@@ -24,6 +24,7 @@
 
 namespace ORB_SLAM2
 {
+using namespace std;
 
 Map::Map():mnMaxKFid(0),mnBigChangeIdx(0)
 {

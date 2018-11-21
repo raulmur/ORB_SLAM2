@@ -23,10 +23,13 @@
 #include "ORBmatcher.h"
 #include "Optimizer.h"
 
-#include<mutex>
+#include <mutex>
+#include <chrono>
+#include <algorithm>
 
 namespace ORB_SLAM2
 {
+using namespace std;
 
 LocalMapping::LocalMapping(Map *pMap, const float bMonocular):
     mbMonocular(bMonocular), mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap),
@@ -91,7 +94,7 @@ void LocalMapping::Run()
             // Safe area to stop
             while(isStopped() && !CheckFinish())
             {
-                usleep(3000);
+                this_thread::sleep_for(chrono::milliseconds(3));
             }
             if(CheckFinish())
                 break;
@@ -105,7 +108,7 @@ void LocalMapping::Run()
         if(CheckFinish())
             break;
 
-        usleep(3000);
+        this_thread::sleep_for(chrono::milliseconds(3));
     }
 
     SetFinish();
@@ -716,7 +719,7 @@ void LocalMapping::RequestReset()
             if(!mbResetRequested)
                 break;
         }
-        usleep(3000);
+        this_thread::sleep_for(chrono::milliseconds(3));
     }
 }
 

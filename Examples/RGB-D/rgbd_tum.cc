@@ -33,6 +33,8 @@ using namespace std;
 void LoadImages(const string &strAssociationFilename, vector<string> &vstrImageFilenamesRGB,
                 vector<string> &vstrImageFilenamesD, vector<double> &vTimestamps);
 
+void FeedImages(ORB_SLAM2::System& SLAM, const string &sequencePath, const string &associationPath);
+
 int main(int argc, char **argv)
 {
     if(argc != 5)
@@ -41,11 +43,31 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    // Create SLAM system. It initializes all system threads and gets ready to process frames.
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD,true);
+
+#ifdef __APPLE__
+    thread t(FeedImages, ref(SLAM), string(argv[3]), string(argv[4]));
+    SLAM.ViewerLoop();
+    t.join();
+#else
+    FeedImages(SLAM, string(argv[3]), string(argv[4]));
+#endif
+
+    // Save camera trajectory
+    SLAM.SaveTrajectoryTUM("CameraTrajectory.txt");
+    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");   
+
+    return 0;
+}
+
+void FeedImages(ORB_SLAM2::System& SLAM, const string &sequencePath, const string &associationPath)
+{
     // Retrieve paths to images
     vector<string> vstrImageFilenamesRGB;
     vector<string> vstrImageFilenamesD;
     vector<double> vTimestamps;
-    string strAssociationFilename = string(argv[4]);
+    string strAssociationFilename = associationPath;
     LoadImages(strAssociationFilename, vstrImageFilenamesRGB, vstrImageFilenamesD, vTimestamps);
 
     // Check consistency in the number of images and depthmaps
@@ -61,9 +83,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD,true);
-
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
     vTimesTrack.resize(nImages);
@@ -77,14 +96,14 @@ int main(int argc, char **argv)
     for(int ni=0; ni<nImages; ni++)
     {
         // Read image and depthmap from file
-        imRGB = cv::imread(string(argv[3])+"/"+vstrImageFilenamesRGB[ni],CV_LOAD_IMAGE_UNCHANGED);
-        imD = cv::imread(string(argv[3])+"/"+vstrImageFilenamesD[ni],CV_LOAD_IMAGE_UNCHANGED);
+        imRGB = cv::imread(sequencePath+"/"+vstrImageFilenamesRGB[ni],CV_LOAD_IMAGE_UNCHANGED);
+        imD = cv::imread(sequencePath+"/"+vstrImageFilenamesD[ni],CV_LOAD_IMAGE_UNCHANGED);
         double tframe = vTimestamps[ni];
 
         if(imRGB.empty())
         {
             cerr << endl << "Failed to load image at: "
-                 << string(argv[3]) << "/" << vstrImageFilenamesRGB[ni] << endl;
+                 << sequencePath << "/" << vstrImageFilenamesRGB[ni] << endl;
             return 1;
         }
 
@@ -115,7 +134,7 @@ int main(int argc, char **argv)
             T = tframe-vTimestamps[ni-1];
 
         if(ttrack<T)
-            usleep((T-ttrack)*1e6);
+            this_thread::sleep_for(chrono::microseconds(int((T-ttrack)*1e6)));
     }
 
     // Stop all threads
@@ -131,12 +150,6 @@ int main(int argc, char **argv)
     cout << "-------" << endl << endl;
     cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
     cout << "mean tracking time: " << totaltime/nImages << endl;
-
-    // Save camera trajectory
-    SLAM.SaveTrajectoryTUM("CameraTrajectory.txt");
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");   
-
-    return 0;
 }
 
 void LoadImages(const string &strAssociationFilename, vector<string> &vstrImageFilenamesRGB,
