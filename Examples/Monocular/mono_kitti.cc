@@ -89,7 +89,9 @@ void FeedImages(ORB_SLAM2::System& SLAM, const string &sequencePath)
         if(im.empty())
         {
             cerr << endl << "Failed to load image at: " << vstrImageFilenames[ni] << endl;
-            return 1;
+            // Stop all threads
+            SLAM.Shutdown();
+            return;
         }
 
 #ifdef COMPILEDWITHC11

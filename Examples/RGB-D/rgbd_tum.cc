@@ -75,12 +75,16 @@ void FeedImages(ORB_SLAM2::System& SLAM, const string &sequencePath, const strin
     if(vstrImageFilenamesRGB.empty())
     {
         cerr << endl << "No images found in provided path." << endl;
-        return 1;
+        // Stop all threads
+        SLAM.Shutdown();
+        return;
     }
     else if(vstrImageFilenamesD.size()!=vstrImageFilenamesRGB.size())
     {
         cerr << endl << "Different number of images for rgb and depth." << endl;
-        return 1;
+        // Stop all threads
+        SLAM.Shutdown();
+        return;
     }
 
     // Vector for tracking time statistics
@@ -104,7 +108,9 @@ void FeedImages(ORB_SLAM2::System& SLAM, const string &sequencePath, const strin
         {
             cerr << endl << "Failed to load image at: "
                  << sequencePath << "/" << vstrImageFilenamesRGB[ni] << endl;
-            return 1;
+            // Stop all threads
+            SLAM.Shutdown();
+            return;
         }
 
 #ifdef COMPILEDWITHC11
