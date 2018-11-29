@@ -1,0 +1,12 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}/bin
+libdir=${prefix}/lib:$@PCL_LIBRARY_DIRS@
+libs=@PCL_LIBRARIES@ @Boost_LIBRARIES@ @OpenCV_LIBS@
+includedir=${prefix}/include @PCL_INCLUDE_DIRS@
+
+Name:  @PROJECT_NAME@
+Description: : @PROJECT_DESCRIPTION@
+Version: @PROJECT_VERSION@
+Requires: @DEPS_PKGCONFIG@
+Libs: -L${libdir} -l@PROJECT_NAME@ -l${libs} 
+Cflags: -I${includedir}
