@@ -32,23 +32,28 @@
 using namespace std;
 
 void LoadImages(const string &strSequence, vector<string> &vstrImageFilenames,
-                vector<double> &vTimestamps);
+                vector<double> &vTimestamps, int image_id);
 
-void FeedImages(ORB_SLAM2::System& SLAM, const string &sequencePath);
+void FeedImages(ORB_SLAM2::System& SLAM, const string &sequencePath, int image_id);
 
 int main(int argc, char **argv)
 {
-    if(argc != 4)
+    if(argc < 4)
     {
-        cerr << endl << "Usage: ./mono_kitti path_to_vocabulary path_to_settings path_to_sequence" << endl;
+        cerr << endl << "Usage: ./mono_kitti path_to_vocabulary path_to_settings path_to_sequence [image_id]" << endl;
         return 1;
+    }
+
+    int image_id = 0;
+    if (argc >= 5) {
+        image_id = stoi(argv[4]);
     }
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
 
 #ifdef __APPLE__
-    thread t(FeedImages, ref(SLAM), string(argv[3]));
+    thread t(FeedImages, ref(SLAM), string(argv[3]), image_id);
     SLAM.ViewerLoop();
     t.join();
 #else
@@ -61,14 +66,14 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void FeedImages(ORB_SLAM2::System& SLAM, const string &sequencePath)
+void FeedImages(ORB_SLAM2::System& SLAM, const string &sequencePath, int image_id)
 {
     // Retrieve paths to images
     vector<string> vstrImageFilenames;
     vector<double> vTimestamps;
-    LoadImages(sequencePath, vstrImageFilenames, vTimestamps);
+    LoadImages(sequencePath, vstrImageFilenames, vTimestamps, image_id);
 
-    int nImages = vstrImageFilenames.size();
+    unsigned long nImages = vstrImageFilenames.size();
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
@@ -139,7 +144,7 @@ void FeedImages(ORB_SLAM2::System& SLAM, const string &sequencePath)
     cout << "mean tracking time: " << totaltime/nImages << endl;
 }
 
-void LoadImages(const string &strPathToSequence, vector<string> &vstrImageFilenames, vector<double> &vTimestamps)
+void LoadImages(const string &strPathToSequence, vector<string> &vstrImageFilenames, vector<double> &vTimestamps, int image_id)
 {
     ifstream fTimes;
     string strPathTimeFile = strPathToSequence + "/times.txt";
@@ -158,9 +163,9 @@ void LoadImages(const string &strPathToSequence, vector<string> &vstrImageFilena
         }
     }
 
-    string strPrefixLeft = strPathToSequence + "/image_0/";
+    string strPrefixLeft = strPathToSequence + "/image_" + to_string(image_id) + "/";
 
-    const int nTimes = vTimestamps.size();
+    unsigned long nTimes = vTimestamps.size();
     vstrImageFilenames.resize(nTimes);
 
     for(int i=0; i<nTimes; i++)
