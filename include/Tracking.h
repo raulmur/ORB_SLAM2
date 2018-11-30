@@ -55,7 +55,7 @@ class Tracking
 
 public:
     Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
-             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor);
+             KeyFrameDatabase* pKFDB, const std::string &strSettingPath, const int sensor);
 
     // Preprocess the input and call Track(). Extract features and performs stereo matching.
     cv::Mat GrabImageStereo(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp);
@@ -68,8 +68,8 @@ public:
 
     // Load new settings
     // The focal lenght should be similar or scale prediction will fail when projecting points
-    // TODO: Modify MapPoint::PredictScale to take into account focal lenght
-    void ChangeCalibration(const string &strSettingPath);
+    // TODO: Modify MapPoint::PredictScale to take into account focal length
+    void ChangeCalibration(const std::string &strSettingPath);
 
     // Use this function if you have deactivated local mapping and you only want to localize the camera.
     void InformOnlyTracking(const bool &flag);
@@ -105,10 +105,10 @@ public:
 
     // Lists used to recover the full camera trajectory at the end of the execution.
     // Basically we store the reference keyframe for each frame and its relative transformation
-    list<cv::Mat> mlRelativeFramePoses;
-    list<KeyFrame*> mlpReferences;
-    list<double> mlFrameTimes;
-    list<bool> mlbLost;
+    std::list<cv::Mat> mlRelativeFramePoses;
+    std::list<KeyFrame*> mlpReferences;
+    std::list<double> mlFrameTimes;
+    std::list<bool> mlbLost;
 
     // True if local mapping is deactivated and we are performing only localization
     bool mbOnlyTracking;
@@ -213,7 +213,7 @@ protected:
     //Color order (true RGB, false BGR, ignored if grayscale)
     bool mbRGB;
 
-    list<MapPoint*> mlpTemporalPoints;
+    std::list<MapPoint*> mlpTemporalPoints;
 };
 
 } //namespace ORB_SLAM

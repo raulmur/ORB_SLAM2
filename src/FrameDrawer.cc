@@ -28,6 +28,7 @@
 
 namespace ORB_SLAM2
 {
+using namespace std;
 
 FrameDrawer::FrameDrawer(Map* pMap):mpMap(pMap)
 {

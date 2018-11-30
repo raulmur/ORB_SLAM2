@@ -26,7 +26,7 @@
 
 namespace ORB_SLAM2
 {
-
+using namespace std;
 
 MapDrawer::MapDrawer(Map* pMap, const string &strSettingPath):mpMap(pMap)
 {

@@ -39,9 +39,17 @@ endif()
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 
+add_subdirectory(Thirdparty/g2o)
+add_subdirectory(Thirdparty/DBoW2)
+add_subdirectory(Thirdparty/DLib)
+
 include_directories(
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
+${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/include
+${PROJECT_SOURCE_DIR}/Thirdparty/DLib/include
+${PROJECT_SOURCE_DIR}/Thirdparty/g2o
+${PROJECT_BINARY_DIR}/Thirdparty/g2o
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 )
@@ -70,12 +78,15 @@ src/Initializer.cc
 src/Viewer.cc
 )
 
+link_directories(${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib)
+
 target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
 ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
-${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
-${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+DBoW2
+DLib
+types_sim3
 )
 
 # Build examples

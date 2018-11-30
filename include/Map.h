@@ -28,7 +28,6 @@
 #include <mutex>
 
 
-
 namespace ORB_SLAM2
 {
 
@@ -59,7 +58,7 @@ public:
 
     void clear();
 
-    vector<KeyFrame*> mvpKeyFrameOrigins;
+    std::vector<KeyFrame*> mvpKeyFrameOrigins;
 
     std::mutex mMutexMapUpdate;
 

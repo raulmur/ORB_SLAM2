@@ -1,0 +1,9 @@
+[submodule "Thirdparty/g2o"]
+	path = Thirdparty/g2o
+	url = https://github.com/RainerKuemmerle/g2o.git
+[submodule "Thirdparty/DBoW2"]
+	path = Thirdparty/DBoW2
+	url = https://github.com/kyu-sz/DBoW2.git
+[submodule "Thirdparty/DLib"]
+	path = Thirdparty/DLib
+	url = https://github.com/dorian3d/DLib.git

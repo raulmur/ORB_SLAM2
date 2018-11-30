@@ -25,13 +25,22 @@
 #include <thread>
 #include <pangolin/pangolin.h>
 #include <iomanip>
+#include <include/System.h>
+
+
+using namespace std;
 
 namespace ORB_SLAM2
 {
 
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
-               const bool bUseViewer):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
-        mbDeactivateLocalizationMode(false)
+               const bool bUseViewer):
+               mSensor(sensor),
+               mpViewer(nullptr),
+               mptViewer(nullptr),
+               mbReset(false),
+               mbActivateLocalizationMode(false),
+               mbDeactivateLocalizationMode(false)
 {
     // Output welcome message
     cout << endl <<
@@ -98,7 +107,9 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     if(bUseViewer)
     {
         mpViewer = new Viewer(this, mpFrameDrawer,mpMapDrawer,mpTracker,strSettingsFile);
+#ifndef __APPLE__
         mptViewer = new thread(&Viewer::Run, mpViewer);
+#endif
         mpTracker->SetViewer(mpViewer);
     }
 
@@ -111,6 +122,26 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     mpLoopCloser->SetTracker(mpTracker);
     mpLoopCloser->SetLocalMapper(mpLocalMapper);
+}
+
+System::~System()
+{
+    if (mptViewer)
+        mptViewer->join();
+    mptLocalMapping->join();
+    mptLoopClosing->join();
+
+    delete mpVocabulary;
+    delete mpKeyFrameDatabase;
+    delete mpMap;
+    delete mpFrameDrawer;
+    delete mpMapDrawer;
+    delete mpTracker;
+    delete mpLocalMapper;
+    delete mptLocalMapping;
+    delete mpLoopCloser;
+    delete mptLoopClosing;
+    delete mpViewer;
 }
 
 cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp)
@@ -131,7 +162,7 @@ cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const
             // Wait until Local Mapping has effectively stopped
             while(!mpLocalMapper->isStopped())
             {
-                usleep(1000);
+                this_thread::sleep_for(chrono::milliseconds(1));
             }
 
             mpTracker->InformOnlyTracking(true);
@@ -182,7 +213,7 @@ cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const doub
             // Wait until Local Mapping has effectively stopped
             while(!mpLocalMapper->isStopped())
             {
-                usleep(1000);
+                this_thread::sleep_for(chrono::milliseconds(1));
             }
 
             mpTracker->InformOnlyTracking(true);
@@ -233,7 +264,7 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
             // Wait until Local Mapping has effectively stopped
             while(!mpLocalMapper->isStopped())
             {
-                usleep(1000);
+                this_thread::sleep_for(chrono::milliseconds(1));
             }
 
             mpTracker->InformOnlyTracking(true);
@@ -306,13 +337,13 @@ void System::Shutdown()
     {
         mpViewer->RequestFinish();
         while(!mpViewer->isFinished())
-            usleep(5000);
+            this_thread::sleep_for(chrono::milliseconds(5));
     }
 
     // Wait until all thread have effectively stopped
     while(!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished() || mpLoopCloser->isRunningGBA())
     {
-        usleep(5000);
+        this_thread::sleep_for(chrono::milliseconds(5));
     }
 
     if(mpViewer)
@@ -345,10 +376,10 @@ void System::SaveTrajectoryTUM(const string &filename)
 
     // For each frame we have a reference keyframe (lRit), the timestamp (lT) and a flag
     // which is true when tracking failed (lbL).
-    list<ORB_SLAM2::KeyFrame*>::iterator lRit = mpTracker->mlpReferences.begin();
-    list<double>::iterator lT = mpTracker->mlFrameTimes.begin();
-    list<bool>::iterator lbL = mpTracker->mlbLost.begin();
-    for(list<cv::Mat>::iterator lit=mpTracker->mlRelativeFramePoses.begin(),
+    auto lRit = mpTracker->mlpReferences.begin();
+    auto lT = mpTracker->mlFrameTimes.begin();
+    auto lbL = mpTracker->mlbLost.begin();
+    for(auto lit=mpTracker->mlRelativeFramePoses.begin(),
         lend=mpTracker->mlRelativeFramePoses.end();lit!=lend;lit++, lRit++, lT++, lbL++)
     {
         if(*lbL)
@@ -395,11 +426,9 @@ void System::SaveKeyFrameTrajectoryTUM(const string &filename)
     f.open(filename.c_str());
     f << fixed;
 
-    for(size_t i=0; i<vpKFs.size(); i++)
+    for (auto pKF : vpKFs)
     {
-        KeyFrame* pKF = vpKFs[i];
-
-       // pKF->SetPose(pKF->GetPose()*Two);
+        // pKF->SetPose(pKF->GetPose()*Two);
 
         if(pKF->isBad())
             continue;
@@ -442,9 +471,9 @@ void System::SaveTrajectoryKITTI(const string &filename)
 
     // For each frame we have a reference keyframe (lRit), the timestamp (lT) and a flag
     // which is true when tracking failed (lbL).
-    list<ORB_SLAM2::KeyFrame*>::iterator lRit = mpTracker->mlpReferences.begin();
-    list<double>::iterator lT = mpTracker->mlFrameTimes.begin();
-    for(list<cv::Mat>::iterator lit=mpTracker->mlRelativeFramePoses.begin(), lend=mpTracker->mlRelativeFramePoses.end();lit!=lend;lit++, lRit++, lT++)
+    auto lRit = mpTracker->mlpReferences.begin();
+    auto lT = mpTracker->mlFrameTimes.begin();
+    for(auto lit=mpTracker->mlRelativeFramePoses.begin(), lend=mpTracker->mlRelativeFramePoses.end();lit!=lend;lit++, lRit++, lT++)
     {
         ORB_SLAM2::KeyFrame* pKF = *lRit;
 
@@ -487,6 +516,10 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
 {
     unique_lock<mutex> lock(mMutexState);
     return mTrackedKeyPointsUn;
+}
+
+void System::ViewerLoop() {
+    mpViewer->Run();
 }
 
 } //namespace ORB_SLAM
