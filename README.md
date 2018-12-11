@@ -101,7 +101,7 @@ This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono
   chmod +x build_ros.sh
   ./build_ros.sh
   ```
-Every node output the estimated pose on the topic '/orb_slam/odom'.
+Every node output the estimated pose on the topic `/orb_slam/odom`.
 
 ### Running Monocular Node
 For a monocular input from topic `/camera/image_raw` run node ORB_SLAM2/Mono. You will need to provide the vocabulary file and a settings file. **The images should be pre-rectified**. See the monocular examples above.
@@ -155,7 +155,7 @@ For an RGB-D input from topics `/camera/rgb/image_raw` and `/camera/depth_regist
   ```
 
 # 5. Processing your own sequences
-You will need to create a settings file with the calibration of your camera. See the settings file provided for the TUM and KITTI datasets for monocular, stereo and RGB-D cameras. We use the calibration model of OpenCV. See the examples to learn how to create a program that makes use of the ORB-SLAM2 library and how to pass images to the SLAM system. Stereo input must be synchronized and rectified. RGB-D input must be synchronized and depth registered. We suggest using Kalibr (https://github.com/ethz-asl/kalibr) for camera calibration, look for less than 1 pixel of reprojection error. 
+You will need to create a settings file with the calibration of your camera. See the settings file provided for the TUM and KITTI datasets for monocular, stereo and RGB-D cameras. We use the calibration model of OpenCV. See the examples to learn how to create a program that makes use of the ORB-SLAM2 library and how to pass images to the SLAM system. Stereo input must be synchronized and rectified. RGB-D input must be synchronized and depth registered. We suggest using Kalibr (https://github.com/ethz-asl/kalibr) for camera calibration, look for less than 1 pixel of reprojection error.
 
 # 6. SLAM and Localization Modes
 You can change between the *SLAM* and *Localization mode* using the GUI of the map viewer.
