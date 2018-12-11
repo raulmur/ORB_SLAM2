@@ -127,7 +127,7 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
 
     if(!cvTCW.empty())
     {
-      common::CreateOdomMsg(odom_msg,msgLeft,cvTCW);
+      common::CreateOdomMsg(odom_msg,msgRGB,cvTCW);
       mOdomPub.publish(odom_msg);
     }
 }
