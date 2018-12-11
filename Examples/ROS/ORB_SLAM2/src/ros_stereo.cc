@@ -24,28 +24,40 @@
 #include<fstream>
 #include<chrono>
 
-#include<ros/ros.h>
+#include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
+#include <Eigen/Dense>
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+
 #include<opencv2/core/core.hpp>
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/core/eigen.hpp>
 
 #include"../../../include/System.h"
-
+#include"common.h"
 using namespace std;
 
 class ImageGrabber
 {
 public:
-    ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){}
+    ImageGrabber(ORB_SLAM2::System* pSLAM, ros::NodeHandle* nh):mpSLAM(pSLAM), pnh(nh)
+    {
+      mOdomPub = pnh->advertise<nav_msgs::Odometry>("/orb_slam/odom", 1);
+    }
 
     void GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight);
 
     ORB_SLAM2::System* mpSLAM;
     bool do_rectify;
     cv::Mat M1l,M2l,M1r,M2r;
+
+    ros::NodeHandle* pnh;
+    ros::Publisher mOdomPub;
 };
 
 int main(int argc, char **argv)
@@ -58,18 +70,20 @@ int main(int argc, char **argv)
         cerr << endl << "Usage: rosrun ORB_SLAM2 Stereo path_to_vocabulary path_to_settings do_rectify" << endl;
         ros::shutdown();
         return 1;
-    }    
+    }
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
 
-    ImageGrabber igb(&SLAM);
+    ros::NodeHandle nh;
+
+    ImageGrabber igb(&SLAM, &nh);
 
     stringstream ss(argv[3]);
 	ss >> boolalpha >> igb.do_rectify;
 
     if(igb.do_rectify)
-    {      
+    {
         // Load settings related to stereo calibration
         cv::FileStorage fsSettings(argv[2], cv::FileStorage::READ);
         if(!fsSettings.isOpened())
@@ -107,8 +121,6 @@ int main(int argc, char **argv)
         cv::initUndistortRectifyMap(K_r,D_r,R_r,P_r.rowRange(0,3).colRange(0,3),cv::Size(cols_r,rows_r),CV_32F,igb.M1r,igb.M2r);
     }
 
-    ros::NodeHandle nh;
-
     message_filters::Subscriber<sensor_msgs::Image> left_sub(nh, "/camera/left/image_raw", 1);
     message_filters::Subscriber<sensor_msgs::Image> right_sub(nh, "camera/right/image_raw", 1);
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
@@ -120,10 +132,10 @@ int main(int argc, char **argv)
     // Stop all threads
     SLAM.Shutdown();
 
-    // Save camera trajectory
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory_TUM_Format.txt");
-    SLAM.SaveTrajectoryTUM("FrameTrajectory_TUM_Format.txt");
-    SLAM.SaveTrajectoryKITTI("FrameTrajectory_KITTI_Format.txt");
+    // Uncomment to save camera trajectory
+    // SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory_TUM_Format.txt");
+    // SLAM.SaveTrajectoryTUM("FrameTrajectory_TUM_Format.txt");
+    // SLAM.SaveTrajectoryKITTI("FrameTrajectory_KITTI_Format.txt");
 
     ros::shutdown();
 
@@ -155,18 +167,24 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
         return;
     }
 
+    cv::Mat cvTCW;
+    nav_msgs::Odometry odom_msg;
     if(do_rectify)
     {
         cv::Mat imLeft, imRight;
         cv::remap(cv_ptrLeft->image,imLeft,M1l,M2l,cv::INTER_LINEAR);
         cv::remap(cv_ptrRight->image,imRight,M1r,M2r,cv::INTER_LINEAR);
-        mpSLAM->TrackStereo(imLeft,imRight,cv_ptrLeft->header.stamp.toSec());
+        cvTCW = mpSLAM->TrackStereo(imLeft,imRight,cv_ptrLeft->header.stamp.toSec());
     }
     else
     {
-        mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
+        cvTCW = mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
 
+    if(!cvTCW.empty())
+    {
+      common::CreateOdomMsg(odom_msg,msgLeft,cvTCW);
+      mOdomPub.publish(odom_msg);
+    }
+    
 }
-
-
