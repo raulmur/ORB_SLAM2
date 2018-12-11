@@ -186,5 +186,5 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
       common::CreateOdomMsg(odom_msg,msgLeft,cvTCW);
       mOdomPub.publish(odom_msg);
     }
-
+    
 }
