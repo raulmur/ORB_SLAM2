@@ -37,6 +37,7 @@ inline void CreateOdomMsg(nav_msgs::Odometry& odom,
                           const sensor_msgs::ImageConstPtr& msgRGB,
                           cv::Mat cvTCW)
 {
+  /* Get transform from Cameta to World and translate it into a nav_msgs.Odom */
   // Invert to get the TWC
   cv::Mat cvTWC = cvTCW.inv();
   // Open CV mat to Eigen matrix (float)
@@ -51,27 +52,22 @@ inline void CreateOdomMsg(nav_msgs::Odometry& odom,
   Eigen::Quaterniond eigQuat(R);
   // Extract the translation
   Eigen::Vector3d T(T_eigen_d.block<3, 1>(0, 3));
-  cout << "T:" << T << endl;
+  
+  // Format the Odom msg
+  odom.header.stamp = msgRGB->header.stamp;
+  odom.header.frame_id = msgRGB->header.frame_id;
+
+  odom.pose.pose.position.x = T(0);
+  odom.pose.pose.position.y = T(1);
+  odom.pose.pose.position.z = T(2);
+
+  odom.pose.pose.orientation.x = eigQuat.x();
+  odom.pose.pose.orientation.y = eigQuat.y();
+  odom.pose.pose.orientation.z = eigQuat.z();
+  odom.pose.pose.orientation.w = eigQuat.w();
 }
 
-// inline void CreateOdomMsg(nav_msgs::Odometry& odom,
-//                    const sensor_msgs::ImageConstPtr& msgRGB,
-//                    Eigen::Vector3d T, Eigen::Quaterniond eigQuat,
-//                    Eigen::MatrixXd poseCovariance)
-// {
-//   /* Get transform from Cameta to World and translate it into a nav_msgs.Odom */
-//   odom.header.stamp = msgRGB->header.stamp;
-//   odom.header.frame_id = msgRGB->header.frame_id;
-//
-//   odom.pose.pose.position.x = T(0);
-//   odom.pose.pose.position.y = T(1);
-//   odom.pose.pose.position.z = T(2);
-//
-//   // TODO check Eigen to TF Quaternion
-//   odom.pose.pose.orientation.x = eigQuat.x();
-//   odom.pose.pose.orientation.y = eigQuat.y();
-//   odom.pose.pose.orientation.z = eigQuat.z();
-//   odom.pose.pose.orientation.w = eigQuat.w();
+
 //
 //   for( int i = 0; i < 6; i++ )
 //   {

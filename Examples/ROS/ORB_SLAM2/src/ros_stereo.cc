@@ -45,13 +45,19 @@ using namespace std;
 class ImageGrabber
 {
 public:
-    ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){}
+    ImageGrabber(ORB_SLAM2::System* pSLAM, ros::NodeHandle* nh):mpSLAM(pSLAM), pnh(nh)
+    {
+      mOdomPub = pnh->advertise<nav_msgs::Odometry>("/orb_slam/odom", 1);
+    }
 
     void GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight);
 
     ORB_SLAM2::System* mpSLAM;
     bool do_rectify;
     cv::Mat M1l,M2l,M1r,M2r;
+
+    ros::NodeHandle* pnh;
+    ros::Publisher mOdomPub;
 };
 
 int main(int argc, char **argv)
@@ -69,7 +75,9 @@ int main(int argc, char **argv)
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
 
-    ImageGrabber igb(&SLAM);
+    ros::NodeHandle nh;
+
+    ImageGrabber igb(&SLAM, &nh);
 
     stringstream ss(argv[3]);
 	ss >> boolalpha >> igb.do_rectify;
@@ -112,8 +120,6 @@ int main(int argc, char **argv)
         cv::initUndistortRectifyMap(K_l,D_l,R_l,P_l.rowRange(0,3).colRange(0,3),cv::Size(cols_l,rows_l),CV_32F,igb.M1l,igb.M2l);
         cv::initUndistortRectifyMap(K_r,D_r,R_r,P_r.rowRange(0,3).colRange(0,3),cv::Size(cols_r,rows_r),CV_32F,igb.M1r,igb.M2r);
     }
-
-    ros::NodeHandle nh;
 
     message_filters::Subscriber<sensor_msgs::Image> left_sub(nh, "/camera/left/image_raw", 1);
     message_filters::Subscriber<sensor_msgs::Image> right_sub(nh, "camera/right/image_raw", 1);
@@ -178,6 +184,7 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     if(!cvTCW.empty())
     {
       common::CreateOdomMsg(odom_msg,msgLeft,cvTCW);
+      mOdomPub.publish(odom_msg);
     }
 
 }
