@@ -709,7 +709,7 @@ void LocalMapping::RequestReset()
         mbResetRequested = true;
     }
 
-    while(1)
+    while(!isStopped())
     {
         {
             unique_lock<mutex> lock2(mMutexReset);
@@ -718,6 +718,12 @@ void LocalMapping::RequestReset()
         }
         usleep(3000);
     }
+
+	if (isStopped())
+	{
+		ResetIfRequested();
+		return;
+	}
 }
 
 void LocalMapping::ResetIfRequested()
