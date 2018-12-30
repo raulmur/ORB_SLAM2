@@ -250,6 +250,10 @@ vector<KeyFrame*> KeyFrameDatabase::DetectRelocalizationCandidates(Frame *F)
             pKFi->mRelocScore=si;
             lScoreAndMatch.push_back(make_pair(si,pKFi));
         }
+        else
+        {
+             pKFi->mRelocScore = 0;
+        }
     }
 
     if(lScoreAndMatch.empty())
