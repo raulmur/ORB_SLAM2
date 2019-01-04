@@ -686,7 +686,7 @@ void Tracking::CreateInitialMapMonocular()
     pKFcur->UpdateConnections();
 
     // Bundle Adjustment
-    cout << "New Map created with " << mpMap->MapPointsInMap() << " points" << endl;
+    //cout << "New Map created with " << mpMap->MapPointsInMap() << " points" << endl;
 
     Optimizer::GlobalBundleAdjustemnt(mpMap,20);
 
@@ -694,9 +694,10 @@ void Tracking::CreateInitialMapMonocular()
     float medianDepth = pKFini->ComputeSceneMedianDepth(2);
     float invMedianDepth = 1.0f/medianDepth;
 
+    //TODO: add negative rewards for wrong initialization?
     if(medianDepth<0 || pKFcur->TrackedMapPoints(1)<100)
     {
-        cout << "Wrong initialization, reseting..." << endl;
+        //cout << "Wrong initialization, reseting..." << endl;
         Reset();
         return;
     }
@@ -1511,7 +1512,7 @@ bool Tracking::Relocalization()
 void Tracking::Reset()
 {
 
-    cout << "System Reseting" << endl;
+    //cout << "System Reseting" << endl;
     if(mpViewer)
     {
         mpViewer->RequestStop();
@@ -1520,19 +1521,19 @@ void Tracking::Reset()
     }
 
     // Reset Local Mapping
-    cout << "Reseting Local Mapper...";
+    //cout << "Reseting Local Mapper...";
     mpLocalMapper->RequestReset();
-    cout << " done" << endl;
+    //cout << " done" << endl;
 
     // Reset Loop Closing
-    cout << "Reseting Loop Closing...";
+    //cout << "Reseting Loop Closing...";
     mpLoopClosing->RequestReset();
-    cout << " done" << endl;
+    //cout << " done" << endl;
 
     // Clear BoW Database
-    cout << "Reseting Database...";
+    //cout << "Reseting Database...";
     mpKeyFrameDB->clear();
-    cout << " done" << endl;
+    //cout << " done" << endl;
 
     // Clear Map (this erase MapPoints and KeyFrames)
     mpMap->clear();
