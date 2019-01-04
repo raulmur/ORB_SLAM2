@@ -113,6 +113,9 @@ public:
     // True if local mapping is deactivated and we are performing only localization
     bool mbOnlyTracking;
 
+    // tag for when the inserted frame becomes a keyframe
+    bool didUpdateKeyFrame;
+
     void Reset();
 
 protected:
