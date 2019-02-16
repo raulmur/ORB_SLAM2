@@ -78,6 +78,13 @@ ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
 )
 
+message(STATUS "Compile With map save/load function")
+find_library(BOOST_SERIALIZATION boost_serialization)
+if (NOT BOOST_SERIALIZATION)
+    message(FATAL_ERROR "Can't find libboost_serialization")
+endif()
+target_link_libraries(${PROJECT_NAME} ${BOOST_SERIALIZATION})
+
 # Build examples
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
@@ -111,28 +118,19 @@ add_executable(mono_euroc
 Examples/Monocular/mono_euroc.cc)
 target_link_libraries(mono_euroc ${PROJECT_NAME})
 
-# ---------------
-# Installation instructions.
-# Will install to CMAKE_INSTALL_PREFIX
-# This defaults to /usr/local/, specify -DCMAKE_INSTALL_PREFIX when calling cmake to specify an alternate location
-# e.g. cmake -DCMAKE_INSTALL_PREFIX="~/local"
-# ---------------
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Vocabulary)
+add_executable(bin_vocabulary Vocabulary/bin_vocabulary.cpp)
+target_link_libraries(bin_vocabulary ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so ${OpenCV_LIBS})
 
-install(TARGETS ${PROJECT_NAME}
-    DESTINATION  lib
-    COMPONENT library)
-install(FILES
-        ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
-        ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
-    DESTINATION lib
-    COMPONENT library)
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/
-    DESTINATION include/ORB_SLAM2
-    COMPONENT library
-    FILES_MATCHING PATTERN "*.h"
-    PATTERN "Thirdparty" EXCLUDE)
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/Thirdparty/
-    DESTINATION include/ORB_SLAM2/Thirdparty
-    COMPONENT library
-FILES_MATCHING REGEX ".*\\.h(pp)?")
-
+if(USE_EXAMPLE_WEBCAM)
+    find_package(PkgConfig REQUIRED)
+    pkg_search_module(CURL REQUIRED libcurl)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+    add_executable(mono_uvc Examples/mono_uvc.cpp)
+    target_link_libraries(mono_uvc ${PROJECT_NAME})
+    add_executable(mono_android_ipcam Examples/mono_android_ipcam.cpp)
+    target_link_libraries(mono_android_ipcam ${PROJECT_NAME} ${CURL_LIBRARIES})
+    add_executable(mono_android_ipcam_ar Examples/mono_android_ipcam_ar.cpp Examples/AR/ViewerAR.cc)
+    target_include_directories(mono_android_ipcam_ar PUBLIC Examples/AR/)
+    target_link_libraries(mono_android_ipcam_ar ${PROJECT_NAME} ${CURL_LIBRARIES})
+endif()

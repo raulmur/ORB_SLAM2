@@ -29,3 +29,10 @@ mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=~/.local
 make -j
+
+cd ..
+
+cd Vocabulary
+echo "Converting vocabulary to binary version"
+./bin_vocabulary
+cd ..

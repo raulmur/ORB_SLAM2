@@ -1,0 +1,4377 @@
+diff --git a/.vscode/settings.json b/.vscode/settings.json
+new file mode 100644
+index 0000000..eef5681
+--- /dev/null
++++ b/.vscode/settings.json
+@@ -0,0 +1,6 @@
++{
++    "files.associations": {
++        "mutex": "cpp",
++        "iostream": "cpp"
++    }
++}
+\ No newline at end of file
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index ae72014..fd6e8fd 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -78,6 +78,13 @@ ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
+ ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+ )
+ 
++message(STATUS "Compile With map save/load function")
++find_library(BOOST_SERIALIZATION boost_serialization)
++if (NOT BOOST_SERIALIZATION)
++    message(FATAL_ERROR "Can't find libboost_serialization")
++endif()
++target_link_libraries(${PROJECT_NAME} ${BOOST_SERIALIZATION})
++
+ # Build examples
+ 
+ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
+@@ -111,28 +118,19 @@ add_executable(mono_euroc
+ Examples/Monocular/mono_euroc.cc)
+ target_link_libraries(mono_euroc ${PROJECT_NAME})
+ 
+-# ---------------
+-# Installation instructions.
+-# Will install to CMAKE_INSTALL_PREFIX
+-# This defaults to /usr/local/, specify -DCMAKE_INSTALL_PREFIX when calling cmake to specify an alternate location
+-# e.g. cmake -DCMAKE_INSTALL_PREFIX="~/local"
+-# ---------------
+-
+-install(TARGETS ${PROJECT_NAME}
+-    DESTINATION  lib
+-    COMPONENT library)
+-install(FILES
+-        ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
+-        ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+-    DESTINATION lib
+-    COMPONENT library)
+-install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/
+-    DESTINATION include/ORB_SLAM2
+-    COMPONENT library
+-    FILES_MATCHING PATTERN "*.h"
+-    PATTERN "Thirdparty" EXCLUDE)
+-install(DIRECTORY ${PROJECT_SOURCE_DIR}/Thirdparty/
+-    DESTINATION include/ORB_SLAM2/Thirdparty
+-    COMPONENT library
+-FILES_MATCHING REGEX ".*\\.h(pp)?")
+-
++set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Vocabulary)
++add_executable(bin_vocabulary Vocabulary/bin_vocabulary.cpp)
++target_link_libraries(bin_vocabulary ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so ${OpenCV_LIBS})
++
++if(USE_EXAMPLE_WEBCAM)
++    find_package(PkgConfig REQUIRED)
++    pkg_search_module(CURL REQUIRED libcurl)
++    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
++    add_executable(mono_uvc Examples/mono_uvc.cpp)
++    target_link_libraries(mono_uvc ${PROJECT_NAME})
++    add_executable(mono_android_ipcam Examples/mono_android_ipcam.cpp)
++    target_link_libraries(mono_android_ipcam ${PROJECT_NAME} ${CURL_LIBRARIES})
++    add_executable(mono_android_ipcam_ar Examples/mono_android_ipcam_ar.cpp Examples/AR/ViewerAR.cc)
++    target_include_directories(mono_android_ipcam_ar PUBLIC Examples/AR/)
++    target_link_libraries(mono_android_ipcam_ar ${PROJECT_NAME} ${CURL_LIBRARIES})
++endif()
+diff --git a/Examples/AR/ViewerAR.cc b/Examples/AR/ViewerAR.cc
+new file mode 100644
+index 0000000..02bde95
+--- /dev/null
++++ b/Examples/AR/ViewerAR.cc
+@@ -0,0 +1,643 @@
++/**
++* This file is part of ORB-SLAM2.
++*
++* Copyright (C) 2014-2016 Raúl Mur-Artal <raulmur at unizar dot es> (University of Zaragoza)
++* For more information see <https://github.com/raulmur/ORB_SLAM2>
++*
++* ORB-SLAM2 is free software: you can redistribute it and/or modify
++* it under the terms of the GNU General Public License as published by
++* the Free Software Foundation, either version 3 of the License, or
++* (at your option) any later version.
++*
++* ORB-SLAM2 is distributed in the hope that it will be useful,
++* but WITHOUT ANY WARRANTY; without even the implied warranty of
++* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++* GNU General Public License for more details.
++*
++* You should have received a copy of the GNU General Public License
++* along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
++*/
++
++#include "ViewerAR.h"
++
++#include <opencv2/highgui/highgui.hpp>
++
++#include <mutex>
++#include <thread>
++#include <cstdlib>
++
++using namespace std;
++
++namespace ORB_SLAM2
++{
++
++const float eps = 1e-4;
++
++cv::Mat ExpSO3(const float &x, const float &y, const float &z)
++{
++    cv::Mat I = cv::Mat::eye(3,3,CV_32F);
++    const float d2 = x*x+y*y+z*z;
++    const float d = sqrt(d2);
++    cv::Mat W = (cv::Mat_<float>(3,3) << 0, -z, y,
++                 z, 0, -x,
++                 -y,  x, 0);
++    if(d<eps)
++        return (I + W + 0.5f*W*W);
++    else
++        return (I + W*sin(d)/d + W*W*(1.0f-cos(d))/d2);
++}
++
++cv::Mat ExpSO3(const cv::Mat &v)
++{
++    return ExpSO3(v.at<float>(0),v.at<float>(1),v.at<float>(2));
++}
++
++ViewerAR::ViewerAR(){}
++
++void ViewerAR::Run()
++{
++    int w,h,wui;
++
++    cv::Mat im, Tcw;
++    int status;
++    vector<cv::KeyPoint> vKeys;
++    vector<MapPoint*> vMPs;
++
++    while(1)
++    {
++        GetImagePose(im,Tcw,status,vKeys,vMPs);
++        if(im.empty())
++            cv::waitKey(mT);
++        else
++        {
++            w = im.cols;
++            h = im.rows;
++            break;
++        }
++    }
++
++    wui=200;
++
++    pangolin::CreateWindowAndBind("Viewer",w+wui,h);
++
++    glEnable(GL_DEPTH_TEST);
++    glEnable (GL_BLEND);
++
++    pangolin::CreatePanel("menu").SetBounds(0.0,1.0,0.0,pangolin::Attach::Pix(wui));
++    pangolin::Var<bool> menu_detectplane("menu.Insert Cube",false,false);
++    pangolin::Var<bool> menu_clear("menu.Clear All",false,false);
++    pangolin::Var<bool> menu_drawim("menu.Draw Image",true,true);
++    pangolin::Var<bool> menu_drawcube("menu.Draw Cube",true,true);
++    pangolin::Var<float> menu_cubesize("menu. Cube Size",0.05,0.01,0.3);
++    pangolin::Var<bool> menu_drawgrid("menu.Draw Grid",true,true);
++    pangolin::Var<int> menu_ngrid("menu. Grid Elements",3,1,10);
++    pangolin::Var<float> menu_sizegrid("menu. Element Size",0.05,0.01,0.3);
++    pangolin::Var<bool> menu_drawpoints("menu.Draw Points",false,true);
++
++    pangolin::Var<bool> menu_LocalizationMode("menu.Localization Mode",false,true);
++    bool bLocalizationMode = false;
++
++    pangolin::View& d_image = pangolin::Display("image")
++            .SetBounds(0,1.0f,pangolin::Attach::Pix(wui),1.0f,(float)w/h)
++            .SetLock(pangolin::LockLeft, pangolin::LockTop);
++
++    pangolin::GlTexture imageTexture(w,h,GL_RGB,false,0,GL_RGB,GL_UNSIGNED_BYTE);
++
++    pangolin::OpenGlMatrixSpec P = pangolin::ProjectionMatrixRDF_TopLeft(w,h,fx,fy,cx,cy,0.001,1000);
++
++    vector<Plane*> vpPlane;
++
++    while(!pangolin::ShouldQuit())
++    {
++
++        if(menu_LocalizationMode && !bLocalizationMode)
++        {
++            mpSystem->ActivateLocalizationMode();
++            bLocalizationMode = true;
++        }
++        else if(!menu_LocalizationMode && bLocalizationMode)
++        {
++            mpSystem->DeactivateLocalizationMode();
++            bLocalizationMode = false;
++        }
++
++        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
++
++        // Activate camera view
++        d_image.Activate();
++        glColor3f(1.0,1.0,1.0);
++
++        // Get last image and its computed pose from SLAM
++        GetImagePose(im,Tcw,status,vKeys,vMPs);
++
++        // Add text to image
++        PrintStatus(status,bLocalizationMode,im);
++
++        if(menu_drawpoints)
++            DrawTrackedPoints(vKeys,vMPs,im);
++
++        // Draw image
++        if(menu_drawim)
++            DrawImageTexture(imageTexture,im);
++
++        glClear(GL_DEPTH_BUFFER_BIT);
++
++        // Load camera projection
++        glMatrixMode(GL_PROJECTION);
++        P.Load();
++
++        glMatrixMode(GL_MODELVIEW);
++
++        // Load camera pose
++        LoadCameraPose(Tcw);
++
++        // Draw virtual things
++        if(status==ORB_SLAM2::Tracking::OK)
++        {
++            if(menu_clear)
++            {
++                if(!vpPlane.empty())
++                {
++                    for(size_t i=0; i<vpPlane.size(); i++)
++                    {
++                        delete vpPlane[i];
++                    }
++                    vpPlane.clear();
++                    cout << "All cubes erased!" << endl;
++                }
++                menu_clear = false;
++            }
++            if(menu_detectplane)
++            {
++                Plane* pPlane = DetectPlane(Tcw,vMPs,50);
++                if(pPlane)
++                {
++                    cout << "New virtual cube inserted!" << endl;
++                    vpPlane.push_back(pPlane);
++                }
++                else
++                {
++                    cout << "No plane detected. Point the camera to a planar region." << endl;
++                }
++                menu_detectplane = false;
++            }
++
++            if(!vpPlane.empty())
++            {
++                // Recompute plane if there has been a loop closure or global BA
++                // In localization mode, map is not updated so we do not need to recompute
++                bool bRecompute = false;
++                if(!bLocalizationMode)
++                {
++                    if(mpSystem->MapChanged())
++                    {
++                        cout << "Map changed. All virtual elements are recomputed!" << endl;
++                        bRecompute = true;
++                    }
++                }
++
++                for(size_t i=0; i<vpPlane.size(); i++)
++                {
++                    Plane* pPlane = vpPlane[i];
++
++                    if(pPlane)
++                    {
++                        if(bRecompute)
++                        {
++                            pPlane->Recompute();
++                        }
++                        glPushMatrix();
++                        pPlane->glTpw.Multiply();
++
++                        // Draw cube
++                        if(menu_drawcube)
++                        {
++                            DrawCube(menu_cubesize);
++                        }
++
++                        // Draw grid plane
++                        if(menu_drawgrid)
++                        {
++                            DrawPlane(menu_ngrid,menu_sizegrid);
++                        }
++
++                        glPopMatrix();
++                    }
++                }
++            }
++
++
++        }
++
++        pangolin::FinishFrame();
++        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<size_t>(mT)));
++    }
++    pangolin::Quit();
++}
++
++void ViewerAR::SetImagePose(const cv::Mat &im, const cv::Mat &Tcw, const int &status, const vector<cv::KeyPoint> &vKeys, const vector<ORB_SLAM2::MapPoint*> &vMPs)
++{
++    unique_lock<mutex> lock(mMutexPoseImage);
++    mImage = im.clone();
++    mTcw = Tcw.clone();
++    mStatus = status;
++    mvKeys = vKeys;
++    mvMPs = vMPs;
++}
++
++void ViewerAR::GetImagePose(cv::Mat &im, cv::Mat &Tcw, int &status, std::vector<cv::KeyPoint> &vKeys,  std::vector<MapPoint*> &vMPs)
++{
++    unique_lock<mutex> lock(mMutexPoseImage);
++    im = mImage.clone();
++    Tcw = mTcw.clone();
++    status = mStatus;
++    vKeys = mvKeys;
++    vMPs = mvMPs;
++}
++
++void ViewerAR::LoadCameraPose(const cv::Mat &Tcw)
++{
++    if(!Tcw.empty())
++    {
++        pangolin::OpenGlMatrix M;
++
++        M.m[0] = Tcw.at<float>(0,0);
++        M.m[1] = Tcw.at<float>(1,0);
++        M.m[2] = Tcw.at<float>(2,0);
++        M.m[3]  = 0.0;
++
++        M.m[4] = Tcw.at<float>(0,1);
++        M.m[5] = Tcw.at<float>(1,1);
++        M.m[6] = Tcw.at<float>(2,1);
++        M.m[7]  = 0.0;
++
++        M.m[8] = Tcw.at<float>(0,2);
++        M.m[9] = Tcw.at<float>(1,2);
++        M.m[10] = Tcw.at<float>(2,2);
++        M.m[11]  = 0.0;
++
++        M.m[12] = Tcw.at<float>(0,3);
++        M.m[13] = Tcw.at<float>(1,3);
++        M.m[14] = Tcw.at<float>(2,3);
++        M.m[15]  = 1.0;
++
++        M.Load();
++    }
++}
++
++void ViewerAR::PrintStatus(const int &status, const bool &bLocMode, cv::Mat &im)
++{
++    typedef ORB_SLAM2::Tracking tr;
++    if(!bLocMode)
++    {
++        switch(status)
++        {
++        case tr::NOT_INITIALIZED:  {AddTextToImage("SLAM NOT INITIALIZED",im,255,0,0); break;}
++        case tr::OK:  {AddTextToImage("SLAM ON",im,0,255,0); break;}
++        case tr::LOST:  {AddTextToImage("SLAM LOST",im,255,0,0); break;}
++        }
++    }
++    else
++    {
++        switch(status)
++        {
++        case tr::NOT_INITIALIZED:  {AddTextToImage("SLAM NOT INITIALIZED",im,255,0,0); break;}
++        case tr::OK:  {AddTextToImage("LOCALIZATION ON",im,0,255,0); break;}
++        case tr::LOST:  {AddTextToImage("LOCALIZATION LOST",im,255,0,0); break;}
++        }
++    }
++}
++
++void ViewerAR::AddTextToImage(const string &s, cv::Mat &im, const int r, const int g, const int b)
++{
++    int l = 10;
++    //imText.rowRange(im.rows-imText.rows,imText.rows) = cv::Mat::zeros(textSize.height+10,im.cols,im.type());
++    cv::putText(im,s,cv::Point(l,im.rows-l),cv::FONT_HERSHEY_PLAIN,1.5,cv::Scalar(255,255,255),2,8);
++    cv::putText(im,s,cv::Point(l-1,im.rows-l),cv::FONT_HERSHEY_PLAIN,1.5,cv::Scalar(255,255,255),2,8);
++    cv::putText(im,s,cv::Point(l+1,im.rows-l),cv::FONT_HERSHEY_PLAIN,1.5,cv::Scalar(255,255,255),2,8);
++    cv::putText(im,s,cv::Point(l-1,im.rows-(l-1)),cv::FONT_HERSHEY_PLAIN,1.5,cv::Scalar(255,255,255),2,8);
++    cv::putText(im,s,cv::Point(l,im.rows-(l-1)),cv::FONT_HERSHEY_PLAIN,1.5,cv::Scalar(255,255,255),2,8);
++    cv::putText(im,s,cv::Point(l+1,im.rows-(l-1)),cv::FONT_HERSHEY_PLAIN,1.5,cv::Scalar(255,255,255),2,8);
++    cv::putText(im,s,cv::Point(l-1,im.rows-(l+1)),cv::FONT_HERSHEY_PLAIN,1.5,cv::Scalar(255,255,255),2,8);
++    cv::putText(im,s,cv::Point(l,im.rows-(l+1)),cv::FONT_HERSHEY_PLAIN,1.5,cv::Scalar(255,255,255),2,8);
++    cv::putText(im,s,cv::Point(l+1,im.rows-(l+1)),cv::FONT_HERSHEY_PLAIN,1.5,cv::Scalar(255,255,255),2,8);
++
++    cv::putText(im,s,cv::Point(l,im.rows-l),cv::FONT_HERSHEY_PLAIN,1.5,cv::Scalar(r,g,b),2,8);
++}
++
++void ViewerAR::DrawImageTexture(pangolin::GlTexture &imageTexture, cv::Mat &im)
++{
++    if(!im.empty())
++    {
++        imageTexture.Upload(im.data,GL_RGB,GL_UNSIGNED_BYTE);
++        imageTexture.RenderToViewportFlipY();
++    }
++}
++
++void ViewerAR::DrawCube(const float &size,const float x, const float y, const float z)
++{
++    pangolin::OpenGlMatrix M = pangolin::OpenGlMatrix::Translate(-x,-size-y,-z);
++    glPushMatrix();
++    M.Multiply();
++    pangolin::glDrawColouredCube(-size,size);
++    glPopMatrix();
++}
++
++void ViewerAR::DrawPlane(Plane *pPlane, int ndivs, float ndivsize)
++{
++    glPushMatrix();
++    pPlane->glTpw.Multiply();
++    DrawPlane(ndivs,ndivsize);
++    glPopMatrix();
++}
++
++void ViewerAR::DrawPlane(int ndivs, float ndivsize)
++{
++    // Plane parallel to x-z at origin with normal -y
++    const float minx = -ndivs*ndivsize;
++    const float minz = -ndivs*ndivsize;
++    const float maxx = ndivs*ndivsize;
++    const float maxz = ndivs*ndivsize;
++
++
++    glLineWidth(2);
++    glColor3f(0.7f,0.7f,1.0f);
++    glBegin(GL_LINES);
++
++    for(int n = 0; n<=2*ndivs; n++)
++    {
++        glVertex3f(minx+ndivsize*n,0,minz);
++        glVertex3f(minx+ndivsize*n,0,maxz);
++        glVertex3f(minx,0,minz+ndivsize*n);
++        glVertex3f(maxx,0,minz+ndivsize*n);
++    }
++
++    glEnd();
++
++}
++
++void ViewerAR::DrawTrackedPoints(const std::vector<cv::KeyPoint> &vKeys, const std::vector<MapPoint *> &vMPs, cv::Mat &im)
++{
++    const int N = vKeys.size();
++
++
++    for(int i=0; i<N; i++)
++    {
++        if(vMPs[i])
++        {
++            cv::circle(im,vKeys[i].pt,1,cv::Scalar(0,255,0),-1);
++        }
++    }
++}
++
++Plane* ViewerAR::DetectPlane(const cv::Mat Tcw, const std::vector<MapPoint*> &vMPs, const int iterations)
++{
++    // Retrieve 3D points
++    vector<cv::Mat> vPoints;
++    vPoints.reserve(vMPs.size());
++    vector<MapPoint*> vPointMP;
++    vPointMP.reserve(vMPs.size());
++
++    for(size_t i=0; i<vMPs.size(); i++)
++    {
++        MapPoint* pMP=vMPs[i];
++        if(pMP)
++        {
++            if(pMP->Observations()>5)
++            {
++                vPoints.push_back(pMP->GetWorldPos());
++                vPointMP.push_back(pMP);
++            }
++        }
++    }
++
++    const int N = vPoints.size();
++
++    if(N<50)
++        return NULL;
++
++
++    // Indices for minimum set selection
++    vector<size_t> vAllIndices;
++    vAllIndices.reserve(N);
++    vector<size_t> vAvailableIndices;
++
++    for(int i=0; i<N; i++)
++    {
++        vAllIndices.push_back(i);
++    }
++
++    float bestDist = 1e10;
++    vector<float> bestvDist;
++
++    //RANSAC
++    for(int n=0; n<iterations; n++)
++    {
++        vAvailableIndices = vAllIndices;
++
++        cv::Mat A(3,4,CV_32F);
++        A.col(3) = cv::Mat::ones(3,1,CV_32F);
++
++        // Get min set of points
++        for(short i = 0; i < 3; ++i)
++        {
++            int randi = DUtils::Random::RandomInt(0, vAvailableIndices.size()-1);
++
++            int idx = vAvailableIndices[randi];
++
++            A.row(i).colRange(0,3) = vPoints[idx].t();
++
++            vAvailableIndices[randi] = vAvailableIndices.back();
++            vAvailableIndices.pop_back();
++        }
++
++        cv::Mat u,w,vt;
++        cv::SVDecomp(A,w,u,vt,cv::SVD::MODIFY_A | cv::SVD::FULL_UV);
++
++        const float a = vt.at<float>(3,0);
++        const float b = vt.at<float>(3,1);
++        const float c = vt.at<float>(3,2);
++        const float d = vt.at<float>(3,3);
++
++        vector<float> vDistances(N,0);
++
++        const float f = 1.0f/sqrt(a*a+b*b+c*c+d*d);
++
++        for(int i=0; i<N; i++)
++        {
++            vDistances[i] = fabs(vPoints[i].at<float>(0)*a+vPoints[i].at<float>(1)*b+vPoints[i].at<float>(2)*c+d)*f;
++        }
++
++        vector<float> vSorted = vDistances;
++        sort(vSorted.begin(),vSorted.end());
++
++        int nth = max((int)(0.2*N),20);
++        const float medianDist = vSorted[nth];
++
++        if(medianDist<bestDist)
++        {
++            bestDist = medianDist;
++            bestvDist = vDistances;
++        }
++    }
++
++    // Compute threshold inlier/outlier
++    const float th = 1.4*bestDist;
++    vector<bool> vbInliers(N,false);
++    int nInliers = 0;
++    for(int i=0; i<N; i++)
++    {
++        if(bestvDist[i]<th)
++        {
++            nInliers++;
++            vbInliers[i]=true;
++        }
++    }
++
++    vector<MapPoint*> vInlierMPs(nInliers,NULL);
++    int nin = 0;
++    for(int i=0; i<N; i++)
++    {
++        if(vbInliers[i])
++        {
++            vInlierMPs[nin] = vPointMP[i];
++            nin++;
++        }
++    }
++
++    return new Plane(vInlierMPs,Tcw);
++}
++
++Plane::Plane(const std::vector<MapPoint *> &vMPs, const cv::Mat &Tcw):mvMPs(vMPs),mTcw(Tcw.clone())
++{
++    rang = -3.14f/2+((float)rand()/RAND_MAX)*3.14f;
++    Recompute();
++}
++
++void Plane::Recompute()
++{
++    const int N = mvMPs.size();
++
++    // Recompute plane with all points
++    cv::Mat A = cv::Mat(N,4,CV_32F);
++    A.col(3) = cv::Mat::ones(N,1,CV_32F);
++
++    o = cv::Mat::zeros(3,1,CV_32F);
++
++    int nPoints = 0;
++    for(int i=0; i<N; i++)
++    {
++        MapPoint* pMP = mvMPs[i];
++        if(!pMP->isBad())
++        {
++            cv::Mat Xw = pMP->GetWorldPos();
++            o+=Xw;
++            A.row(nPoints).colRange(0,3) = Xw.t();
++            nPoints++;
++        }
++    }
++    A.resize(nPoints);
++
++    cv::Mat u,w,vt;
++    cv::SVDecomp(A,w,u,vt,cv::SVD::MODIFY_A | cv::SVD::FULL_UV);
++
++    float a = vt.at<float>(3,0);
++    float b = vt.at<float>(3,1);
++    float c = vt.at<float>(3,2);
++
++    o = o*(1.0f/nPoints);
++    const float f = 1.0f/sqrt(a*a+b*b+c*c);
++
++    // Compute XC just the first time
++    if(XC.empty())
++    {
++        cv::Mat Oc = -mTcw.colRange(0,3).rowRange(0,3).t()*mTcw.rowRange(0,3).col(3);
++        XC = Oc-o;
++    }
++
++    if((XC.at<float>(0)*a+XC.at<float>(1)*b+XC.at<float>(2)*c)>0)
++    {
++        a=-a;
++        b=-b;
++        c=-c;
++    }
++
++    const float nx = a*f;
++    const float ny = b*f;
++    const float nz = c*f;
++
++    n = (cv::Mat_<float>(3,1)<<nx,ny,nz);
++
++    cv::Mat up = (cv::Mat_<float>(3,1) << 0.0f, 1.0f, 0.0f);
++
++    cv::Mat v = up.cross(n);
++    const float sa = cv::norm(v);
++    const float ca = up.dot(n);
++    const float ang = atan2(sa,ca);
++    Tpw = cv::Mat::eye(4,4,CV_32F);
++
++
++    Tpw.rowRange(0,3).colRange(0,3) = ExpSO3(v*ang/sa)*ExpSO3(up*rang);
++    o.copyTo(Tpw.col(3).rowRange(0,3));
++
++    glTpw.m[0] = Tpw.at<float>(0,0);
++    glTpw.m[1] = Tpw.at<float>(1,0);
++    glTpw.m[2] = Tpw.at<float>(2,0);
++    glTpw.m[3]  = 0.0;
++
++    glTpw.m[4] = Tpw.at<float>(0,1);
++    glTpw.m[5] = Tpw.at<float>(1,1);
++    glTpw.m[6] = Tpw.at<float>(2,1);
++    glTpw.m[7]  = 0.0;
++
++    glTpw.m[8] = Tpw.at<float>(0,2);
++    glTpw.m[9] = Tpw.at<float>(1,2);
++    glTpw.m[10] = Tpw.at<float>(2,2);
++    glTpw.m[11]  = 0.0;
++
++    glTpw.m[12] = Tpw.at<float>(0,3);
++    glTpw.m[13] = Tpw.at<float>(1,3);
++    glTpw.m[14] = Tpw.at<float>(2,3);
++    glTpw.m[15]  = 1.0;
++
++}
++
++Plane::Plane(const float &nx, const float &ny, const float &nz, const float &ox, const float &oy, const float &oz)
++{
++    n = (cv::Mat_<float>(3,1)<<nx,ny,nz);
++    o = (cv::Mat_<float>(3,1)<<ox,oy,oz);
++
++    cv::Mat up = (cv::Mat_<float>(3,1) << 0.0f, 1.0f, 0.0f);
++
++    cv::Mat v = up.cross(n);
++    const float s = cv::norm(v);
++    const float c = up.dot(n);
++    const float a = atan2(s,c);
++    Tpw = cv::Mat::eye(4,4,CV_32F);
++    const float rang = -3.14f/2+((float)rand()/RAND_MAX)*3.14f;
++    cout << rang;
++    Tpw.rowRange(0,3).colRange(0,3) = ExpSO3(v*a/s)*ExpSO3(up*rang);
++    o.copyTo(Tpw.col(3).rowRange(0,3));
++
++    glTpw.m[0] = Tpw.at<float>(0,0);
++    glTpw.m[1] = Tpw.at<float>(1,0);
++    glTpw.m[2] = Tpw.at<float>(2,0);
++    glTpw.m[3]  = 0.0;
++
++    glTpw.m[4] = Tpw.at<float>(0,1);
++    glTpw.m[5] = Tpw.at<float>(1,1);
++    glTpw.m[6] = Tpw.at<float>(2,1);
++    glTpw.m[7]  = 0.0;
++
++    glTpw.m[8] = Tpw.at<float>(0,2);
++    glTpw.m[9] = Tpw.at<float>(1,2);
++    glTpw.m[10] = Tpw.at<float>(2,2);
++    glTpw.m[11]  = 0.0;
++
++    glTpw.m[12] = Tpw.at<float>(0,3);
++    glTpw.m[13] = Tpw.at<float>(1,3);
++    glTpw.m[14] = Tpw.at<float>(2,3);
++    glTpw.m[15]  = 1.0;
++}
++
++}
+diff --git a/Examples/AR/ViewerAR.h b/Examples/AR/ViewerAR.h
+new file mode 100644
+index 0000000..5c9f0e8
+--- /dev/null
++++ b/Examples/AR/ViewerAR.h
+@@ -0,0 +1,120 @@
++/**
++* This file is part of ORB-SLAM2.
++*
++* Copyright (C) 2014-2016 Raúl Mur-Artal <raulmur at unizar dot es> (University of Zaragoza)
++* For more information see <https://github.com/raulmur/ORB_SLAM2>
++*
++* ORB-SLAM2 is free software: you can redistribute it and/or modify
++* it under the terms of the GNU General Public License as published by
++* the Free Software Foundation, either version 3 of the License, or
++* (at your option) any later version.
++*
++* ORB-SLAM2 is distributed in the hope that it will be useful,
++* but WITHOUT ANY WARRANTY; without even the implied warranty of
++* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++* GNU General Public License for more details.
++*
++* You should have received a copy of the GNU General Public License
++* along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
++*/
++
++
++#ifndef VIEWERAR_H
++#define VIEWERAR_H
++
++#include <mutex>
++#include <opencv2/core/core.hpp>
++#include <pangolin/pangolin.h>
++#include <string>
++#include "System.h"
++
++namespace ORB_SLAM2
++{
++
++class Plane
++{
++public:
++    Plane(const std::vector<MapPoint*> &vMPs, const cv::Mat &Tcw);
++    Plane(const float &nx, const float &ny, const float &nz, const float &ox, const float &oy, const float &oz);
++
++    void Recompute();
++
++    //normal
++    cv::Mat n;
++    //origin
++    cv::Mat o;
++    //arbitrary orientation along normal
++    float rang;
++    //transformation from world to the plane
++    cv::Mat Tpw;
++    pangolin::OpenGlMatrix glTpw;
++    //MapPoints that define the plane
++    std::vector<MapPoint*> mvMPs;
++    //camera pose when the plane was first observed (to compute normal direction)
++    cv::Mat mTcw, XC;
++};
++
++class ViewerAR
++{
++public:
++    ViewerAR();
++
++    void SetFPS(const float fps){
++        mFPS = fps;
++        mT=1e3/fps;
++    }
++
++    void SetSLAM(ORB_SLAM2::System* pSystem){
++        mpSystem = pSystem;
++    }
++
++    // Main thread function.
++    void Run();
++    void Quit() { pangolin::Quit(); }
++    void SetCameraCalibration(const float &fx_, const float &fy_, const float &cx_, const float &cy_){
++        fx = fx_; fy = fy_; cx = cx_; cy = cy_;
++    }
++
++    void SetImagePose(const cv::Mat &im, const cv::Mat &Tcw, const int &status,
++                      const std::vector<cv::KeyPoint> &vKeys, const std::vector<MapPoint*> &vMPs);
++
++    void GetImagePose(cv::Mat &im, cv::Mat &Tcw, int &status,
++                      std::vector<cv::KeyPoint> &vKeys,  std::vector<MapPoint*> &vMPs);
++
++private:
++
++    //SLAM
++    ORB_SLAM2::System* mpSystem;
++
++    void PrintStatus(const int &status, const bool &bLocMode, cv::Mat &im);
++    void AddTextToImage(const std::string &s, cv::Mat &im, const int r=0, const int g=0, const int b=0);
++    void LoadCameraPose(const cv::Mat &Tcw);
++    void DrawImageTexture(pangolin::GlTexture &imageTexture, cv::Mat &im);
++    void DrawCube(const float &size, const float x=0, const float y=0, const float z=0);
++    void DrawPlane(int ndivs, float ndivsize);
++    void DrawPlane(Plane* pPlane, int ndivs, float ndivsize);
++    void DrawTrackedPoints(const std::vector<cv::KeyPoint> &vKeys, const std::vector<MapPoint*> &vMPs, cv::Mat &im);
++
++    Plane* DetectPlane(const cv::Mat Tcw, const std::vector<MapPoint*> &vMPs, const int iterations=50);
++
++    // frame rate
++    float mFPS, mT;
++    float fx,fy,cx,cy;
++
++    // Last processed image and computed pose by the SLAM
++    std::mutex mMutexPoseImage;
++    cv::Mat mTcw;
++    cv::Mat mImage;
++    int mStatus;
++    std::vector<cv::KeyPoint> mvKeys;
++    std::vector<MapPoint*> mvMPs;
++
++};
++
++
++}
++
++
++#endif // VIEWERAR_H
++
++
+diff --git a/Examples/Monocular/TUM1.yaml b/Examples/Monocular/TUM1.yaml
+index 145f792..49600bb 100644
+--- a/Examples/Monocular/TUM1.yaml
++++ b/Examples/Monocular/TUM1.yaml
+@@ -56,3 +56,7 @@ Viewer.ViewpointY: -0.7
+ Viewer.ViewpointZ: -1.8
+ Viewer.ViewpointF: 500
+ 
++#--------------------------------------------------------------------------------------------
++# Map Parapeters
++#--------------------------------------------------------------------------------------------
++Map.mapfile: map.bin
+diff --git a/Examples/Monocular/mono_euroc.cc b/Examples/Monocular/mono_euroc.cc
+index 4bcb90f..5fe491c 100644
+--- a/Examples/Monocular/mono_euroc.cc
++++ b/Examples/Monocular/mono_euroc.cc
+@@ -107,7 +107,7 @@ int main(int argc, char **argv)
+             T = tframe-vTimestamps[ni-1];
+ 
+         if(ttrack<T)
+-            usleep((T-ttrack)*1e6);
++            std::this_thread::sleep_for(std::chrono::microseconds(static_cast<size_t>((T-ttrack)*1e6)));
+     }
+ 
+     // Stop all threads
+diff --git a/Examples/Monocular/mono_kitti.cc b/Examples/Monocular/mono_kitti.cc
+index f2f7b3e..2157149 100644
+--- a/Examples/Monocular/mono_kitti.cc
++++ b/Examples/Monocular/mono_kitti.cc
+@@ -101,7 +101,7 @@ int main(int argc, char **argv)
+             T = tframe-vTimestamps[ni-1];
+ 
+         if(ttrack<T)
+-            usleep((T-ttrack)*1e6);
++            std::this_thread::sleep_for(std::chrono::microseconds(static_cast<size_t>((T-ttrack)*1e6)));
+     }
+ 
+     // Stop all threads
+diff --git a/Examples/Monocular/mono_tum.cc b/Examples/Monocular/mono_tum.cc
+index 09a2afc..3d14cb0 100644
+--- a/Examples/Monocular/mono_tum.cc
++++ b/Examples/Monocular/mono_tum.cc
+@@ -35,9 +35,9 @@ void LoadImages(const string &strFile, vector<string> &vstrImageFilenames,
+ 
+ int main(int argc, char **argv)
+ {
+-    if(argc != 4)
++    if(argc != 5)
+     {
+-        cerr << endl << "Usage: ./mono_tum path_to_vocabulary path_to_settings path_to_sequence" << endl;
++        cerr << endl << "Usage: ./mono_tum path_to_vocabulary path_to_settings path_to_sequence [1|0](save map?)" << endl;
+         return 1;
+     }
+ 
+@@ -50,7 +50,7 @@ int main(int argc, char **argv)
+     int nImages = vstrImageFilenames.size();
+ 
+     // Create SLAM system. It initializes all system threads and gets ready to process frames.
+-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
++    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true, (bool)atoi(argv[4]));
+ 
+     // Vector for tracking time statistics
+     vector<float> vTimesTrack;
+@@ -102,7 +102,7 @@ int main(int argc, char **argv)
+             T = tframe-vTimestamps[ni-1];
+ 
+         if(ttrack<T)
+-            usleep((T-ttrack)*1e6);
++            std::this_thread::sleep_for(std::chrono::microseconds(static_cast<size_t>((T-ttrack)*1e6)));
+     }
+ 
+     // Stop all threads
+diff --git a/Examples/RGB-D/rgbd_tum.cc b/Examples/RGB-D/rgbd_tum.cc
+index 001199d..7f41703 100644
+--- a/Examples/RGB-D/rgbd_tum.cc
++++ b/Examples/RGB-D/rgbd_tum.cc
+@@ -115,7 +115,7 @@ int main(int argc, char **argv)
+             T = tframe-vTimestamps[ni-1];
+ 
+         if(ttrack<T)
+-            usleep((T-ttrack)*1e6);
++            std::this_thread::sleep_for(std::chrono::microseconds(static_cast<size_t>((T-ttrack)*1e6)));
+     }
+ 
+     // Stop all threads
+diff --git a/Examples/ROS/ORB_SLAM2/src/AR/ViewerAR.cc b/Examples/ROS/ORB_SLAM2/src/AR/ViewerAR.cc
+index 9c548e8..5f75101 100644
+--- a/Examples/ROS/ORB_SLAM2/src/AR/ViewerAR.cc
++++ b/Examples/ROS/ORB_SLAM2/src/AR/ViewerAR.cc
+@@ -230,7 +230,7 @@ void ViewerAR::Run()
+         }
+ 
+         pangolin::FinishFrame();
+-        usleep(mT*1000);
++        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<size_t>(mT)));
+     }
+ 
+ }
+diff --git a/Examples/Stereo/stereo_euroc.cc b/Examples/Stereo/stereo_euroc.cc
+index 6bc09c5..551567b 100644
+--- a/Examples/Stereo/stereo_euroc.cc
++++ b/Examples/Stereo/stereo_euroc.cc
+@@ -166,7 +166,7 @@ int main(int argc, char **argv)
+             T = tframe-vTimeStamp[ni-1];
+ 
+         if(ttrack<T)
+-            usleep((T-ttrack)*1e6);
++            std::this_thread::sleep_for(std::chrono::microseconds(static_cast<size_t>((T-ttrack)*1e6)));
+     }
+ 
+     // Stop all threads
+diff --git a/Examples/Stereo/stereo_kitti.cc b/Examples/Stereo/stereo_kitti.cc
+index cb8bc40..056ef3e 100644
+--- a/Examples/Stereo/stereo_kitti.cc
++++ b/Examples/Stereo/stereo_kitti.cc
+@@ -104,7 +104,7 @@ int main(int argc, char **argv)
+             T = tframe-vTimestamps[ni-1];
+ 
+         if(ttrack<T)
+-            usleep((T-ttrack)*1e6);
++            std::this_thread::sleep_for(std::chrono::microseconds(static_cast<size_t>((T-ttrack)*1e6)));
+     }
+ 
+     // Stop all threads
+diff --git a/Examples/mono_android_ipcam.cpp b/Examples/mono_android_ipcam.cpp
+new file mode 100644
+index 0000000..c0111f6
+--- /dev/null
++++ b/Examples/mono_android_ipcam.cpp
+@@ -0,0 +1,190 @@
++/*
++ * This an example base on ORB_SLAM2
++ * It supports video input from a webcam or mjpeg stream over HTTP
++ * libcurl is needed
++ * Usage:
++ * ./mono_android_ipcam /path/to/ORBvoc.{bin,txt} /path/to/settings.yaml http://xxx.xxx.xxx.xxx/video UpdateMap(0|1)
++ */
++#include <curl/curl.h>
++#include <opencv2/core.hpp>
++#include <opencv2/highgui.hpp>
++#include <string.h>
++#include <stdio.h>
++#include <stdexcept>
++#include <stdlib.h>
++#include <time.h>
++#include <unistd.h>
++#include <signal.h>
++#include <execinfo.h>
++#include"System.h"
++
++#define MAX_JPEG_BUF_LEN 1000000
++enum RECV_STATUS {IDLE, WAIT_LENGTH, RECV_DATA};
++RECV_STATUS stat;
++char signature[50];
++size_t content_length;
++size_t received_length=0;
++char raw_jpeg_buf[MAX_JPEG_BUF_LEN];
++char read_buf[2*CURL_MAX_WRITE_SIZE];
++size_t read_buf_len;
++bool read_buf_isempty = true;
++
++inline double timeval2double(struct timeval t)
++{
++    return t.tv_sec + double(t.tv_usec)/1000000;
++}
++static bool is_exit=false;
++static void SIGINT_handler(int dummy)
++{
++    is_exit = true;
++    puts("exiting...");
++}
++static void SIGSEGV_handler(int sig)
++{
++    void *array[100];
++    size_t size;
++    size = backtrace(array, 100);
++    fprintf(stderr, "Error: signal %d:\n", sig);
++    backtrace_symbols_fd(array, size, STDERR_FILENO);
++    exit(-1);
++}
++
++void register_handler()
++{
++    // register SIGINT handler
++    struct sigaction sigint_hdl;
++    sigint_hdl.sa_handler = SIGINT_handler;
++    sigemptyset(&sigint_hdl.sa_mask);
++    sigint_hdl.sa_flags = 0;
++    sigaction(SIGINT, &sigint_hdl, NULL);
++    // register SIGSEGV handler
++    struct sigaction sigsegv_hdl;
++    sigsegv_hdl.sa_handler = SIGSEGV_handler;
++    sigemptyset(&sigsegv_hdl.sa_mask);
++    sigsegv_hdl.sa_flags = 0;
++    sigaction(SIGSEGV, &sigsegv_hdl, NULL);
++}
++static size_t write_cb(char *buf, size_t n, size_t nmemb, void *p)
++{
++    if (is_exit)
++        return 0;
++    size_t len = n*nmemb;
++LOOP:
++    switch (stat) {
++    case IDLE:
++    {
++        if (!read_buf_isempty) {
++            memcpy(read_buf + read_buf_len, buf, len);
++            buf = read_buf;
++            read_buf_isempty = true;
++            len = read_buf_len + len;
++            read_buf[len] = 0;
++        }
++        received_length = 0;
++        char *sub = strstr(buf, "--");
++        if (sub) {
++            char *eol = strstr(sub, "\r");
++            if (!eol) {
++                goto WAIT_NEXT;
++            }
++            memcpy(signature, sub, eol-sub);
++            signature[eol-sub] = 0;
++            len -= eol - buf;
++            buf = eol;
++            stat = WAIT_LENGTH;
++        }
++        else goto WAIT_NEXT;
++    }
++    case WAIT_LENGTH:
++    {
++        if (!read_buf_isempty) {
++            memcpy(read_buf + read_buf_len, buf, len);
++            buf = read_buf;
++            read_buf_isempty = true;
++            len = read_buf_len + len;
++            read_buf[len] = 0;
++        }
++        char *sub = strstr(buf, "Content-Length");
++        if (sub) {
++            char *space = strstr(sub, " ");
++            if (!space) goto WAIT_NEXT;
++            content_length = atoi(space);
++            if (content_length > MAX_JPEG_BUF_LEN) {
++                fprintf(stderr, "Buffer overflow!! %lu > %d\n", content_length, MAX_JPEG_BUF_LEN);
++                exit(-1);
++            }
++            char *pos_n = strstr(space, "\n");
++            if (!pos_n) goto WAIT_NEXT;
++            pos_n = strstr(pos_n+1, "\n");
++            if (!pos_n) goto WAIT_NEXT;
++            stat = RECV_DATA;
++            len -= pos_n+1 - buf;
++            if (len > 0)
++                buf = pos_n+1;
++            else
++                break;
++        }
++        else goto WAIT_NEXT;
++    }
++    case RECV_DATA:
++        if (received_length + len < content_length) {
++            memcpy(raw_jpeg_buf+received_length, buf, len);
++            received_length += len;
++            break;
++        }
++        else {
++            memcpy(raw_jpeg_buf+received_length, buf, content_length - received_length);
++            cv::Mat raw_data(1, content_length, CV_8UC1, raw_jpeg_buf);
++            cv::Mat img = cv::imdecode(raw_data, CV_LOAD_IMAGE_COLOR);
++
++            // deal with a frame of jpeg
++            ORB_SLAM2::System *mpSLAM = (ORB_SLAM2::System *)p;
++            struct timeval timestamp;
++            gettimeofday(&timestamp, NULL);
++            mpSLAM->TrackMonocular(img, timeval2double(timestamp));
++            stat = IDLE;
++            buf += content_length - received_length;
++            len -= content_length - received_length;
++            goto LOOP;
++            break;
++        }
++    default:
++        fprintf(stderr, "Unknown Status\n");
++        exit(-1);
++    }
++    return n*nmemb;
++WAIT_NEXT:
++    memcpy(read_buf, buf, len);
++    read_buf_isempty = false;
++    read_buf_len = len;
++    return n*nmemb;
++}
++int main(int argc, char **argv) {
++    register_handler();
++    if(argc != 5)
++    {
++        cerr << endl << "Usage: mono_http_stream path_to_vocabulary path_to_settings http://mjpeg/stream/address updateMap(1|0)?" << endl;
++        return 1;
++    }
++    stat = IDLE;
++    bool bUpdateMap = (int)atoi(argv[4]);
++    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true,bUpdateMap);
++    CURL *curl;
++    curl = curl_easy_init();
++    curl_easy_setopt(curl, CURLOPT_URL, argv[3]);
++    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
++    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
++    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &SLAM);
++    int err;
++
++    err = curl_easy_perform(curl);
++    curl_easy_cleanup(curl);
++    fprintf(stdout, "Want to exit(y/n) ? ");
++    char c;
++    do {
++        fscanf(stdin, "%c", &c);
++    } while  (c == 'y');
++    SLAM.Shutdown();
++    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
++    return 0;
++}
+diff --git a/Examples/mono_android_ipcam_ar.cpp b/Examples/mono_android_ipcam_ar.cpp
+new file mode 100644
+index 0000000..3532861
+--- /dev/null
++++ b/Examples/mono_android_ipcam_ar.cpp
+@@ -0,0 +1,253 @@
++#include <curl/curl.h>
++#include <opencv2/core.hpp>
++#include <opencv2/highgui.hpp>
++#include <string.h>
++#include <stdio.h>
++#include <stdexcept>
++#include <stdlib.h>
++#include <time.h>
++#include <unistd.h>
++#include <signal.h>
++#include"System.h"
++
++#include <chrono>
++#include <vector>
++#include "AR/ViewerAR.h"
++
++//for fetching video stream with libcurl
++
++#define MAX_JPEG_BUF_LEN 1000000
++enum RECV_STATUS {IDLE, WAIT_LENGTH, RECV_DATA};
++RECV_STATUS stat;
++char signature[50];
++size_t content_length;
++size_t received_length=0;
++char raw_jpeg_buf[MAX_JPEG_BUF_LEN];
++char read_buf[2*CURL_MAX_WRITE_SIZE];
++size_t read_buf_len;
++bool read_buf_isempty = true;
++size_t fps_count = 0;
++double fps_lasttimestamp = 0;
++//for AR
++ORB_SLAM2::ViewerAR viewerAR;
++bool bRGB=true;
++cv::Mat K;
++cv::Mat DistCoef;
++using namespace std;
++
++inline double timeval2double(struct timeval t)
++{
++    return t.tv_sec + double(t.tv_usec)/1000000;
++}
++static bool is_exit=false;
++void SIGINT_handler(int dummy)
++{
++    is_exit = true;
++    puts("exiting...");
++}
++void register_handler()
++{
++    // register SIGINT handler
++    struct sigaction sigint_hdl;
++    sigint_hdl.sa_handler = SIGINT_handler;
++    sigemptyset(&sigint_hdl.sa_mask);
++    sigint_hdl.sa_flags = 0;
++    sigaction(SIGINT, &sigint_hdl, NULL);
++}
++static size_t write_cb(char *buf, size_t n, size_t nmemb, void *p);
++void PrintARHint();
++int main(int argc, char **argv) {
++    register_handler();
++    if(argc != 4)
++    {
++	cerr << endl << "Usage: mono_http_stream path_to_vocabulary path_to_settings http://mjpeg/stream/address" << endl;
++	return 1;
++    }
++    stat = IDLE;
++    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,false);
++    // AR setup
++    PrintARHint();
++    viewerAR.SetSLAM(&SLAM);
++    cv::FileStorage fSettings(argv[2], cv::FileStorage::READ);
++    bRGB = static_cast<bool>((int)fSettings["Camera.RGB"]);
++    float fps = fSettings["Camera.fps"];
++    viewerAR.SetFPS(fps);
++    float fx = fSettings["Camera.fx"];
++    float fy = fSettings["Camera.fy"];
++    float cx = fSettings["Camera.cx"];
++    float cy = fSettings["Camera.cy"];
++    viewerAR.SetCameraCalibration(fx, fy, cx, cy);
++    K = cv::Mat::eye(3,3,CV_32F);
++    K.at<float>(0,0) = fx;
++    K.at<float>(1,1) = fy;
++    K.at<float>(0,2) = cx;
++    K.at<float>(1,2) = cy;
++    DistCoef = cv::Mat::zeros(4,1,CV_32F);
++    DistCoef.at<float>(0) = fSettings["Camera.k1"];
++    DistCoef.at<float>(1) = fSettings["Camera.k2"];
++    DistCoef.at<float>(2) = fSettings["Camera.p1"];
++    DistCoef.at<float>(3) = fSettings["Camera.p2"];
++    const float k3 = fSettings["Camera.k3"];
++    if(k3!=0)
++    {
++	DistCoef.resize(5);
++	DistCoef.at<float>(4) = k3;
++    }
++    thread tARViewer = thread(&ORB_SLAM2::ViewerAR::Run, &viewerAR);
++    // curl setup
++    CURL *curl;
++    curl = curl_easy_init();
++    curl_easy_setopt(curl, CURLOPT_URL, argv[3]);
++    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
++    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
++    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &SLAM);
++
++    int err;
++    fprintf(stdout, "Press Ctrl-C to exit\n");
++    err = curl_easy_perform(curl);
++    curl_easy_cleanup(curl);
++    if (is_exit) {
++        fprintf(stdout, "Now Close the ARViewer Window\n");
++        tARViewer.join();
++    }
++    else {
++        viewerAR.Quit();
++    }
++    SLAM.Shutdown();
++    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
++    return 0;
++}
++
++void PrintARHint()
++{
++    cout << endl << endl;
++    cout << "-----------------------" << endl;
++    cout << "Augmented Reality Demo" << endl;
++    cout << "1) Translate the camera to initialize SLAM." << endl;
++    cout << "2) Look at a planar region and translate the camera." << endl;
++    cout << "3) Press Insert Cube to place a virtual cube in the plane. " << endl;
++    cout << endl;
++    cout << "You can place several cubes in different planes." << endl;
++    cout << "-----------------------" << endl;
++    cout << endl;
++}
++
++static size_t write_cb(char *buf, size_t n, size_t nmemb, void *p)
++{
++    if (is_exit)
++        return 0;
++    size_t len = n*nmemb;
++LOOP:
++    switch (stat) {
++    case IDLE:
++    {
++        if (!read_buf_isempty) {
++            memcpy(read_buf + read_buf_len, buf, len);
++            buf = read_buf;
++            read_buf_isempty = true;
++            len = read_buf_len + len;
++            read_buf[len] = 0;
++        }
++        received_length = 0;
++        char *sub = strstr(buf, "--");
++        if (sub) {
++            char *eol = strstr(sub, "\r");
++            if (!eol) {
++                goto WAIT_NEXT;
++            }
++            memcpy(signature, sub, eol-sub);
++            signature[eol-sub] = 0;
++            len -= eol - buf;
++            buf = eol;
++            stat = WAIT_LENGTH;
++        }
++        else goto WAIT_NEXT;
++    }
++    case WAIT_LENGTH:
++    {
++        if (!read_buf_isempty) {
++            memcpy(read_buf + read_buf_len, buf, len);
++            buf = read_buf;
++            read_buf_isempty = true;
++            len = read_buf_len + len;
++            read_buf[len] = 0;
++        }
++        char *sub = strstr(buf, "Content-Length");
++        if (sub) {
++            char *space = strstr(sub, " ");
++            if (!space) goto WAIT_NEXT;
++            content_length = atoi(space);
++            if (content_length > MAX_JPEG_BUF_LEN) {
++                fprintf(stderr, "Buffer overflow!! %lu > %d\n", content_length, MAX_JPEG_BUF_LEN);
++                exit(-1);
++            }
++            char *pos_n = strstr(space, "\n");
++            if (!pos_n) goto WAIT_NEXT;
++            pos_n = strstr(pos_n+1, "\n");
++            if (!pos_n) goto WAIT_NEXT;
++            stat = RECV_DATA;
++            len -= pos_n+1 - buf;
++            if (len > 0)
++                buf = pos_n+1;
++            else
++                break;
++        }
++        else goto WAIT_NEXT;
++    }
++    case RECV_DATA:
++        if (received_length + len < content_length) {
++            memcpy(raw_jpeg_buf+received_length, buf, len);
++            received_length += len;
++            break;
++        }
++        else {
++            memcpy(raw_jpeg_buf+received_length, buf, content_length - received_length);
++            cv::Mat raw_data(1, content_length, CV_8UC1, raw_jpeg_buf);
++            cv::Mat img = cv::imdecode(raw_data, CV_LOAD_IMAGE_COLOR);
++
++            // deal with a frame of jpeg
++            ORB_SLAM2::System *mpSLAM = (ORB_SLAM2::System *)p;
++            struct timeval timestamp;
++            gettimeofday(&timestamp, NULL);
++            double timestampd = timeval2double(timestamp);
++            cv::Mat Tcw = mpSLAM->TrackMonocular(img, timestampd);
++
++            // fps
++            ++fps_count;
++            if (timestampd - fps_lasttimestamp > 1) {
++                printf("\rFPS: %lf", fps_count/(timestampd-fps_lasttimestamp));
++                fps_count = 0;
++                fps_lasttimestamp = timestampd;
++            }
++            // for AR
++            cv::Mat imu;
++            int state = mpSLAM->GetTrackingState();
++            vector<ORB_SLAM2::MapPoint*> vMPs = mpSLAM->GetTrackedMapPoints();
++            vector<cv::KeyPoint> vKeys = mpSLAM->GetTrackedKeyPointsUn();
++            cv::undistort(img, imu, K, DistCoef);
++            if (!bRGB) {
++                viewerAR.SetImagePose(imu, Tcw, state, vKeys, vMPs);
++            }
++            else {
++                cv::cvtColor(imu, imu, CV_RGB2BGR);
++                viewerAR.SetImagePose(imu, Tcw, state, vKeys, vMPs);
++            }
++
++            // process next frame
++            stat = IDLE;
++            buf += content_length - received_length;
++            len -= content_length - received_length;
++            goto LOOP;
++            break;
++        }
++    default:
++        fprintf(stderr, "Unknown Status\n");
++        exit(-1);
++    }
++    return n*nmemb;
++WAIT_NEXT:
++    memcpy(read_buf, buf, len);
++    read_buf_isempty = false;
++    read_buf_len = len;
++    return n*nmemb;
++}
+diff --git a/Examples/mono_uvc.cpp b/Examples/mono_uvc.cpp
+new file mode 100644
+index 0000000..269d649
+--- /dev/null
++++ b/Examples/mono_uvc.cpp
+@@ -0,0 +1,142 @@
++/**
++* This file is part of ORB-SLAM2.
++*
++* Copyright (C) 2014-2016 Raúl Mur-Artal <raulmur at unizar dot es> (University of Zaragoza)
++* For more information see <https://github.com/raulmur/ORB_SLAM2>
++*
++* ORB-SLAM2 is free software: you can redistribute it and/or modify
++* it under the terms of the GNU General Public License as published by
++* the Free Software Foundation, either version 3 of the License, or
++* (at your option) any later version.
++*
++* ORB-SLAM2 is distributed in the hope that it will be useful,
++* but WITHOUT ANY WARRANTY; without even the implied warranty of
++* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++* GNU General Public License for more details.
++*
++* You should have received a copy of the GNU General Public License
++* along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
++*/
++
++
++#include<iostream>
++#include<algorithm>
++#include<fstream>
++#include<chrono>
++#include <opencv/highgui.h>
++#include <libuvc/libuvc.h>
++#include <unistd.h>
++#include <signal.h>
++
++#include<opencv2/core/core.hpp>
++
++#include"System.h"
++static bool is_exit=false;
++using namespace std;
++
++void uvc_cb(uvc_frame_t *frame, void *ptr);
++
++void SIGINT_handler(int dummy)
++{
++    is_exit = true;
++    puts("exiting...");
++}
++void register_handler()
++{
++    // register SIGINT handler
++    struct sigaction sigint_hdl;
++    sigint_hdl.sa_handler = SIGINT_handler;
++    sigemptyset(&sigint_hdl.sa_mask);
++    sigint_hdl.sa_flags = 0;
++    sigaction(SIGINT, &sigint_hdl, NULL);
++}
++int main(int argc, char **argv)
++{
++    register_handler();
++
++    uvc_context_t *ctx;
++    uvc_device_t *dev;
++    uvc_device_handle_t *devh;
++    uvc_stream_ctrl_t ctrl;
++    uvc_error_t ret;
++
++    if(argc != 3)
++    {
++        cerr << endl << "Usage: rosrun ORB_SLAM2 Mono path_to_vocabulary path_to_settings" << endl;
++        return 1;
++    }
++    // libuvc setup
++    ret = uvc_init(&ctx, NULL);
++    if (ret != UVC_SUCCESS) {
++        uvc_perror(ret, "uvc_init");
++        return ret;
++    }
++    puts("UVC initialized");
++    ret = uvc_find_device(ctx, &dev, 0, 0, NULL);
++    if (ret != UVC_SUCCESS) {
++        uvc_perror(ret, "uvc_find_device");
++        return ret;
++    }
++    puts("UVC Device found");
++    ret = uvc_open(dev, &devh);
++    if (ret != UVC_SUCCESS) {
++        uvc_perror(ret, "uvc_open");
++        return ret;
++    }
++    puts("UVC Device Opened");
++    uvc_print_diag(devh, stderr);
++    puts("###############");
++    ret = uvc_get_stream_ctrl_format_size(devh, &ctrl, UVC_FRAME_FORMAT_YUYV, 640, 480, 30);
++    uvc_print_stream_ctrl(&ctrl, stderr);
++    puts("##############");
++    if (ret != UVC_SUCCESS) {
++        uvc_perror(ret, "get_mode");
++        return ret;
++    }
++    // Create SLAM system. It initializes all system threads and gets ready to process frames.
++    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
++
++    ret = uvc_start_streaming(devh, &ctrl, uvc_cb, &SLAM, 0);
++    if (ret != UVC_SUCCESS) {
++        uvc_perror(ret, "start_streaming");
++        return ret;
++    }
++    puts("Streaming");
++    uvc_set_ae_mode(devh, 2);
++    while (!is_exit) sleep(1);
++    SLAM.Shutdown();
++
++    // Save camera trajectory
++    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
++
++    uvc_stop_streaming(devh);
++    puts("Done Streaming");
++    uvc_close(devh);
++    puts("Device Closed");
++
++    return 0;
++}
++inline double timeval2double(struct timeval t)
++{
++    return t.tv_sec + double(t.tv_usec)/1000000;
++}
++void uvc_cb(uvc_frame_t *frame, void *ptr)
++{
++    ORB_SLAM2::System *mpSLAM = (ORB_SLAM2::System *)ptr;
++    uvc_frame_t *bgr;
++    uvc_error_t ret;
++    bgr = uvc_allocate_frame(frame->width * frame->height*3);
++    if (!bgr) {
++        puts("Unable to allocate bgr frame!");
++        return;
++    }
++    ret = uvc_any2bgr(frame, bgr);
++    if (ret!=UVC_SUCCESS) {
++        uvc_perror(ret, "uvc_any2bgr");
++        uvc_free_frame(bgr);
++        return;
++    }
++    cv::Mat img(bgr->height, bgr->width, CV_8UC(3), bgr->data);
++    mpSLAM->TrackMonocular(img,timeval2double(frame->capture_time));
++}
++
+diff --git a/README.md b/README.md
+index acf42ee..752a0ec 100644
+--- a/README.md
++++ b/README.md
+@@ -1,6 +1,8 @@
+ # ORB-SLAM2
+ **Authors:** [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
+ 
++**14 Jul 2017**: Binary format ORB vocabulary and Map save/load are now supported(See section 10 and 11).
++
+ **13 Jan 2017**: OpenCV 3 and Eigen 3.3 are now supported.
+ 
+ **22 Dec 2016**: Added AR demo (see section 7).
+@@ -76,6 +78,12 @@ We use modified versions of the [DBoW2](https://github.com/dorian3d/DBoW2) libra
+ ## ROS (optional)
+ We provide some examples to process the live input of a monocular, stereo or RGB-D camera using [ROS](ros.org). Building these examples is optional. In case you want to use ROS, a version Hydro or newer is needed.
+ 
++## Boost(optional)
++
++Map save/load feature needs boost library and more specifically the`libboost_serialization` library.
++
++See section 11
++
+ # 3. Building ORB-SLAM2 library and examples
+ 
+ Clone the repository:
+@@ -174,21 +182,21 @@ This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono
+   ```
+   export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:PATH/ORB_SLAM2/Examples/ROS
+   ```
+-  
++
+ 2. Execute `build_ros.sh` script:
+ 
+   ```
+   chmod +x build_ros.sh
+   ./build_ros.sh
+   ```
+-  
++
+ ### Running Monocular Node
+ For a monocular input from topic `/camera/image_raw` run node ORB_SLAM2/Mono. You will need to provide the vocabulary file and a settings file. See the monocular examples above.
+ 
+   ```
+   rosrun ORB_SLAM2 Mono PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE
+   ```
+-  
++
+ ### Running Monocular Augmented Reality Demo
+ This is a demo of augmented reality where you can use an interface to insert virtual cubes in planar regions of the scene.
+ The node reads images from topic `/camera/image_raw`.
+@@ -196,27 +204,27 @@ The node reads images from topic `/camera/image_raw`.
+   ```
+   rosrun ORB_SLAM2 MonoAR PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE
+   ```
+-  
++
+ ### Running Stereo Node
+ For a stereo input from topic `/camera/left/image_raw` and `/camera/right/image_raw` run node ORB_SLAM2/Stereo. You will need to provide the vocabulary file and a settings file. If you **provide rectification matrices** (see Examples/Stereo/EuRoC.yaml example), the node will recitify the images online, **otherwise images must be pre-rectified**.
+ 
+   ```
+   rosrun ORB_SLAM2 Stereo PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE ONLINE_RECTIFICATION
+   ```
+-  
++
+ **Example**: Download a rosbag (e.g. V1_01_easy.bag) from the EuRoC dataset (http://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets). Open 3 tabs on the terminal and run the following command at each tab:
+   ```
+   roscore
+   ```
+-  
++
+   ```
+   rosrun ORB_SLAM2 Stereo Vocabulary/ORBvoc.txt Examples/Stereo/EuRoC.yaml true
+   ```
+-  
++
+   ```
+   rosbag play --pause V1_01_easy.bag /cam0/image_raw:=/camera/left/image_raw /cam1/image_raw:=/camera/right/image_raw
+   ```
+-  
++
+ Once ORB-SLAM2 has loaded the vocabulary, press space in the rosbag tab. Enjoy!. Note: a powerful computer is required to run the most exigent sequences of this dataset.
+ 
+ ### Running RGB_D Node
+@@ -225,7 +233,7 @@ For an RGB-D input from topics `/camera/rgb/image_raw` and `/camera/depth_regist
+   ```
+   rosrun ORB_SLAM2 RGBD PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE
+   ```
+-  
++
+ # 8. Processing your own sequences
+ You will need to create a settings file with the calibration of your camera. See the settings file provided for the TUM and KITTI datasets for monocular, stereo and RGB-D cameras. We use the calibration model of OpenCV. See the examples to learn how to create a program that makes use of the ORB-SLAM2 library and how to pass images to the SLAM system. Stereo input must be synchronized and rectified. RGB-D input must be synchronized and depth registered.
+ 
+@@ -238,3 +246,38 @@ This is the default mode. The system runs in parallal three threads: Tracking, L
+ ### Localization Mode
+ This mode can be used when you have a good map of your working area. In this mode the Local Mapping and Loop Closing are deactivated. The system localizes the camera in the map (which is no longer updated), using relocalization if needed. 
+ 
++# 10. Binary Format ORB Vocabulary
++
++You can load ORB vocabulary in either text or binary format. The format is determined by suffix(.txt for text format and .bin for binary format).
++
++`build.sh` will generate a text-to-binary convertor `bin_vocabulary` in `Vocabulary/` . You can also find it as a target in `CMakeLists.txt`.
++
++`bin_vocabulary` will convert `./ORBvoc.txt` to `./ORBvoc.bin` and you can use the new `ORBvoc.bin` as  `PATH_TO_VOCABULARY`  wherever needed.
++
++PS: binary format is loaded faster and text format is more human-readable.
++
++# 11. Map Save/Load
++
++#### Enable:
++
++Considering this feature doesn't hurt performance, and it is annonying to deal with conditional compilation flags, so this feature will be enabled unconditionally.
++
++#### Usage:
++
++This feature is integrated with `class System`. The path of mapfile can be set by adding `Map.mapfile: map.bin` to ORB_SLAM2's settings file. See the last few line of [TUM1.yaml](Examples/Monocular/TUM1.yaml) for example.
++
++To save a map, you need construct `ORB_SLAM2::System` with the last parameter (is_save_map) be `true`. Then the `System` will save map to mapfile (create if non-existent, overwrite if existent) specified in then setting file when `ShutDown` (e.g. interrupted by ctrl+c).
++
++With a readable mapfile, map will be loaded automatically and `System` will run in localization mode at first, but you can change it to SLAM mode later.
++
++mono_tum has been updated as a simple example of this functionality. An extra command line parameter(0 or 1) should be given to indicate whether you want to save map or not.
++
++#### Implementation related:
++
++I use boost_serialization library to serialize `Map`, `MapPoint`, `KeyFrame`,`KeyFrameDatabase`, `cv::Mat`, `DBoW2::BowVector`, `DBoW2::FeatureVector`. In brief, only the `ORBVector` isn't serialized.
++
++This feature is tested with boost 1.64 and it works fine mostly. There is still some occasional segmentfault to dig in.
++
++#### Known Bugs:
++
++Map Points and KeyFrames seem are not deleted from Map but only marked as `bad` instead. So there will be more and more useless data structure residing inside memory and Map size will keep growing.
+\ No newline at end of file
+diff --git a/Thirdparty/DBoW2/DBoW2/BowVector.h b/Thirdparty/DBoW2/DBoW2/BowVector.h
+index f559811..16787d4 100644
+--- a/Thirdparty/DBoW2/DBoW2/BowVector.h
++++ b/Thirdparty/DBoW2/DBoW2/BowVector.h
+@@ -57,7 +57,7 @@ class BowVector:
+ 	public std::map<WordId, WordValue>
+ {
+ public:
+-
++    typedef std::map<WordId, WordValue> super;
+ 	/** 
+ 	 * Constructor
+ 	 */
+diff --git a/Thirdparty/DBoW2/DBoW2/FeatureVector.h b/Thirdparty/DBoW2/DBoW2/FeatureVector.h
+index 08a91de..74f8414 100644
+--- a/Thirdparty/DBoW2/DBoW2/FeatureVector.h
++++ b/Thirdparty/DBoW2/DBoW2/FeatureVector.h
+@@ -22,7 +22,7 @@ class FeatureVector:
+   public std::map<NodeId, std::vector<unsigned int> >
+ {
+ public:
+-
++  typedef std::map<NodeId, std::vector<unsigned int> > super;
+   /**
+    * Constructor
+    */
+diff --git a/Thirdparty/DBoW2/DBoW2/TemplatedVocabulary.h b/Thirdparty/DBoW2/DBoW2/TemplatedVocabulary.h
+index 0195934..d6bdc9b 100644
+--- a/Thirdparty/DBoW2/DBoW2/TemplatedVocabulary.h
++++ b/Thirdparty/DBoW2/DBoW2/TemplatedVocabulary.h
+@@ -1,6 +1,6 @@
+ /**
+  * This is a modified version of TemplatedVocabulary.h from DBoW2 (see below).
+- * Added functions: Save and Load from text files without using cv::FileStorage.
++ * Added functions: Save and Load from text/binary files without using cv::FileStorage.
+  * Date: August 2015
+  * Raúl Mur-Artal
+  */
+@@ -9,7 +9,7 @@
+  * File: TemplatedVocabulary.h
+  * Date: February 2011
+  * Author: Dorian Galvez-Lopez
+- * Description: templated vocabulary 
++ * Description: templated vocabulary
+  * License: see the LICENSE.txt file
+  *
+  */
+@@ -42,9 +42,9 @@ namespace DBoW2 {
+ template<class TDescriptor, class F>
+ /// Generic Vocabulary
+ class TemplatedVocabulary
+-{		
++{
+ public:
+-  
++
+   /**
+    * Initiates an empty vocabulary
+    * @param k branching factor
+@@ -52,33 +52,33 @@ public:
+    * @param weighting weighting type
+    * @param scoring scoring type
+    */
+-  TemplatedVocabulary(int k = 10, int L = 5, 
++  TemplatedVocabulary(int k = 10, int L = 5,
+     WeightingType weighting = TF_IDF, ScoringType scoring = L1_NORM);
+-  
++
+   /**
+    * Creates the vocabulary by loading a file
+    * @param filename
+    */
+   TemplatedVocabulary(const std::string &filename);
+-  
++
+   /**
+    * Creates the vocabulary by loading a file
+    * @param filename
+    */
+   TemplatedVocabulary(const char *filename);
+-  
+-  /** 
++
++  /**
+    * Copy constructor
+    * @param voc
+    */
+   TemplatedVocabulary(const TemplatedVocabulary<TDescriptor, F> &voc);
+-  
++
+   /**
+    * Destructor
+    */
+   virtual ~TemplatedVocabulary();
+-  
+-  /** 
++
++  /**
+    * Assigns the given vocabulary to this by copying its data and removing
+    * all the data contained by this vocabulary before
+    * @param voc
+@@ -86,15 +86,15 @@ public:
+    */
+   TemplatedVocabulary<TDescriptor, F>& operator=(
+     const TemplatedVocabulary<TDescriptor, F> &voc);
+-  
+-  /** 
++
++  /**
+    * Creates a vocabulary from the training features with the already
+    * defined parameters
+    * @param training_features
+    */
+   virtual void create
+     (const std::vector<std::vector<TDescriptor> > &training_features);
+-  
++
+   /**
+    * Creates a vocabulary from the training features, setting the branching
+    * factor and the depth levels of the tree
+@@ -103,7 +103,7 @@ public:
+    * @param L depth levels
+    */
+   virtual void create
+-    (const std::vector<std::vector<TDescriptor> > &training_features, 
++    (const std::vector<std::vector<TDescriptor> > &training_features,
+       int k, int L);
+ 
+   /**
+@@ -120,7 +120,7 @@ public:
+    * @return number of words
+    */
+   virtual inline unsigned int size() const;
+-  
++
+   /**
+    * Returns whether the vocabulary is empty (i.e. it has not been trained)
+    * @return true iff the vocabulary is empty
+@@ -132,9 +132,9 @@ public:
+    * @param features
+    * @param v (out) bow vector of weighted words
+    */
+-  virtual void transform(const std::vector<TDescriptor>& features, BowVector &v) 
++  virtual void transform(const std::vector<TDescriptor>& features, BowVector &v)
+     const;
+-  
++
+   /**
+    * Transform a set of descriptors into a bow vector and a feature vector
+    * @param features
+@@ -151,7 +151,7 @@ public:
+    * @return word id
+    */
+   virtual WordId transform(const TDescriptor& feature) const;
+-  
++
+   /**
+    * Returns the score of two vectors
+    * @param a vector
+@@ -160,7 +160,7 @@ public:
+    * @note the vectors must be already sorted and normalized if necessary
+    */
+   inline double score(const BowVector &a, const BowVector &b) const;
+-  
++
+   /**
+    * Returns the id of the node that is "levelsup" levels from the word given
+    * @param wid word id
+@@ -169,7 +169,7 @@ public:
+    *   word id
+    */
+   virtual NodeId getParentNode(WordId wid, int levelsup) const;
+-  
++
+   /**
+    * Returns the ids of all the words that are under the given node id,
+    * by traversing any of the branches that goes down from the node
+@@ -177,57 +177,57 @@ public:
+    * @param words ids of words
+    */
+   void getWordsFromNode(NodeId nid, std::vector<WordId> &words) const;
+-  
++
+   /**
+    * Returns the branching factor of the tree (k)
+    * @return k
+    */
+   inline int getBranchingFactor() const { return m_k; }
+-  
+-  /** 
++
++  /**
+    * Returns the depth levels of the tree (L)
+    * @return L
+    */
+   inline int getDepthLevels() const { return m_L; }
+-  
++
+   /**
+    * Returns the real depth levels of the tree on average
+    * @return average of depth levels of leaves
+    */
+   float getEffectiveLevels() const;
+-  
++
+   /**
+    * Returns the descriptor of a word
+    * @param wid word id
+    * @return descriptor
+    */
+   virtual inline TDescriptor getWord(WordId wid) const;
+-  
++
+   /**
+    * Returns the weight of a word
+    * @param wid word id
+    * @return weight
+    */
+   virtual inline WordValue getWordWeight(WordId wid) const;
+-  
+-  /** 
++
++  /**
+    * Returns the weighting method
+    * @return weighting method
+    */
+   inline WeightingType getWeightingType() const { return m_weighting; }
+-  
+-  /** 
++
++  /**
+    * Returns the scoring method
+    * @return scoring method
+    */
+   inline ScoringType getScoringType() const { return m_scoring; }
+-  
++
+   /**
+    * Changes the weighting method
+    * @param type new weighting type
+    */
+   inline void setWeightingType(WeightingType type);
+-  
++
+   /**
+    * Changes the scoring method
+    * @param type new scoring type
+@@ -244,45 +244,58 @@ public:
+    * Saves the vocabulary into a text file
+    * @param filename
+    */
+-  void saveToTextFile(const std::string &filename) const;  
++  void saveToTextFile(const std::string &filename) const;
++
++  /**
++   * Loads the vocabulary from a binary file
++   * @param filename
++   */
++  bool loadFromBinaryFile(const std::string &filename);
++
++  /**
++   * Saves the vocabulary into a binary file
++   * @param filename
++   */
++  void saveToBinaryFile(const std::string &filename) const;
++
+ 
+   /**
+    * Saves the vocabulary into a file
+    * @param filename
+    */
+   void save(const std::string &filename) const;
+-  
++
+   /**
+    * Loads the vocabulary from a file
+    * @param filename
+    */
+   void load(const std::string &filename);
+-  
+-  /** 
++
++  /**
+    * Saves the vocabulary to a file storage structure
+    * @param fn node in file storage
+    */
+-  virtual void save(cv::FileStorage &fs, 
++  virtual void save(cv::FileStorage &fs,
+     const std::string &name = "vocabulary") const;
+-  
++
+   /**
+    * Loads the vocabulary from a file storage node
+    * @param fn first node
+    * @param subname name of the child node of fn where the tree is stored.
+    *   If not given, the fn node is used instead
+-   */  
+-  virtual void load(const cv::FileStorage &fs, 
++   */
++  virtual void load(const cv::FileStorage &fs,
+     const std::string &name = "vocabulary");
+-  
+-  /** 
++
++  /**
+    * Stops those words whose weight is below minWeight.
+    * Words are stopped by setting their weight to 0. There are not returned
+    * later when transforming image features into vectors.
+    * Note that when using IDF or TF_IDF, the weight is the idf part, which
+    * is equivalent to -log(f), where f is the frequency of the word
+-   * (f = Ni/N, Ni: number of training images where the word is present, 
++   * (f = Ni/N, Ni: number of training images where the word is present,
+    * N: number of training images).
+-   * Note that the old weight is forgotten, and subsequent calls to this 
++   * Note that the old weight is forgotten, and subsequent calls to this
+    * function with a lower minWeight have no effect.
+    * @return number of words stopped now
+    */
+@@ -294,13 +307,13 @@ protected:
+   typedef const TDescriptor *pDescriptor;
+ 
+   /// Tree node
+-  struct Node 
++  struct Node
+   {
+     /// Node id
+     NodeId id;
+     /// Weight if the node is a word
+     WordValue weight;
+-    /// Children 
++    /// Children
+     vector<NodeId> children;
+     /// Parent node (undefined in case of root)
+     NodeId parent;
+@@ -314,7 +327,7 @@ protected:
+      * Empty constructor
+      */
+     Node(): id(0), weight(0), parent(0), word_id(0){}
+-    
++
+     /**
+      * Constructor
+      * @param _id node id
+@@ -335,13 +348,13 @@ protected:
+    */
+   void createScoringObject();
+ 
+-  /** 
++  /**
+    * Returns a set of pointers to descriptores
+    * @param training_features all the features
+    * @param features (out) pointers to the training features
+    */
+   void getFeatures(
+-    const vector<vector<TDescriptor> > &training_features, 
++    const vector<vector<TDescriptor> > &training_features,
+     vector<pDescriptor> &features) const;
+ 
+   /**
+@@ -352,7 +365,7 @@ protected:
+    * @param nid (out) if given, id of the node "levelsup" levels up
+    * @param levelsup
+    */
+-  virtual void transform(const TDescriptor &feature, 
++  virtual void transform(const TDescriptor &feature,
+     WordId &id, WordValue &weight, NodeId* nid = NULL, int levelsup = 0) const;
+ 
+   /**
+@@ -361,7 +374,7 @@ protected:
+    * @param id (out) word id
+    */
+   virtual void transform(const TDescriptor &feature, WordId &id) const;
+-      
++
+   /**
+    * Creates a level in the tree, under the parent, by running kmeans with
+    * a descriptor set, and recursively creates the subsequent levels too
+@@ -369,7 +382,7 @@ protected:
+    * @param descriptors descriptors to run the kmeans on
+    * @param current_level current level in the tree
+    */
+-  void HKmeansStep(NodeId parent_id, const vector<pDescriptor> &descriptors, 
++  void HKmeansStep(NodeId parent_id, const vector<pDescriptor> &descriptors,
+     int current_level);
+ 
+   /**
+@@ -379,21 +392,21 @@ protected:
+    */
+   virtual void initiateClusters(const vector<pDescriptor> &descriptors,
+     vector<TDescriptor> &clusters) const;
+-  
++
+   /**
+    * Creates k clusters from the given descriptor sets by running the
+    * initial step of kmeans++
+-   * @param descriptors 
++   * @param descriptors
+    * @param clusters resulting clusters
+    */
+-  void initiateClustersKMpp(const vector<pDescriptor> &descriptors, 
++  void initiateClustersKMpp(const vector<pDescriptor> &descriptors,
+     vector<TDescriptor> &clusters) const;
+-  
++
+   /**
+    * Create the words of the vocabulary once the tree has been built
+    */
+   void createWords();
+-  
++
+   /**
+    * Sets the weights of the nodes of tree according to the given features.
+    * Before calling this function, the nodes and the words must be already
+@@ -401,31 +414,31 @@ protected:
+    * @param features
+    */
+   void setNodeWeights(const vector<vector<TDescriptor> > &features);
+-  
++
+ protected:
+ 
+   /// Branching factor
+   int m_k;
+-  
+-  /// Depth levels 
++
++  /// Depth levels
+   int m_L;
+-  
++
+   /// Weighting method
+   WeightingType m_weighting;
+-  
++
+   /// Scoring method
+   ScoringType m_scoring;
+-  
++
+   /// Object for computing scores
+   GeneralScoring* m_scoring_object;
+-  
++
+   /// Tree nodes
+   std::vector<Node> m_nodes;
+-  
++
+   /// Words of the vocabulary (tree leaves)
+   /// this condition holds: m_words[wid]->word_id == wid
+   std::vector<Node*> m_words;
+-  
++
+ };
+ 
+ // --------------------------------------------------------------------------
+@@ -464,33 +477,33 @@ void TemplatedVocabulary<TDescriptor,F>::createScoringObject()
+ {
+   delete m_scoring_object;
+   m_scoring_object = NULL;
+-  
++
+   switch(m_scoring)
+   {
+-    case L1_NORM: 
++    case L1_NORM:
+       m_scoring_object = new L1Scoring;
+       break;
+-      
++
+     case L2_NORM:
+       m_scoring_object = new L2Scoring;
+       break;
+-    
++
+     case CHI_SQUARE:
+       m_scoring_object = new ChiSquareScoring;
+       break;
+-      
++
+     case KL:
+       m_scoring_object = new KLScoring;
+       break;
+-      
++
+     case BHATTACHARYYA:
+       m_scoring_object = new BhattacharyyaScoring;
+       break;
+-      
++
+     case DOT_PRODUCT:
+       m_scoring_object = new DotProductScoring;
+       break;
+-    
++
+   }
+ }
+ 
+@@ -532,23 +545,23 @@ TemplatedVocabulary<TDescriptor,F>::~TemplatedVocabulary()
+ // --------------------------------------------------------------------------
+ 
+ template<class TDescriptor, class F>
+-TemplatedVocabulary<TDescriptor, F>& 
++TemplatedVocabulary<TDescriptor, F>&
+ TemplatedVocabulary<TDescriptor,F>::operator=
+   (const TemplatedVocabulary<TDescriptor, F> &voc)
+-{  
++{
+   this->m_k = voc.m_k;
+   this->m_L = voc.m_L;
+   this->m_scoring = voc.m_scoring;
+   this->m_weighting = voc.m_weighting;
+ 
+   this->createScoringObject();
+-  
++
+   this->m_nodes.clear();
+   this->m_words.clear();
+-  
++
+   this->m_nodes = voc.m_nodes;
+   this->createWords();
+-  
++
+   return *this;
+ }
+ 
+@@ -560,21 +573,21 @@ void TemplatedVocabulary<TDescriptor,F>::create(
+ {
+   m_nodes.clear();
+   m_words.clear();
+-  
++
+   // expected_nodes = Sum_{i=0..L} ( k^i )
+-	int expected_nodes = 
++	int expected_nodes =
+ 		(int)((pow((double)m_k, (double)m_L + 1) - 1)/(m_k - 1));
+ 
+   m_nodes.reserve(expected_nodes); // avoid allocations when creating the tree
+-  
+-  
++
++
+   vector<pDescriptor> features;
+   getFeatures(training_features, features);
+ 
+ 
+-  // create root  
++  // create root
+   m_nodes.push_back(Node(0)); // root
+-  
++
+   // create the tree
+   HKmeansStep(0, features, 1);
+ 
+@@ -583,7 +596,7 @@ void TemplatedVocabulary<TDescriptor,F>::create(
+ 
+   // and set the weight of each node of the tree
+   setNodeWeights(training_features);
+-  
++
+ }
+ 
+ // --------------------------------------------------------------------------
+@@ -595,7 +608,7 @@ void TemplatedVocabulary<TDescriptor,F>::create(
+ {
+   m_k = k;
+   m_L = L;
+-  
++
+   create(training_features);
+ }
+ 
+@@ -611,7 +624,7 @@ void TemplatedVocabulary<TDescriptor,F>::create(
+   m_weighting = weighting;
+   m_scoring = scoring;
+   createScoringObject();
+-  
++
+   create(training_features);
+ }
+ 
+@@ -619,11 +632,11 @@ void TemplatedVocabulary<TDescriptor,F>::create(
+ 
+ template<class TDescriptor, class F>
+ void TemplatedVocabulary<TDescriptor,F>::getFeatures(
+-  const vector<vector<TDescriptor> > &training_features, 
++  const vector<vector<TDescriptor> > &training_features,
+   vector<pDescriptor> &features) const
+ {
+   features.resize(0);
+-  
++
+   typename vector<vector<TDescriptor> >::const_iterator vvit;
+   typename vector<TDescriptor>::const_iterator vit;
+   for(vvit = training_features.begin(); vvit != training_features.end(); ++vvit)
+@@ -639,11 +652,11 @@ void TemplatedVocabulary<TDescriptor,F>::getFeatures(
+ // --------------------------------------------------------------------------
+ 
+ template<class TDescriptor, class F>
+-void TemplatedVocabulary<TDescriptor,F>::HKmeansStep(NodeId parent_id, 
++void TemplatedVocabulary<TDescriptor,F>::HKmeansStep(NodeId parent_id,
+   const vector<pDescriptor> &descriptors, int current_level)
+ {
+   if(descriptors.empty()) return;
+-        
++
+   // features associated to each cluster
+   vector<TDescriptor> clusters;
+ 	vector<vector<unsigned int> > groups; // groups[i] = [j1, j2, ...]
+@@ -651,12 +664,12 @@ void TemplatedVocabulary<TDescriptor,F>::HKmeansStep(NodeId parent_id,
+ 
+   clusters.reserve(m_k);
+ 	groups.reserve(m_k);
+-  
++
+   //const int msizes[] = { m_k, descriptors.size() };
+   //cv::SparseMat assoc(2, msizes, CV_8U);
+-  //cv::SparseMat last_assoc(2, msizes, CV_8U);  
++  //cv::SparseMat last_assoc(2, msizes, CV_8U);
+   //// assoc.row(cluster_idx).col(descriptor_idx) = 1 iif associated
+-  
++
+   if((int)descriptors.size() <= m_k)
+   {
+     // trivial case: one cluster per feature
+@@ -671,10 +684,10 @@ void TemplatedVocabulary<TDescriptor,F>::HKmeansStep(NodeId parent_id,
+   else
+   {
+     // select clusters and groups with kmeans
+-    
++
+     bool first_time = true;
+     bool goon = true;
+-    
++
+     // to check if clusters move after iterations
+     vector<int> last_association, current_association;
+ 
+@@ -684,7 +697,7 @@ void TemplatedVocabulary<TDescriptor,F>::HKmeansStep(NodeId parent_id,
+ 
+ 			if(first_time)
+ 			{
+-        // random sample 
++        // random sample
+         initiateClusters(descriptors, clusters);
+       }
+       else
+@@ -695,7 +708,7 @@ void TemplatedVocabulary<TDescriptor,F>::HKmeansStep(NodeId parent_id,
+         {
+           vector<pDescriptor> cluster_descriptors;
+           cluster_descriptors.reserve(groups[c].size());
+-          
++
+           /*
+           for(unsigned int d = 0; d < descriptors.size(); ++d)
+           {
+@@ -705,17 +718,17 @@ void TemplatedVocabulary<TDescriptor,F>::HKmeansStep(NodeId parent_id,
+             }
+           }
+           */
+-          
++
+           vector<unsigned int>::const_iterator vit;
+           for(vit = groups[c].begin(); vit != groups[c].end(); ++vit)
+           {
+             cluster_descriptors.push_back(descriptors[*vit]);
+           }
+-          
+-          
++
++
+           F::meanValue(cluster_descriptors, clusters[c]);
+         }
+-        
++
+       } // if(!first_time)
+ 
+       // 2. Associate features with clusters
+@@ -733,7 +746,7 @@ void TemplatedVocabulary<TDescriptor,F>::HKmeansStep(NodeId parent_id,
+       {
+         double best_dist = F::distance(*(*fit), clusters[0]);
+         unsigned int icluster = 0;
+-        
++
+         for(unsigned int c = 1; c < clusters.size(); ++c)
+         {
+           double dist = F::distance(*(*fit), clusters[c]);
+@@ -749,7 +762,7 @@ void TemplatedVocabulary<TDescriptor,F>::HKmeansStep(NodeId parent_id,
+         groups[icluster].push_back(fit - descriptors.begin());
+         current_association[ fit - descriptors.begin() ] = icluster;
+       }
+-      
++
+       // kmeans++ ensures all the clusters has any feature associated with them
+ 
+       // 3. check convergence
+@@ -760,7 +773,7 @@ void TemplatedVocabulary<TDescriptor,F>::HKmeansStep(NodeId parent_id,
+       else
+       {
+         //goon = !eqUChar(last_assoc, assoc);
+-        
++
+         goon = false;
+         for(unsigned int i = 0; i < current_association.size(); i++)
+         {
+@@ -777,11 +790,11 @@ void TemplatedVocabulary<TDescriptor,F>::HKmeansStep(NodeId parent_id,
+ 				last_association = current_association;
+ 				//last_assoc = assoc.clone();
+ 			}
+-			
++
+ 		} // while(goon)
+-    
++
+   } // if must run kmeans
+-  
++
+   // create nodes
+   for(unsigned int i = 0; i < clusters.size(); ++i)
+   {
+@@ -791,7 +804,7 @@ void TemplatedVocabulary<TDescriptor,F>::HKmeansStep(NodeId parent_id,
+     m_nodes.back().parent = parent_id;
+     m_nodes[parent_id].children.push_back(id);
+   }
+-  
++
+   // go on with the next level
+   if(current_level < m_L)
+   {
+@@ -824,7 +837,7 @@ template<class TDescriptor, class F>
+ void TemplatedVocabulary<TDescriptor, F>::initiateClusters
+   (const vector<pDescriptor> &descriptors, vector<TDescriptor> &clusters) const
+ {
+-  initiateClustersKMpp(descriptors, clusters);  
++  initiateClustersKMpp(descriptors, clusters);
+ }
+ 
+ // --------------------------------------------------------------------------
+@@ -836,12 +849,12 @@ void TemplatedVocabulary<TDescriptor,F>::initiateClustersKMpp(
+   // Implements kmeans++ seeding algorithm
+   // Algorithm:
+   // 1. Choose one center uniformly at random from among the data points.
+-  // 2. For each data point x, compute D(x), the distance between x and the nearest 
++  // 2. For each data point x, compute D(x), the distance between x and the nearest
+   //    center that has already been chosen.
+-  // 3. Add one new data point as a center. Each point x is chosen with probability 
++  // 3. Add one new data point as a center. Each point x is chosen with probability
+   //    proportional to D(x)^2.
+   // 4. Repeat Steps 2 and 3 until k centers have been chosen.
+-  // 5. Now that the initial centers have been chosen, proceed using standard k-means 
++  // 5. Now that the initial centers have been chosen, proceed using standard k-means
+   //    clustering.
+ 
+   DUtils::Random::SeedRandOnce();
+@@ -849,11 +862,11 @@ void TemplatedVocabulary<TDescriptor,F>::initiateClustersKMpp(
+   clusters.resize(0);
+   clusters.reserve(m_k);
+   vector<double> min_dists(pfeatures.size(), std::numeric_limits<double>::max());
+-  
++
+   // 1.
+-  
++
+   int ifeature = DUtils::Random::RandomInt(0, pfeatures.size()-1);
+-  
++
+   // create first cluster
+   clusters.push_back(*pfeatures[ifeature]);
+ 
+@@ -864,7 +877,7 @@ void TemplatedVocabulary<TDescriptor,F>::initiateClustersKMpp(
+   for(fit = pfeatures.begin(); fit != pfeatures.end(); ++fit, ++dit)
+   {
+     *dit = F::distance(*(*fit), clusters.back());
+-  }  
++  }
+ 
+   while((int)clusters.size() < m_k)
+   {
+@@ -878,7 +891,7 @@ void TemplatedVocabulary<TDescriptor,F>::initiateClustersKMpp(
+         if(dist < *dit) *dit = dist;
+       }
+     }
+-    
++
+     // 3.
+     double dist_sum = std::accumulate(min_dists.begin(), min_dists.end(), 0.0);
+ 
+@@ -896,18 +909,18 @@ void TemplatedVocabulary<TDescriptor,F>::initiateClustersKMpp(
+         d_up_now += *dit;
+         if(d_up_now >= cut_d) break;
+       }
+-      
+-      if(dit == min_dists.end()) 
++
++      if(dit == min_dists.end())
+         ifeature = pfeatures.size()-1;
+       else
+         ifeature = dit - min_dists.begin();
+-      
++
+       clusters.push_back(*pfeatures[ifeature]);
+ 
+     } // if dist_sum > 0
+     else
+       break;
+-      
++
+   } // while(used_clusters < m_k)
+ 
+ }
+@@ -918,13 +931,13 @@ template<class TDescriptor, class F>
+ void TemplatedVocabulary<TDescriptor,F>::createWords()
+ {
+   m_words.resize(0);
+-  
++
+   if(!m_nodes.empty())
+   {
+     m_words.reserve( (int)pow((double)m_k, (double)m_L) );
+ 
+     typename vector<Node>::iterator nit;
+-    
++
+     nit = m_nodes.begin(); // ignore root
+     for(++nit; nit != m_nodes.end(); ++nit)
+     {
+@@ -961,7 +974,7 @@ void TemplatedVocabulary<TDescriptor,F>::setNodeWeights
+ 
+     vector<unsigned int> Ni(NWords, 0);
+     vector<bool> counted(NWords, false);
+-    
++
+     typename vector<vector<TDescriptor> >::const_iterator mit;
+     typename vector<TDescriptor>::const_iterator fit;
+ 
+@@ -990,7 +1003,7 @@ void TemplatedVocabulary<TDescriptor,F>::setNodeWeights
+         m_words[i]->weight = log((double)NDocs / (double)Ni[i]);
+       }// else // This cannot occur if using kmeans++
+     }
+-  
++
+   }
+ 
+ }
+@@ -1021,10 +1034,10 @@ float TemplatedVocabulary<TDescriptor,F>::getEffectiveLevels() const
+   for(wit = m_words.begin(); wit != m_words.end(); ++wit)
+   {
+     const Node *p = *wit;
+-    
++
+     for(; p->id != 0; sum++) p = &m_nodes[p->parent];
+   }
+-  
++
+   return (float)((double)sum / (double)m_words.size());
+ }
+ 
+@@ -1054,7 +1067,7 @@ WordId TemplatedVocabulary<TDescriptor, F>::transform
+   {
+     return 0;
+   }
+-  
++
+   WordId wid;
+   transform(feature, wid);
+   return wid;
+@@ -1067,13 +1080,13 @@ void TemplatedVocabulary<TDescriptor,F>::transform(
+   const std::vector<TDescriptor>& features, BowVector &v) const
+ {
+   v.clear();
+-  
++
+   if(empty())
+   {
+     return;
+   }
+ 
+-  // normalize 
++  // normalize
+   LNorm norm;
+   bool must = m_scoring_object->mustNormalize(norm);
+ 
+@@ -1084,23 +1097,23 @@ void TemplatedVocabulary<TDescriptor,F>::transform(
+     for(fit = features.begin(); fit < features.end(); ++fit)
+     {
+       WordId id;
+-      WordValue w; 
++      WordValue w;
+       // w is the idf value if TF_IDF, 1 if TF
+-      
++
+       transform(*fit, id, w);
+-      
++
+       // not stopped
+       if(w > 0) v.addWeight(id, w);
+     }
+-    
++
+     if(!v.empty() && !must)
+     {
+       // unnecessary when normalizing
+       const double nd = v.size();
+-      for(BowVector::iterator vit = v.begin(); vit != v.end(); vit++) 
++      for(BowVector::iterator vit = v.begin(); vit != v.end(); vit++)
+         vit->second /= nd;
+     }
+-    
++
+   }
+   else // IDF || BINARY
+   {
+@@ -1109,39 +1122,39 @@ void TemplatedVocabulary<TDescriptor,F>::transform(
+       WordId id;
+       WordValue w;
+       // w is idf if IDF, or 1 if BINARY
+-      
++
+       transform(*fit, id, w);
+-      
++
+       // not stopped
+       if(w > 0) v.addIfNotExist(id, w);
+-      
++
+     } // if add_features
+   } // if m_weighting == ...
+-  
++
+   if(must) v.normalize(norm);
+ }
+ 
+ // --------------------------------------------------------------------------
+ 
+-template<class TDescriptor, class F> 
++template<class TDescriptor, class F>
+ void TemplatedVocabulary<TDescriptor,F>::transform(
+   const std::vector<TDescriptor>& features,
+   BowVector &v, FeatureVector &fv, int levelsup) const
+ {
+   v.clear();
+   fv.clear();
+-  
++
+   if(empty()) // safe for subclasses
+   {
+     return;
+   }
+-  
+-  // normalize 
++
++  // normalize
+   LNorm norm;
+   bool must = m_scoring_object->mustNormalize(norm);
+-  
++
+   typename vector<TDescriptor>::const_iterator fit;
+-  
++
+   if(m_weighting == TF || m_weighting == TF_IDF)
+   {
+     unsigned int i_feature = 0;
+@@ -1149,26 +1162,26 @@ void TemplatedVocabulary<TDescriptor,F>::transform(
+     {
+       WordId id;
+       NodeId nid;
+-      WordValue w; 
++      WordValue w;
+       // w is the idf value if TF_IDF, 1 if TF
+-      
++
+       transform(*fit, id, w, &nid, levelsup);
+-      
++
+       if(w > 0) // not stopped
+-      { 
++      {
+         v.addWeight(id, w);
+         fv.addFeature(nid, i_feature);
+       }
+     }
+-    
++
+     if(!v.empty() && !must)
+     {
+       // unnecessary when normalizing
+       const double nd = v.size();
+-      for(BowVector::iterator vit = v.begin(); vit != v.end(); vit++) 
++      for(BowVector::iterator vit = v.begin(); vit != v.end(); vit++)
+         vit->second /= nd;
+     }
+-  
++
+   }
+   else // IDF || BINARY
+   {
+@@ -1179,9 +1192,9 @@ void TemplatedVocabulary<TDescriptor,F>::transform(
+       NodeId nid;
+       WordValue w;
+       // w is idf if IDF, or 1 if BINARY
+-      
++
+       transform(*fit, id, w, &nid, levelsup);
+-      
++
+       if(w > 0) // not stopped
+       {
+         v.addIfNotExist(id, w);
+@@ -1189,13 +1202,13 @@ void TemplatedVocabulary<TDescriptor,F>::transform(
+       }
+     }
+   } // if m_weighting == ...
+-  
++
+   if(must) v.normalize(norm);
+ }
+ 
+ // --------------------------------------------------------------------------
+ 
+-template<class TDescriptor, class F> 
++template<class TDescriptor, class F>
+ inline double TemplatedVocabulary<TDescriptor,F>::score
+   (const BowVector &v1, const BowVector &v2) const
+ {
+@@ -1215,9 +1228,9 @@ void TemplatedVocabulary<TDescriptor,F>::transform
+ // --------------------------------------------------------------------------
+ 
+ template<class TDescriptor, class F>
+-void TemplatedVocabulary<TDescriptor,F>::transform(const TDescriptor &feature, 
++void TemplatedVocabulary<TDescriptor,F>::transform(const TDescriptor &feature,
+   WordId &word_id, WordValue &weight, NodeId *nid, int levelsup) const
+-{ 
++{
+   // propagate the feature down the tree
+   vector<NodeId> nodes;
+   typename vector<NodeId>::const_iterator nit;
+@@ -1234,7 +1247,7 @@ void TemplatedVocabulary<TDescriptor,F>::transform(const TDescriptor &feature,
+     ++current_level;
+     nodes = m_nodes[final_id].children;
+     final_id = nodes[0];
+- 
++
+     double best_d = F::distance(feature, m_nodes[final_id].descriptor);
+ 
+     for(nit = nodes.begin() + 1; nit != nodes.end(); ++nit)
+@@ -1247,10 +1260,10 @@ void TemplatedVocabulary<TDescriptor,F>::transform(const TDescriptor &feature,
+         final_id = id;
+       }
+     }
+-    
++
+     if(nid != NULL && current_level == nid_level)
+       *nid = final_id;
+-    
++
+   } while( !m_nodes[final_id].isLeaf() );
+ 
+   // turn node id into word id
+@@ -1280,7 +1293,7 @@ void TemplatedVocabulary<TDescriptor,F>::getWordsFromNode
+   (NodeId nid, std::vector<WordId> &words) const
+ {
+   words.clear();
+-  
++
+   if(m_nodes[nid].isLeaf())
+   {
+     words.push_back(m_nodes[nid].word_id);
+@@ -1288,27 +1301,27 @@ void TemplatedVocabulary<TDescriptor,F>::getWordsFromNode
+   else
+   {
+     words.reserve(m_k); // ^1, ^2, ...
+-    
++
+     vector<NodeId> parents;
+     parents.push_back(nid);
+-    
++
+     while(!parents.empty())
+     {
+       NodeId parentid = parents.back();
+       parents.pop_back();
+-      
++
+       const vector<NodeId> &child_ids = m_nodes[parentid].children;
+       vector<NodeId>::const_iterator cit;
+-      
++
+       for(cit = child_ids.begin(); cit != child_ids.end(); ++cit)
+       {
+         const Node &child_node = m_nodes[*cit];
+-        
++
+         if(child_node.isLeaf())
+           words.push_back(child_node.word_id);
+         else
+           parents.push_back(*cit);
+-        
++
+       } // for each child
+     } // while !parents.empty
+   }
+@@ -1339,7 +1352,7 @@ bool TemplatedVocabulary<TDescriptor,F>::loadFromTextFile(const std::string &fil
+ {
+     ifstream f;
+     f.open(filename.c_str());
+-	
++
+     if(f.eof())
+ 	return false;
+ 
+@@ -1361,7 +1374,7 @@ bool TemplatedVocabulary<TDescriptor,F>::loadFromTextFile(const std::string &fil
+         std::cerr << "Vocabulary loading failure: This is not a correct text file!" << endl;
+ 	return false;
+     }
+-    
++
+     m_scoring = (ScoringType)n1;
+     m_weighting = (WeightingType)n2;
+     createScoringObject();
+@@ -1385,7 +1398,7 @@ bool TemplatedVocabulary<TDescriptor,F>::loadFromTextFile(const std::string &fil
+         int nid = m_nodes.size();
+         m_nodes.resize(m_nodes.size()+1);
+ 	m_nodes[nid].id = nid;
+-	
++
+         int pid ;
+         ssnode >> pid;
+         m_nodes[nid].parent = pid;
+@@ -1451,11 +1464,86 @@ void TemplatedVocabulary<TDescriptor,F>::saveToTextFile(const std::string &filen
+ // --------------------------------------------------------------------------
+ 
+ template<class TDescriptor, class F>
++bool TemplatedVocabulary<TDescriptor,F>::loadFromBinaryFile(const std::string &filename) {
++  fstream f;
++  f.open(filename.c_str(), ios_base::in|ios::binary);
++  unsigned int nb_nodes, size_node;
++  f.read((char*)&nb_nodes, sizeof(nb_nodes));
++  f.read((char*)&size_node, sizeof(size_node));
++  f.read((char*)&m_k, sizeof(m_k));
++  f.read((char*)&m_L, sizeof(m_L));
++  f.read((char*)&m_scoring, sizeof(m_scoring));
++  f.read((char*)&m_weighting, sizeof(m_weighting));
++  createScoringObject();
++
++  m_words.clear();
++  m_words.reserve(pow((double)m_k, (double)m_L + 1));
++  m_nodes.clear();
++  m_nodes.resize(nb_nodes+1);
++  m_nodes[0].id = 0;
++  char* buf = new char [size_node];
++  int nid = 1;
++  while (!f.eof()) {
++	f.read(buf, size_node);
++	m_nodes[nid].id = nid;
++	// FIXME
++	const int* ptr=(int*)buf;
++	m_nodes[nid].parent = *ptr;
++	//m_nodes[nid].parent = *(const int*)buf;
++	m_nodes[m_nodes[nid].parent].children.push_back(nid);
++	m_nodes[nid].descriptor = cv::Mat(1, F::L, CV_8U); //F::L
++	memcpy(m_nodes[nid].descriptor.data, buf+4, F::L); //F::L
++	m_nodes[nid].weight = *(float*)(buf+4+F::L); // F::L
++	if (buf[8+F::L]) { // is leaf //F::L
++	  int wid = m_words.size();
++	  m_words.resize(wid+1);
++	  m_nodes[nid].word_id = wid;
++	  m_words[wid] = &m_nodes[nid];
++	}
++	else
++	  m_nodes[nid].children.reserve(m_k);
++	nid+=1;
++  }
++  f.close();
++
++  delete[] buf;
++  return true;
++}
++
++
++// --------------------------------------------------------------------------
++
++template<class TDescriptor, class F>
++void TemplatedVocabulary<TDescriptor,F>::saveToBinaryFile(const std::string &filename) const {
++  fstream f;
++  f.open(filename.c_str(), ios_base::out|ios::binary);
++  unsigned int nb_nodes = m_nodes.size();
++  float _weight;
++  unsigned int size_node = sizeof(m_nodes[0].parent) + F::L*sizeof(char) + sizeof(_weight) + sizeof(bool); //F::L
++  f.write((char*)&nb_nodes, sizeof(nb_nodes));
++  f.write((char*)&size_node, sizeof(size_node));
++  f.write((char*)&m_k, sizeof(m_k));
++  f.write((char*)&m_L, sizeof(m_L));
++  f.write((char*)&m_scoring, sizeof(m_scoring));
++  f.write((char*)&m_weighting, sizeof(m_weighting));
++  for(size_t i=1; i<nb_nodes;i++) {
++	const Node& node = m_nodes[i];
++	f.write((char*)&node.parent, sizeof(node.parent));
++	f.write((char*)node.descriptor.data, F::L);//F::L
++	_weight = node.weight; f.write((char*)&_weight, sizeof(_weight));
++	bool is_leaf = node.isLeaf(); f.write((char*)&is_leaf, sizeof(is_leaf)); // i put this one at the end for alignement....
++  }
++  f.close();
++}
++
++// --------------------------------------------------------------------------
++
++template<class TDescriptor, class F>
+ void TemplatedVocabulary<TDescriptor,F>::save(const std::string &filename) const
+ {
+   cv::FileStorage fs(filename.c_str(), cv::FileStorage::WRITE);
+   if(!fs.isOpened()) throw string("Could not open file ") + filename;
+-  
++
+   save(fs);
+ }
+ 
+@@ -1466,7 +1554,7 @@ void TemplatedVocabulary<TDescriptor,F>::load(const std::string &filename)
+ {
+   cv::FileStorage fs(filename.c_str(), cv::FileStorage::READ);
+   if(!fs.isOpened()) throw string("Could not open file ") + filename;
+-  
++
+   this->load(fs);
+ }
+ 
+@@ -1477,19 +1565,19 @@ void TemplatedVocabulary<TDescriptor,F>::save(cv::FileStorage &f,
+   const std::string &name) const
+ {
+   // Format YAML:
+-  // vocabulary 
++  // vocabulary
+   // {
+   //   k:
+   //   L:
+   //   scoringType:
+   //   weightingType:
+-  //   nodes 
++  //   nodes
+   //   [
+   //     {
+   //       nodeId:
+   //       parentId:
+   //       weight:
+-  //       descriptor: 
++  //       descriptor:
+   //     }
+   //   ]
+   //   words
+@@ -1503,14 +1591,14 @@ void TemplatedVocabulary<TDescriptor,F>::save(cv::FileStorage &f,
+   //
+   // The root node (index 0) is not included in the node vector
+   //
+-  
++
+   f << name << "{";
+-  
++
+   f << "k" << m_k;
+   f << "L" << m_L;
+   f << "scoringType" << m_scoring;
+   f << "weightingType" << m_weighting;
+-  
++
+   // tree
+   f << "nodes" << "[";
+   vector<NodeId> parents, children;
+@@ -1537,7 +1625,7 @@ void TemplatedVocabulary<TDescriptor,F>::save(cv::FileStorage &f,
+       f << "weight" << (double)child.weight;
+       f << "descriptor" << F::toString(child.descriptor);
+       f << "}";
+-      
++
+       // add to parent list
+       if(!child.isLeaf())
+       {
+@@ -1545,12 +1633,12 @@ void TemplatedVocabulary<TDescriptor,F>::save(cv::FileStorage &f,
+       }
+     }
+   }
+-  
++
+   f << "]"; // nodes
+ 
+   // words
+   f << "words" << "[";
+-  
++
+   typename vector<Node*>::const_iterator wit;
+   for(wit = m_words.begin(); wit != m_words.end(); wit++)
+   {
+@@ -1560,7 +1648,7 @@ void TemplatedVocabulary<TDescriptor,F>::save(cv::FileStorage &f,
+     f << "nodeId" << (int)(*wit)->id;
+     f << "}";
+   }
+-  
++
+   f << "]"; // words
+ 
+   f << "}";
+@@ -1575,14 +1663,14 @@ void TemplatedVocabulary<TDescriptor,F>::load(const cv::FileStorage &fs,
+ {
+   m_words.clear();
+   m_nodes.clear();
+-  
++
+   cv::FileNode fvoc = fs[name];
+-  
++
+   m_k = (int)fvoc["k"];
+   m_L = (int)fvoc["L"];
+   m_scoring = (ScoringType)((int)fvoc["scoringType"]);
+   m_weighting = (WeightingType)((int)fvoc["weightingType"]);
+-  
++
+   createScoringObject();
+ 
+   // nodes
+@@ -1597,25 +1685,25 @@ void TemplatedVocabulary<TDescriptor,F>::load(const cv::FileStorage &fs,
+     NodeId pid = (int)fn[i]["parentId"];
+     WordValue weight = (WordValue)fn[i]["weight"];
+     string d = (string)fn[i]["descriptor"];
+-    
++
+     m_nodes[nid].id = nid;
+     m_nodes[nid].parent = pid;
+     m_nodes[nid].weight = weight;
+     m_nodes[pid].children.push_back(nid);
+-    
++
+     F::fromString(m_nodes[nid].descriptor, d);
+   }
+-  
++
+   // words
+   fn = fvoc["words"];
+-  
++
+   m_words.resize(fn.size());
+ 
+   for(unsigned int i = 0; i < fn.size(); ++i)
+   {
+     NodeId wid = (int)fn[i]["wordId"];
+     NodeId nid = (int)fn[i]["nodeId"];
+-    
++
+     m_nodes[nid].word_id = wid;
+     m_words[wid] = &m_nodes[nid];
+   }
+@@ -1629,10 +1717,10 @@ void TemplatedVocabulary<TDescriptor,F>::load(const cv::FileStorage &fs,
+  * @param voc
+  */
+ template<class TDescriptor, class F>
+-std::ostream& operator<<(std::ostream &os, 
++std::ostream& operator<<(std::ostream &os,
+   const TemplatedVocabulary<TDescriptor,F> &voc)
+ {
+-  os << "Vocabulary: k = " << voc.getBranchingFactor() 
++  os << "Vocabulary: k = " << voc.getBranchingFactor()
+     << ", L = " << voc.getDepthLevels()
+     << ", Weighting = ";
+ 
+@@ -1654,7 +1742,7 @@ std::ostream& operator<<(std::ostream &os,
+     case BHATTACHARYYA: os << "Bhattacharyya coefficient"; break;
+     case DOT_PRODUCT: os << "Dot product"; break;
+   }
+-  
++
+   os << ", Number of words = " << voc.size();
+ 
+   return os;
+diff --git a/Thirdparty/g2o/g2o/core/base_binary_edge.h b/Thirdparty/g2o/g2o/core/base_binary_edge.h
+index 660e83a..c18f97f 100644
+--- a/Thirdparty/g2o/g2o/core/base_binary_edge.h
++++ b/Thirdparty/g2o/g2o/core/base_binary_edge.h
+@@ -56,8 +56,8 @@ namespace g2o {
+       typedef typename BaseEdge<D,E>::ErrorVector ErrorVector;
+       typedef typename BaseEdge<D,E>::InformationType InformationType;
+ 
+-      typedef Eigen::Map<Matrix<double, Di, Dj>, Matrix<double, Di, Dj>::Flags & AlignedBit ? Aligned : Unaligned > HessianBlockType;
+-      typedef Eigen::Map<Matrix<double, Dj, Di>, Matrix<double, Dj, Di>::Flags & AlignedBit ? Aligned : Unaligned > HessianBlockTransposedType;
++      typedef Eigen::Map<Matrix<double, Di, Dj>, Matrix<double, Di, Dj>::Flags & PacketAccessBit ? Aligned : Unaligned > HessianBlockType;
++      typedef Eigen::Map<Matrix<double, Dj, Di>, Matrix<double, Dj, Di>::Flags & PacketAccessBit ? Aligned : Unaligned > HessianBlockTransposedType;
+ 
+       BaseBinaryEdge() : BaseEdge<D,E>(),
+       _hessianRowMajor(false),
+diff --git a/Thirdparty/g2o/g2o/core/base_multi_edge.h b/Thirdparty/g2o/g2o/core/base_multi_edge.h
+index dd2261f..cccc7ed 100644
+--- a/Thirdparty/g2o/g2o/core/base_multi_edge.h
++++ b/Thirdparty/g2o/g2o/core/base_multi_edge.h
+@@ -66,7 +66,7 @@ namespace g2o {
+       typedef MatrixXd::MapType JacobianType;
+       typedef typename BaseEdge<D,E>::ErrorVector ErrorVector;
+       typedef typename BaseEdge<D,E>::InformationType InformationType;
+-      typedef Eigen::Map<MatrixXd, MatrixXd::Flags & AlignedBit ? Aligned : Unaligned > HessianBlockType;
++      typedef Eigen::Map<MatrixXd, MatrixXd::Flags & PacketAccessBit ? Aligned : Unaligned > HessianBlockType;
+ 
+       BaseMultiEdge() : BaseEdge<D,E>()
+       {
+diff --git a/Thirdparty/g2o/g2o/core/base_vertex.h b/Thirdparty/g2o/g2o/core/base_vertex.h
+index e375fde..a444ec3 100644
+--- a/Thirdparty/g2o/g2o/core/base_vertex.h
++++ b/Thirdparty/g2o/g2o/core/base_vertex.h
+@@ -59,7 +59,7 @@ namespace g2o {
+ 
+     static const int Dimension = D;           ///< dimension of the estimate (minimal) in the manifold space
+ 
+-    typedef Eigen::Map<Matrix<double, D, D>, Matrix<double,D,D>::Flags & AlignedBit ? Aligned : Unaligned >  HessianBlockType;
++    typedef Eigen::Map<Matrix<double, D, D>, Matrix<double,D,D>::Flags & PacketAccessBit ? Aligned : Unaligned >  HessianBlockType;
+ 
+   public:
+     BaseVertex();
+diff --git a/Vocabulary/ORBvoc.bin b/Vocabulary/ORBvoc.bin
+new file mode 100644
+index 0000000..5885fed
+Binary files /dev/null and b/Vocabulary/ORBvoc.bin differ
+diff --git a/Vocabulary/bin_vocabulary b/Vocabulary/bin_vocabulary
+new file mode 100755
+index 0000000..344f2d6
+Binary files /dev/null and b/Vocabulary/bin_vocabulary differ
+diff --git a/Vocabulary/bin_vocabulary.cpp b/Vocabulary/bin_vocabulary.cpp
+new file mode 100644
+index 0000000..238232b
+--- /dev/null
++++ b/Vocabulary/bin_vocabulary.cpp
+@@ -0,0 +1,53 @@
++#include <time.h>
++
++#include "ORBVocabulary.h"
++using namespace std;
++
++bool load_as_text(ORB_SLAM2::ORBVocabulary* voc, const std::string infile) {
++  clock_t tStart = clock();
++  bool res = voc->loadFromTextFile(infile);
++  printf("Loading fom text: %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);
++  return res;
++}
++
++void load_as_xml(ORB_SLAM2::ORBVocabulary* voc, const std::string infile) {
++  clock_t tStart = clock();
++  voc->load(infile);
++  printf("Loading fom xml: %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);
++}
++
++void load_as_binary(ORB_SLAM2::ORBVocabulary* voc, const std::string infile) {
++  clock_t tStart = clock();
++  voc->loadFromBinaryFile(infile);
++  printf("Loading fom binary: %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);
++}
++
++void save_as_xml(ORB_SLAM2::ORBVocabulary* voc, const std::string outfile) {
++  clock_t tStart = clock();
++  voc->save(outfile);
++  printf("Saving as xml: %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);
++}
++
++void save_as_text(ORB_SLAM2::ORBVocabulary* voc, const std::string outfile) {
++  clock_t tStart = clock();
++  voc->saveToTextFile(outfile);
++  printf("Saving as text: %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);
++}
++
++void save_as_binary(ORB_SLAM2::ORBVocabulary* voc, const std::string outfile) {
++  clock_t tStart = clock();
++  voc->saveToBinaryFile(outfile);
++  printf("Saving as binary: %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);
++}
++
++
++int main(int argc, char **argv) {
++  cout << "BoW load/save benchmark" << endl;
++  ORB_SLAM2::ORBVocabulary* voc = new ORB_SLAM2::ORBVocabulary();
++
++  load_as_text(voc, "ORBvoc.txt");
++  save_as_binary(voc, "ORBvoc.bin");
++
++  return 0;
++}
++
+diff --git a/build.sh b/build.sh
+index 9785ef6..ee425d7 100755
+--- a/build.sh
++++ b/build.sh
+@@ -29,3 +29,10 @@ mkdir build
+ cd build
+ cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=~/.local
+ make -j
++
++cd ..
++
++cd Vocabulary
++echo "Converting vocabulary to binary version"
++./bin_vocabulary
++cd ..
+diff --git a/cmake_modules/_pangolin b/cmake_modules/_pangolin
+deleted file mode 100644
+index 39d0370..0000000
+--- a/cmake_modules/_pangolin
++++ /dev/null
+@@ -1,56 +0,0 @@
+-# - Try to find libPangolin
+-#
+-#  Pangolin_FOUND - system has libPangolin
+-#  Pangolin_INCLUDE_DIR - the libPangolin include directories
+-#  Pangolin_LIBRARY - link these to use libPangolin
+-
+-FIND_PATH(
+-  Pangolin_INCLUDE_DIR_SRC
+-  NAMES pangolin/pangolin.h
+-  PATHS
+-    ${CMAKE_SOURCE_DIR}/../pangolin
+-    ${CMAKE_SOURCE_DIR}/../Pangolin
+-    ~/.local/include
+-    /usr/include
+-    /usr/local/include
+-)
+-
+-
+-FIND_PATH(
+-  Pangolin_INCLUDE_DIR_BUILD
+-  NAMES pangolin/config.h
+-  PATHS
+-    ${CMAKE_SOURCE_DIR}/../Pangolin/release/
+-    ${CMAKE_SOURCE_DIR}/../Pangolin/build/
+-    ${CMAKE_SOURCE_DIR}/../pangolin/release/
+-    ${CMAKE_SOURCE_DIR}/../pangolin/build/
+-    /usr/include
+-    /usr/local/include
+-)
+-
+-FIND_LIBRARY(
+-  Pangolin_LIBRARY
+-  NAMES pangolin
+-  PATHS
+-    ${CMAKE_SOURCE_DIR}/../Pangolin/release/pangolin
+-    ${CMAKE_SOURCE_DIR}/../Pangolin/build/pangolin
+-    ${CMAKE_SOURCE_DIR}/../pangolin/release/pangolin
+-    ${CMAKE_SOURCE_DIR}/../pangolin/build/pangolin
+-    /usr/lib
+-    /usr/local/lib
+-) 
+-
+-IF(Pangolin_INCLUDE_DIR_SRC AND Pangolin_INCLUDE_DIR_BUILD AND Pangolin_LIBRARY)
+-  SET(Pangolin_INCLUDE_DIR ${Pangolin_INCLUDE_DIR_SRC};${Pangolin_INCLUDE_DIR_BUILD})
+-  SET(Pangolin_FOUND TRUE)
+-ENDIF()
+-
+-IF(Pangolin_FOUND)
+-   IF(NOT Pangolin_FIND_QUIETLY)
+-      MESSAGE(STATUS "Found Pangolin: ${Pangolin_LIBRARY}")
+-   ENDIF()
+-ELSE()
+-   IF(Pangolin_FIND_REQUIRED)
+-      MESSAGE(FATAL_ERROR "Could not find Pangolin")
+-   ENDIF()
+-ENDIF()
+diff --git a/include/BoostArchiver.h b/include/BoostArchiver.h
+new file mode 100644
+index 0000000..8b41906
+--- /dev/null
++++ b/include/BoostArchiver.h
+@@ -0,0 +1,95 @@
++/*
++ * map save/load extension for ORB_SLAM2
++ * This header contains boost headers needed by serialization
++ *
++ * object to save:
++ *   - KeyFrame
++ *   - KeyFrameDatabase
++ *   - Map
++ *   - MapPoint
++ */
++#ifndef BOOST_ARCHIVER_H
++#define BOOST_ARCHIVER_H
++#include <boost/serialization/list.hpp>
++#include <boost/serialization/vector.hpp>
++#include <boost/serialization/set.hpp>
++// set serialization needed by KeyFrame::mspChildrens ...
++#include <boost/serialization/map.hpp>
++// map serialization needed by KeyFrame::mConnectedKeyFrameWeights ...
++#include <boost/archive/binary_oarchive.hpp>
++#include <boost/archive/binary_iarchive.hpp>
++#include <boost/serialization/split_free.hpp>
++#include <boost/serialization/base_object.hpp>
++// base object needed by DBoW2::BowVector and DBoW2::FeatureVector
++#include <opencv2/core/core.hpp>
++
++#include "Thirdparty/DBoW2/DBoW2/BowVector.h"
++#include "Thirdparty/DBoW2/DBoW2/FeatureVector.h"
++
++BOOST_SERIALIZATION_SPLIT_FREE(::cv::Mat)
++namespace boost{
++    namespace serialization {
++
++    /* serialization for DBoW2 BowVector */
++    template<class Archive>
++    void serialize(Archive &ar, DBoW2::BowVector &BowVec, const unsigned int file_version)
++    {
++        ar & boost::serialization::base_object<DBoW2::BowVector::super>(BowVec);
++    }
++    /* serialization for DBoW2 FeatureVector */
++    template<class Archive>
++    void serialize(Archive &ar, DBoW2::FeatureVector &FeatVec, const unsigned int file_version)
++    {
++        ar & boost::serialization::base_object<DBoW2::FeatureVector::super>(FeatVec);
++    }
++
++    /* serialization for CV KeyPoint */
++    template<class Archive>
++    void serialize(Archive &ar, ::cv::KeyPoint &kf, const unsigned int file_version)
++    {
++        ar & kf.angle;
++        ar & kf.class_id;
++        ar & kf.octave;
++        ar & kf.response;
++        ar & kf.response;
++        ar & kf.pt.x;
++        ar & kf.pt.y;
++    }
++    /* serialization for CV Mat */
++    template<class Archive>
++    void save(Archive &ar, const ::cv::Mat &m, const unsigned int file_version)
++    {
++        cv::Mat m_ = m;
++        if (!m.isContinuous())
++            m_ = m.clone();
++        size_t elem_size = m_.elemSize();
++        size_t elem_type = m_.type();
++        ar & m_.cols;
++        ar & m_.rows;
++        ar & elem_size;
++        ar & elem_type;
++
++        const size_t data_size = m_.cols * m_.rows * elem_size;
++
++        ar & boost::serialization::make_array(m_.ptr(), data_size);
++    }
++    template<class Archive>
++    void load(Archive & ar, ::cv::Mat& m, const unsigned int version)
++    {
++        int cols, rows;
++        size_t elem_size, elem_type;
++
++        ar & cols;
++        ar & rows;
++        ar & elem_size;
++        ar & elem_type;
++
++        m.create(rows, cols, elem_type);
++        size_t data_size = m.cols * m.rows * elem_size;
++
++        ar & boost::serialization::make_array(m.ptr(), data_size);
++    }
++    }
++}
++// TODO: boost::iostream zlib compressed binary format
++#endif // BOOST_ARCHIVER_H
+diff --git a/include/FrameDrawer.h b/include/FrameDrawer.h
+index 95c1df9..6182d88 100644
+--- a/include/FrameDrawer.h
++++ b/include/FrameDrawer.h
+@@ -40,7 +40,7 @@ class Viewer;
+ class FrameDrawer
+ {
+ public:
+-    FrameDrawer(Map* pMap);
++    FrameDrawer(Map* pMap, bool bReuseMap=false);
+ 
+     // Update info from the last processed frame.
+     void Update(Tracking *pTracker);
+diff --git a/include/KeyFrame.h b/include/KeyFrame.h
+index 67f4348..29cb960 100644
+--- a/include/KeyFrame.h
++++ b/include/KeyFrame.h
+@@ -30,7 +30,7 @@
+ #include "KeyFrameDatabase.h"
+ 
+ #include <mutex>
+-
++#include "BoostArchiver.h"
+ 
+ namespace ORB_SLAM2
+ {
+@@ -43,6 +43,7 @@ class KeyFrameDatabase;
+ class KeyFrame
+ {
+ public:
++
+     KeyFrame(Frame &F, Map* pMap, KeyFrameDatabase* pKFDB);
+ 
+     // Pose functions
+@@ -116,6 +117,15 @@ public:
+         return pKF1->mnId<pKF2->mnId;
+     }
+ 
++public:
++    // for serialization
++    KeyFrame(); // Default constructor for serialization, need to deal with const member
++    void SetORBvocabulary(ORBVocabulary *porbv) {mpORBvocabulary=porbv;}
++private:
++    // serialize is recommended to be private
++    friend class boost::serialization::access;
++    template<class Archive>
++    void serialize(Archive &ar, const unsigned int version);
+ 
+     // The following variables are accesed from only 1 thread or never change (no mutex needed).
+ public:
+diff --git a/include/KeyFrameDatabase.h b/include/KeyFrameDatabase.h
+index fa37357..f79bbad 100644
+--- a/include/KeyFrameDatabase.h
++++ b/include/KeyFrameDatabase.h
+@@ -30,7 +30,7 @@
+ #include "ORBVocabulary.h"
+ 
+ #include<mutex>
+-
++#include "BoostArchiver.h"
+ 
+ namespace ORB_SLAM2
+ {
+@@ -43,7 +43,7 @@ class KeyFrameDatabase
+ {
+ public:
+ 
+-    KeyFrameDatabase(const ORBVocabulary &voc);
++    KeyFrameDatabase(ORBVocabulary *voc);
+ 
+    void add(KeyFrame* pKF);
+ 
+@@ -57,10 +57,20 @@ public:
+    // Relocalization
+    std::vector<KeyFrame*> DetectRelocalizationCandidates(Frame* F);
+ 
++public:
++   // for serialization
++   KeyFrameDatabase() {}
++   void SetORBvocabulary(ORBVocabulary *porbv) {mpVoc=porbv;}
++private:
++   // serialize is recommended to be private
++   friend class boost::serialization::access;
++   template<class Archive>
++   void serialize(Archive &ar, const unsigned int version);
++
+ protected:
+ 
+   // Associated vocabulary
+-  const ORBVocabulary* mpVoc;
++  ORBVocabulary* mpVoc;
+ 
+   // Inverted file
+   std::vector<list<KeyFrame*> > mvInvertedFile;
+diff --git a/include/LoopClosing.h b/include/LoopClosing.h
+index 7eb0416..af9be9b 100644
+--- a/include/LoopClosing.h
++++ b/include/LoopClosing.h
+@@ -143,7 +143,7 @@ protected:
+     bool mbFixScale;
+ 
+ 
+-    bool mnFullBAIdx;
++    int mnFullBAIdx;
+ };
+ 
+ } //namespace ORB_SLAM
+diff --git a/include/Map.h b/include/Map.h
+index a75339f..f4d9750 100644
+--- a/include/Map.h
++++ b/include/Map.h
+@@ -27,6 +27,7 @@
+ 
+ #include <mutex>
+ 
++#include "BoostArchiver.h"
+ 
+ 
+ namespace ORB_SLAM2
+@@ -66,6 +67,13 @@ public:
+     // This avoid that two points are created simultaneously in separate threads (id conflict)
+     std::mutex mMutexPointCreation;
+ 
++
++private:
++    // serialize is recommended to be private
++    friend class boost::serialization::access;
++    template<class Archive>
++    void serialize(Archive &ar, const unsigned int version);
++
+ protected:
+     std::set<MapPoint*> mspMapPoints;
+     std::set<KeyFrame*> mspKeyFrames;
+diff --git a/include/MapPoint.h b/include/MapPoint.h
+index f26893d..756ab89 100644
+--- a/include/MapPoint.h
++++ b/include/MapPoint.h
+@@ -27,6 +27,7 @@
+ 
+ #include<opencv2/core/core.hpp>
+ #include<mutex>
++#include "BoostArchiver.h"
+ 
+ namespace ORB_SLAM2
+ {
+@@ -82,6 +83,15 @@ public:
+     int PredictScale(const float &currentDist, Frame* pF);
+ 
+ public:
++    // for serialization
++    MapPoint();
++private:
++    // serialize is recommended to be private
++    friend class boost::serialization::access;
++    template<class Archive>
++    void serialize(Archive &ar, const unsigned int version);
++
++public:
+     long unsigned int mnId;
+     static long unsigned int nNextId;
+     long int mnFirstKFid;
+diff --git a/include/System.h b/include/System.h
+index a564b19..fff075a 100644
+--- a/include/System.h
++++ b/include/System.h
+@@ -36,6 +36,10 @@
+ #include "ORBVocabulary.h"
+ #include "Viewer.h"
+ 
++#include "BoostArchiver.h"
++// for map file io
++#include <fstream>
++
+ namespace ORB_SLAM2
+ {
+ 
+@@ -59,7 +63,7 @@ public:
+ public:
+ 
+     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
+-    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true);
++    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true, bool is_save_map_=false);
+ 
+     // Proccess the given stereo frame. Images must be synchronized and rectified.
+     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
+@@ -111,11 +115,6 @@ public:
+     // Call first Shutdown()
+     // See format details at: http://www.cvlibs.net/datasets/kitti/eval_odometry.php
+     void SaveTrajectoryKITTI(const string &filename);
+-
+-    // TODO: Save/Load functions
+-    // SaveMap(const string &filename);
+-    // LoadMap(const string &filename);
+-
+     // Information from most recent processed frame
+     // You can call this right after TrackMonocular (or stereo or RGBD)
+     int GetTrackingState();
+@@ -123,6 +122,10 @@ public:
+     Tracking* GetTracker() const;
+     std::vector<MapPoint*> GetTrackedMapPoints();
+     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
++    
++    // Save/Load functions
++    void SaveMap(const string &filename);
++    bool LoadMap(const string &filename);
+ 
+ private:
+ 
+@@ -138,6 +141,9 @@ private:
+     // Map structure that stores the pointers to all KeyFrames and MapPoints.
+     Map* mpMap;
+ 
++    string mapfile;
++    bool is_save_map;
++
+     // Tracker. It receives a frame and computes the associated camera pose.
+     // It also decides when to insert a new keyframe, create some new MapPoints and
+     // performs relocalization if tracking fails.
+diff --git a/include/Tracking.h b/include/Tracking.h
+index ab6550d..01df834 100644
+--- a/include/Tracking.h
++++ b/include/Tracking.h
+@@ -54,8 +54,9 @@ class Tracking
+ {  
+ 
+ public:
++
+     Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
+-             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor);
++             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, bool bReuseMap=false);
+ 
+     // Preprocess the input and call Track(). Extract features and performs stereo matching.
+     cv::Mat GrabImageStereo(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp);
+diff --git a/include/Viewer.h b/include/Viewer.h
+index 251e223..8571294 100644
+--- a/include/Viewer.h
++++ b/include/Viewer.h
+@@ -40,7 +40,9 @@ class System;
+ class Viewer
+ {
+ public:
+-    Viewer(System* pSystem, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Tracking *pTracking, const string &strSettingPath);
++
++    Viewer(System* pSystem, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Tracking *pTracking, const string &strSettingPath, bool mbReuseMap);
++
+ 
+     // Main thread function. Draw points, keyframes, the current camera pose and the last processed
+     // frame. Drawing is refreshed according to the camera fps. We use Pangolin.
+@@ -79,6 +81,8 @@ private:
+ 
+     bool mbStopped;
+     bool mbStopRequested;
++    bool mbReuseMap;
++
+     std::mutex mMutexStop;
+ 
+ };
+diff --git a/src/Frame.cc b/src/Frame.cc
+index 0ba52ec..0e37d49 100644
+--- a/src/Frame.cc
++++ b/src/Frame.cc
+@@ -116,7 +116,6 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
+     AssignFeaturesToGrid();
+ }
+ 
+-// RGBD
+ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
+      mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
+@@ -171,7 +170,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
+     AssignFeaturesToGrid();
+ }
+ 
+-// Monocular
++
+ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
+      mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
+diff --git a/src/FrameDrawer.cc b/src/FrameDrawer.cc
+index e23b86c..5362ba1 100644
+--- a/src/FrameDrawer.cc
++++ b/src/FrameDrawer.cc
+@@ -29,9 +29,12 @@
+ namespace ORB_SLAM2
+ {
+ 
+-FrameDrawer::FrameDrawer(Map* pMap):mpMap(pMap)
++FrameDrawer::FrameDrawer(Map* pMap, bool bReuseMap):mpMap(pMap)
+ {
+-    mState=Tracking::SYSTEM_NOT_READY;
++    if (bReuseMap)
++        mState=Tracking::LOST;
++    else
++        mState=Tracking::SYSTEM_NOT_READY;
+     mIm = cv::Mat(480,640,CV_8UC3, cv::Scalar(0,0,0));
+ }
+ 
+diff --git a/src/KeyFrame.cc b/src/KeyFrame.cc
+index 4ef1e78..7dbed7d 100644
+--- a/src/KeyFrame.cc
++++ b/src/KeyFrame.cc
+@@ -662,4 +662,88 @@ float KeyFrame::ComputeSceneMedianDepth(const int q)
+     return vDepths[(vDepths.size()-1)/q];
+ }
+ 
++// Default serializing Constructor
++KeyFrame::KeyFrame():
++    mnFrameId(0),  mTimeStamp(0.0), mnGridCols(FRAME_GRID_COLS), mnGridRows(FRAME_GRID_ROWS),
++    mfGridElementWidthInv(0.0), mfGridElementHeightInv(0.0),
++    mnTrackReferenceForFrame(0), mnFuseTargetForKF(0), mnBALocalForKF(0), mnBAFixedForKF(0),
++    mnLoopQuery(0), mnLoopWords(0), mnRelocQuery(0), mnRelocWords(0), mnBAGlobalForKF(0),
++    fx(0.0), fy(0.0), cx(0.0), cy(0.0), invfx(0.0), invfy(0.0),
++    mbf(0.0), mb(0.0), mThDepth(0.0), N(0), mnScaleLevels(0), mfScaleFactor(0),
++    mfLogScaleFactor(0.0),
++    mnMinX(0), mnMinY(0), mnMaxX(0),
++    mnMaxY(0)
++{}
++template<class Archive>
++void KeyFrame::serialize(Archive &ar, const unsigned int version)
++{
++    // no mutex needed vars
++    ar & nNextId;
++    ar & mnId;
++    ar & const_cast<long unsigned int &>(mnFrameId);
++    ar & const_cast<double &>(mTimeStamp);
++    // Grid related vars
++    ar & const_cast<int &>(mnGridCols);
++    ar & const_cast<int &>(mnGridRows);
++    ar & const_cast<float &>(mfGridElementWidthInv);
++    ar & const_cast<float &>(mfGridElementHeightInv);
++    // Tracking related vars
++    ar & mnTrackReferenceForFrame & mnFuseTargetForKF;
++    // LocalMaping related vars
++    ar & mnBALocalForKF & mnBAFixedForKF;
++    // KeyFrameDB related vars
++    ar & mnLoopQuery & mnLoopWords & mLoopScore & mnRelocQuery & mnRelocWords & mRelocScore;
++    // LoopClosing related vars
++    ar & mTcwGBA & mTcwBefGBA & mnBAGlobalForKF;
++    // calibration parameters
++    ar & const_cast<float &>(fx) & const_cast<float &>(fy) & const_cast<float &>(cx) & const_cast<float &>(cy);
++    ar & const_cast<float &>(invfx) & const_cast<float &>(invfy) & const_cast<float &>(mbf);
++    ar & const_cast<float &>(mb) & const_cast<float &>(mThDepth);
++    // Number of KeyPoints;
++    ar & const_cast<int &>(N);
++    // KeyPoints, stereo coordinate and descriptors
++    ar & const_cast<std::vector<cv::KeyPoint> &>(mvKeys);
++    ar & const_cast<std::vector<cv::KeyPoint> &>(mvKeysUn);
++    ar & const_cast<std::vector<float> &>(mvuRight);
++    ar & const_cast<std::vector<float> &>(mvDepth);
++    ar & const_cast<cv::Mat &>(mDescriptors);
++    // Bow
++    ar & mBowVec & mFeatVec;
++    // Pose relative to parent
++    ar & mTcp;
++    // Scale related
++    ar & const_cast<int &>(mnScaleLevels) & const_cast<float &>(mfScaleFactor) & const_cast<float &>(mfLogScaleFactor);
++    ar & const_cast<std::vector<float> &>(mvScaleFactors) & const_cast<std::vector<float> &>(mvLevelSigma2) & const_cast<std::vector<float> &>(mvInvLevelSigma2);
++    // Image bounds and calibration
++    ar & const_cast<int &>(mnMinX) & const_cast<int &>(mnMinY) & const_cast<int &>(mnMaxX) & const_cast<int &>(mnMaxY);
++    ar & const_cast<cv::Mat &>(mK);
++
++    // mutex needed vars, but don't lock mutex in the save/load procedure
++    {
++        unique_lock<mutex> lock_pose(mMutexPose);
++        ar & Tcw & Twc & Ow & Cw;
++    }
++    {
++        unique_lock<mutex> lock_feature(mMutexFeatures);
++        ar & mvpMapPoints; // hope boost deal with the pointer graph well
++    }
++    // BoW
++    ar & mpKeyFrameDB;
++    // mpORBvocabulary restore elsewhere(see SetORBvocab)
++    {
++        // Grid related
++        unique_lock<mutex> lock_connection(mMutexConnections);
++        ar & mGrid & mConnectedKeyFrameWeights & mvpOrderedConnectedKeyFrames & mvOrderedWeights;
++        // Spanning Tree and Loop Edges
++        ar & mbFirstConnection & mpParent & mspChildrens & mspLoopEdges;
++        // Bad flags
++        ar & mbNotErase & mbToBeErased & mbBad & mHalfBaseline;
++    }
++    // Map Points
++    ar & mpMap;
++    // don't save mutex
++}
++template void KeyFrame::serialize(boost::archive::binary_iarchive&, const unsigned int);
++template void KeyFrame::serialize(boost::archive::binary_oarchive&, const unsigned int);
++
+ } //namespace ORB_SLAM
+diff --git a/src/KeyFrameDatabase.cc b/src/KeyFrameDatabase.cc
+index 826860c..7cf1773 100644
+--- a/src/KeyFrameDatabase.cc
++++ b/src/KeyFrameDatabase.cc
+@@ -30,10 +30,10 @@ using namespace std;
+ namespace ORB_SLAM2
+ {
+ 
+-KeyFrameDatabase::KeyFrameDatabase (const ORBVocabulary &voc):
+-    mpVoc(&voc)
++KeyFrameDatabase::KeyFrameDatabase (ORBVocabulary *voc):
++    mpVoc(voc)
+ {
+-    mvInvertedFile.resize(voc.size());
++    mvInvertedFile.resize(voc->size());
+ }
+ 
+ 
+@@ -308,4 +308,18 @@ vector<KeyFrame*> KeyFrameDatabase::DetectRelocalizationCandidates(Frame *F)
+     return vpRelocCandidates;
+ }
+ 
++template<class Archive>
++void KeyFrameDatabase::serialize(Archive &ar, const unsigned int version)
++{
++    // don't save associated vocabulary, KFDB restore by created explicitly from a new ORBvocabulary instance
++    // inverted file
++    {
++        unique_lock<mutex> lock_InvertedFile(mMutex);
++        ar & mvInvertedFile;
++    }
++    // don't save mutex
++}
++template void KeyFrameDatabase::serialize(boost::archive::binary_iarchive&, const unsigned int);
++template void KeyFrameDatabase::serialize(boost::archive::binary_oarchive&, const unsigned int);
++
+ } //namespace ORB_SLAM
+diff --git a/src/LocalMapping.cc b/src/LocalMapping.cc
+index 6c87a6e..12adcce 100644
+--- a/src/LocalMapping.cc
++++ b/src/LocalMapping.cc
+@@ -91,7 +91,7 @@ void LocalMapping::Run()
+             // Safe area to stop
+             while(isStopped() && !CheckFinish())
+             {
+-                usleep(3000);
++                std::this_thread::sleep_for(std::chrono::microseconds(3000));
+             }
+             if(CheckFinish())
+                 break;
+@@ -105,7 +105,7 @@ void LocalMapping::Run()
+         if(CheckFinish())
+             break;
+ 
+-        usleep(3000);
++        std::this_thread::sleep_for(std::chrono::microseconds(3000));
+     }
+ 
+     SetFinish();
+@@ -716,7 +716,7 @@ void LocalMapping::RequestReset()
+             if(!mbResetRequested)
+                 break;
+         }
+-        usleep(3000);
++        std::this_thread::sleep_for(std::chrono::microseconds(3000));
+     }
+ }
+ 
+diff --git a/src/LoopClosing.cc b/src/LoopClosing.cc
+index 5e317dd..c3c76d1 100644
+--- a/src/LoopClosing.cc
++++ b/src/LoopClosing.cc
+@@ -74,14 +74,14 @@ void LoopClosing::Run()
+                    CorrectLoop();
+                }
+             }
+-        }       
++        }
+ 
+         ResetIfRequested();
+ 
+         if(CheckFinish())
+             break;
+ 
+-        usleep(5000);
++        std::this_thread::sleep_for(std::chrono::microseconds(5000));
+     }
+ 
+     SetFinish();
+@@ -425,7 +425,7 @@ void LoopClosing::CorrectLoop()
+     // Wait until Local Mapping has effectively stopped
+     while(!mpLocalMapper->isStopped())
+     {
+-        usleep(1000);
++        std::this_thread::sleep_for(std::chrono::microseconds(1000));
+     }
+ 
+     // Ensure current keyframe is updated
+@@ -627,7 +627,7 @@ void LoopClosing::RequestReset()
+         if(!mbResetRequested)
+             break;
+         }
+-        usleep(5000);
++        std::this_thread::sleep_for(std::chrono::microseconds(5000));
+     }
+ }
+ 
+@@ -667,7 +667,7 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
+ 
+             while(!mpLocalMapper->isStopped() && !mpLocalMapper->isFinished())
+             {
+-                usleep(1000);
++                std::this_thread::sleep_for(std::chrono::microseconds(1000));
+             }
+ 
+             // Get Map Mutex
+diff --git a/src/Map.cc b/src/Map.cc
+index 15fcd86..17dd7f7 100644
+--- a/src/Map.cc
++++ b/src/Map.cc
+@@ -130,4 +130,19 @@ void Map::clear()
+     mvpKeyFrameOrigins.clear();
+ }
+ 
++template<class Archive>
++void Map::serialize(Archive &ar, const unsigned int version)
++{
++    // don't save mutex
++    unique_lock<mutex> lock_MapUpdate(mMutexMapUpdate);
++    unique_lock<mutex> lock_Map(mMutexMap);
++    ar & mspMapPoints;
++    ar & mvpKeyFrameOrigins;
++    ar & mspKeyFrames;
++    ar & mvpReferenceMapPoints;
++    ar & mnMaxKFid & mnBigChangeIdx;
++}
++template void Map::serialize(boost::archive::binary_iarchive&, const unsigned int);
++template void Map::serialize(boost::archive::binary_oarchive&, const unsigned int);
++
+ } //namespace ORB_SLAM
+diff --git a/src/MapPoint.cc b/src/MapPoint.cc
+index 3b29211..b549890 100644
+--- a/src/MapPoint.cc
++++ b/src/MapPoint.cc
+@@ -30,7 +30,7 @@ long unsigned int MapPoint::nNextId=0;
+ mutex MapPoint::mGlobalMutex;
+ 
+ MapPoint::MapPoint(const cv::Mat &Pos, KeyFrame *pRefKF, Map* pMap):
+-    mnFirstKFid(pRefKF->mnId), mnFirstFrame(pRefKF->mnFrameId), nObs(0), mnTrackReferenceForFrame(0),
++    mnFirstKFid(pRefKF->mnId), mnFirstFrame(pRefKF->mnFrameId), nObs(0),mbTrackInView(false), mnTrackReferenceForFrame(0),
+     mnLastFrameSeen(0), mnBALocalForKF(0), mnFuseCandidateForKF(0), mnLoopPointForKF(0), mnCorrectedByKF(0),
+     mnCorrectedReference(0), mnBAGlobalForKF(0), mpRefKF(pRefKF), mnVisible(1), mnFound(1), mbBad(false),
+     mpReplaced(static_cast<MapPoint*>(NULL)), mfMinDistance(0), mfMaxDistance(0), mpMap(pMap)
+@@ -44,7 +44,7 @@ MapPoint::MapPoint(const cv::Mat &Pos, KeyFrame *pRefKF, Map* pMap):
+ }
+ 
+ MapPoint::MapPoint(const cv::Mat &Pos, Map* pMap, Frame* pFrame, const int &idxF):
+-    mnFirstKFid(-1), mnFirstFrame(pFrame->mnId), nObs(0), mnTrackReferenceForFrame(0), mnLastFrameSeen(0),
++    mnFirstKFid(-1), mnFirstFrame(pFrame->mnId), nObs(0),mbTrackInView(false), mnTrackReferenceForFrame(0), mnLastFrameSeen(0),
+     mnBALocalForKF(0), mnFuseCandidateForKF(0),mnLoopPointForKF(0), mnCorrectedByKF(0),
+     mnCorrectedReference(0), mnBAGlobalForKF(0), mpRefKF(static_cast<KeyFrame*>(NULL)), mnVisible(1),
+     mnFound(1), mbBad(false), mpReplaced(NULL), mpMap(pMap)
+@@ -416,6 +416,45 @@ int MapPoint::PredictScale(const float &currentDist, Frame* pF)
+     return nScale;
+ }
+ 
++MapPoint::MapPoint():
++    nObs(0), mnTrackReferenceForFrame(0),
++    mnLastFrameSeen(0), mnBALocalForKF(0), mnFuseCandidateForKF(0), mnLoopPointForKF(0), mnCorrectedByKF(0),
++    mnCorrectedReference(0), mnBAGlobalForKF(0),mnVisible(1), mnFound(1), mbBad(false),
++    mpReplaced(static_cast<MapPoint*>(NULL)), mfMinDistance(0), mfMaxDistance(0)
++{}
++template<class Archive>
++void MapPoint::serialize(Archive &ar, const unsigned int version)
++{
++    unique_lock<mutex> lock_Pos(mMutexPos);
++    unique_lock<mutex> lock_Features(mMutexFeatures);
++    ar & mnId & nNextId & mnFirstKFid & mnFirstFrame & nObs;
++    // Tracking related vars
++    ar & mTrackProjX;
++    ar & mTrackProjY;
++    ar & mTrackProjXR;
++    ar & mbTrackInView;
++    ar & mnTrackScaleLevel;
++    ar & mTrackViewCos;
++    ar & mnTrackReferenceForFrame;
++    ar & mnLastFrameSeen;
++    // Local Mapping related vars
++    ar & mnBALocalForKF & mnFuseCandidateForKF;
++    // Loop Closing related vars
++    ar & mnLoopPointForKF & mnCorrectedByKF & mnCorrectedReference & mPosGBA & mnBAGlobalForKF;
++    // don't save the mutex
++    ar & mWorldPos;
++    ar & mObservations;
++    ar & mNormalVector;
++    ar & mDescriptor;
++    ar & mpRefKF;
++    ar & mnVisible & mnFound;
++    ar & mbBad & mpReplaced;
++    ar & mfMinDistance & mfMaxDistance;
++    ar & mpMap;
++    // don't save the mutex
++}
++template void MapPoint::serialize(boost::archive::binary_iarchive&, const unsigned int);
++template void MapPoint::serialize(boost::archive::binary_oarchive&, const unsigned int);
+ 
+ 
+ } //namespace ORB_SLAM
+diff --git a/src/ORBmatcher.cc b/src/ORBmatcher.cc
+index 56bf279..c26714a 100644
+--- a/src/ORBmatcher.cc
++++ b/src/ORBmatcher.cc
+@@ -759,6 +759,7 @@ int ORBmatcher::SearchForTriangulation(KeyFrame *pKF1, KeyFrame *pKF2, cv::Mat F
+                 {
+                     const cv::KeyPoint &kp2 = pKF2->mvKeysUn[bestIdx2];
+                     vMatches12[idx1]=bestIdx2;
++                    vbMatched2[bestIdx2] = true;
+                     nmatches++;
+ 
+                     if(mbCheckOrientation)
+@@ -802,6 +803,7 @@ int ORBmatcher::SearchForTriangulation(KeyFrame *pKF1, KeyFrame *pKF2, cv::Mat F
+                 continue;
+             for(size_t j=0, jend=rotHist[i].size(); j<jend; j++)
+             {
++            	vbMatched2[vMatches12[rotHist[i][j]]] = false;
+                 vMatches12[rotHist[i][j]]=-1;
+                 nmatches--;
+             }
+diff --git a/src/System.cc b/src/System.cc
+index dadcccf..e93fae8 100644
+--- a/src/System.cc
++++ b/src/System.cc
+@@ -26,12 +26,18 @@
+ #include <pangolin/pangolin.h>
+ #include <iomanip>
+ 
++static bool has_suffix(const std::string &str, const std::string &suffix)
++{
++    std::size_t index = str.find(suffix, str.size() - suffix.size());
++    return (index != std::string::npos);
++}
++
+ namespace ORB_SLAM2
+ {
+ 
+ System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
+-               const bool bUseViewer):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
+-        mbDeactivateLocalizationMode(false)
++               const bool bUseViewer, bool is_save_map_):mSensor(sensor), is_save_map(is_save_map_), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),
++        mbActivateLocalizationMode(false), mbDeactivateLocalizationMode(false)
+ {
+     // Output welcome message
+     // cout << endl <<
+@@ -57,12 +63,25 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
+        exit(-1);
+     }
+ 
++    cv::FileNode mapfilen = fsSettings["Map.mapfile"];  // get map file name
++    bool bReuseMap = false;
++    if (!mapfilen.empty())
++    {
++        // used for saving map
++        mapfile = (string)mapfilen;
++    }
+ 
+     //Load ORB Vocabulary
+     // cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
+ 
+     mpVocabulary = new ORBVocabulary();
+-    bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
++    bool bVocLoad = false; // chose loading method based on file extension
++    if (has_suffix(strVocFile, ".txt"))
++        bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
++    else if(has_suffix(strVocFile, ".bin"))
++        bVocLoad = mpVocabulary->loadFromBinaryFile(strVocFile);
++    else
++        bVocLoad = false;
+     if(!bVocLoad)
+     {
+         cerr << "Wrong path to vocabulary. " << endl;
+@@ -71,20 +90,27 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
+     }
+     // cout << "Vocabulary loaded!" << endl << endl;
+ 
+-    //Create KeyFrame Database
+-    mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
+ 
++    //Create KeyFrame Database
+     //Create the Map
+-    mpMap = new Map();
++    if (!mapfile.empty() && LoadMap(mapfile))
++    {
++        bReuseMap = true;  //
++    }
++    else
++    {
++        mpKeyFrameDatabase = new KeyFrameDatabase(mpVocabulary);
++        mpMap = new Map();
++    }
+ 
+     //Create Drawers. These are used by the Viewer
+-    mpFrameDrawer = new FrameDrawer(mpMap);
++    mpFrameDrawer = new FrameDrawer(mpMap, bReuseMap);
+     mpMapDrawer = new MapDrawer(mpMap, strSettingsFile);
+ 
+     //Initialize the Tracking thread
+     //(it will live in the main thread of execution, the one that called this constructor)
+     mpTracker = new Tracking(this, mpVocabulary, mpFrameDrawer, mpMapDrawer,
+-                             mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor);
++                             mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor, bReuseMap);
+ 
+     //Initialize the Local Mapping thread and launch
+     mpLocalMapper = new LocalMapping(mpMap, mSensor==MONOCULAR);
+@@ -97,7 +123,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
+     //Initialize the Viewer thread and launch
+     if(bUseViewer)
+     {
+-        mpViewer = new Viewer(this, mpFrameDrawer,mpMapDrawer,mpTracker,strSettingsFile);
++        mpViewer = new Viewer(this, mpFrameDrawer,mpMapDrawer,mpTracker,strSettingsFile, bReuseMap);
+         mptViewer = new thread(&Viewer::Run, mpViewer);
+         mpTracker->SetViewer(mpViewer);
+     }
+@@ -119,7 +145,7 @@ cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const
+     {
+         cerr << "ERROR: you called TrackStereo but input sensor was not set to STEREO." << endl;
+         exit(-1);
+-    }   
++    }
+ 
+     // Check mode change
+     {
+@@ -131,7 +157,7 @@ cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const
+             // Wait until Local Mapping has effectively stopped
+             while(!mpLocalMapper->isStopped())
+             {
+-                usleep(1000);
++                std::this_thread::sleep_for(std::chrono::microseconds(1000));
+             }
+ 
+             mpTracker->InformOnlyTracking(true);
+@@ -170,7 +196,7 @@ cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const doub
+     {
+         cerr << "ERROR: you called TrackRGBD but input sensor was not set to RGBD." << endl;
+         exit(-1);
+-    }    
++    }
+ 
+     // Check mode change
+     {
+@@ -182,7 +208,7 @@ cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const doub
+             // Wait until Local Mapping has effectively stopped
+             while(!mpLocalMapper->isStopped())
+             {
+-                usleep(1000);
++                std::this_thread::sleep_for(std::chrono::microseconds(1000));
+             }
+ 
+             mpTracker->InformOnlyTracking(true);
+@@ -233,7 +259,7 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
+             // Wait until Local Mapping has effectively stopped
+             while(!mpLocalMapper->isStopped())
+             {
+-                usleep(1000);
++                std::this_thread::sleep_for(std::chrono::microseconds(1000));
+             }
+ 
+             mpTracker->InformOnlyTracking(true);
+@@ -306,17 +332,20 @@ void System::Shutdown()
+     {
+         mpViewer->RequestFinish();
+         while(!mpViewer->isFinished())
+-            usleep(5000);
++        {
++            std::this_thread::sleep_for(std::chrono::microseconds(5000));
++        }
+     }
+ 
+     // Wait until all thread have effectively stopped
+     while(!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished() || mpLoopCloser->isRunningGBA())
+     {
+-        usleep(5000);
++        std::this_thread::sleep_for(std::chrono::microseconds(5000));
+     }
+-
+     if(mpViewer)
+         pangolin::BindToContext("ORB-SLAM2: Map Viewer");
++    if (is_save_map)
++        SaveMap(mapfile);
+ }
+ 
+ void System::SaveTrajectoryTUM(const string &filename)
+@@ -482,7 +511,7 @@ vector<KeyFrame*> System::GetKeyFrames() const
+     return mpMap->GetAllKeyFrames();
+ }
+ 
+-Tracking* System::GetTracker() const
++ Tracking* System::GetTracker() const
+ {
+     return mpTracker;
+ }
+@@ -499,4 +528,51 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
+     return mTrackedKeyPointsUn;
+ }
+ 
++void System::SaveMap(const string &filename)
++{
++    unique_lock<mutex> MapPointGlobal(MapPoint::mGlobalMutex);
++    std::ofstream out(filename, std::ios_base::binary);
++    if (!out)
++    {
++        cerr << "Cannot Write to Mapfile: " << mapfile << std::endl;
++        exit(-1);
++    }
++    cout << "Saving Mapfile: " << mapfile << std::flush;
++    boost::archive::binary_oarchive oa(out, boost::archive::no_header);
++    oa << mpMap;
++    oa << mpKeyFrameDatabase;
++    cout << " ...done" << std::endl;
++    out.close();
++}
++
++bool System::LoadMap(const string &filename)
++{
++    unique_lock<mutex> MapPointGlobal(MapPoint::mGlobalMutex);
++    std::ifstream in(filename, std::ios_base::binary);
++    if (!in)
++    {
++        cerr << "Cannot Open Mapfile: " << mapfile << " , You need create it first!" << std::endl;
++        return false;
++    }
++    cout << "Loading Mapfile: " << mapfile << std::flush;
++    boost::archive::binary_iarchive ia(in, boost::archive::no_header);
++    ia >> mpMap;
++    ia >> mpKeyFrameDatabase;
++    mpKeyFrameDatabase->SetORBvocabulary(mpVocabulary);
++    cout << " ...done" << std::endl;
++    cout << "Map Reconstructing" << flush;
++    vector<ORB_SLAM2::KeyFrame*> vpKFS = mpMap->GetAllKeyFrames();
++    unsigned long mnFrameId = 0;
++    for (auto it:vpKFS) {
++        it->SetORBvocabulary(mpVocabulary);
++        it->ComputeBoW();
++        if (it->mnFrameId > mnFrameId)
++            mnFrameId = it->mnFrameId;
++    }
++    Frame::nNextId = mnFrameId;
++    cout << " ...done" << endl;
++    in.close();
++    return true;
++}
++
+ } //namespace ORB_SLAM
+diff --git a/src/Tracking.cc b/src/Tracking.cc
+index f631066..bc2aef3 100644
+--- a/src/Tracking.cc
++++ b/src/Tracking.cc
+@@ -43,7 +43,7 @@ using namespace std;
+ namespace ORB_SLAM2
+ {
+ 
+-Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor):
++Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, bool bReuseMap):
+     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(false), mbVO(false), mpORBVocabulary(pVoc),
+     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
+     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0)
+@@ -131,11 +131,11 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
+     // cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
+     // cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
+ 
+-    // if(sensor==System::STEREO || sensor==System::RGBD)
+-    // {
+-    //     mThDepth = mbf*(float)fSettings["ThDepth"]/fx;
+-    //     cout << endl << "Depth Threshold (Close/Far Points): " << mThDepth << endl;
+-    // }
++    if(sensor==System::STEREO || sensor==System::RGBD)
++    {
++        mThDepth = mbf*(float)fSettings["ThDepth"]/fx;
++        cout << endl << "Depth Threshold (Close/Far Points): " << mThDepth << endl;
++    }
+ 
+     if(sensor==System::RGBD)
+     {
+@@ -145,7 +145,8 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
+         else
+             mDepthMapFactor = 1.0f/mDepthMapFactor;
+     }
+-
++    if (bReuseMap)
++        mState = LOST;
+ }
+ 
+ void Tracking::SetLocalMapper(LocalMapping *pLocalMapper)
+@@ -421,7 +422,7 @@ void Tracking::Track()
+         // Update drawer
+         mpFrameDrawer->Update(this);
+ 
+-        // If tracking were good, check if we insert a keyframe (THIS POINT)
++        // If tracking were good, check if we insert a keyframe
+         if(bOK)
+         {
+             // Update motion model
+@@ -458,7 +459,6 @@ void Tracking::Track()
+             mlpTemporalPoints.clear();
+ 
+             // Check if we need to insert a new keyframe
+-            // HERE
+             if(NeedNewKeyFrame())
+                 CreateNewKeyFrame();
+ 
+@@ -502,7 +502,8 @@ void Tracking::Track()
+     else
+     {
+         // This can happen if tracking is lost
+-        mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());
++        if (!mlRelativeFramePoses.empty())
++            mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());
+         mlpReferences.push_back(mlpReferences.back());
+         mlFrameTimes.push_back(mlFrameTimes.back());
+         mlbLost.push_back(mState==LOST);
+@@ -686,7 +687,7 @@ void Tracking::CreateInitialMapMonocular()
+     pKFcur->UpdateConnections();
+ 
+     // Bundle Adjustment
+-    //cout << "New Map created with " << mpMap->MapPointsInMap() << " points" << endl;
++    // cout << "New Map created with " << mpMap->MapPointsInMap() << " points" << endl;
+ 
+     Optimizer::GlobalBundleAdjustemnt(mpMap,20);
+ 
+@@ -694,10 +695,9 @@ void Tracking::CreateInitialMapMonocular()
+     float medianDepth = pKFini->ComputeSceneMedianDepth(2);
+     float invMedianDepth = 1.0f/medianDepth;
+ 
+-    //TODO: add negative rewards for wrong initialization?
+     if(medianDepth<0 || pKFcur->TrackedMapPoints(1)<100)
+     {
+-        //cout << "Wrong initialization, reseting..." << endl;
++        // cout << "Wrong initialization, reseting..." << endl;
+         Reset();
+         return;
+     }
+@@ -1499,6 +1499,7 @@ bool Tracking::Relocalization()
+ 
+     if(!bMatch)
+     {
++        mCurrentFrame.mTcw = cv::Mat::zeros(0, 0, CV_32F); // set mTcw back to empty if relocation is failed
+         return false;
+     }
+     else
+@@ -1512,28 +1513,30 @@ bool Tracking::Relocalization()
+ void Tracking::Reset()
+ {
+ 
+-    //cout << "System Reseting" << endl;
++    // cout << "System Reseting" << endl;
+     if(mpViewer)
+     {
+         mpViewer->RequestStop();
+         while(!mpViewer->isStopped())
+-            usleep(3000);
++        {
++            std::this_thread::sleep_for(std::chrono::microseconds(3000));
++        }
+     }
+ 
+     // Reset Local Mapping
+-    //cout << "Reseting Local Mapper...";
++    // cout << "Reseting Local Mapper...";
+     mpLocalMapper->RequestReset();
+-    //cout << " done" << endl;
++    // cout << " done" << endl;
+ 
+     // Reset Loop Closing
+-    //cout << "Reseting Loop Closing...";
++    // cout << "Reseting Loop Closing...";
+     mpLoopClosing->RequestReset();
+-    //cout << " done" << endl;
++    // cout << " done" << endl;
+ 
+     // Clear BoW Database
+-    //cout << "Reseting Database...";
++    // cout << "Reseting Database...";
+     mpKeyFrameDB->clear();
+-    //cout << " done" << endl;
++    // cout << " done" << endl;
+ 
+     // Clear Map (this erase MapPoints and KeyFrames)
+     mpMap->clear();
+diff --git a/src/Viewer.cc b/src/Viewer.cc
+index dec3204..882259f 100644
+--- a/src/Viewer.cc
++++ b/src/Viewer.cc
+@@ -26,9 +26,9 @@
+ namespace ORB_SLAM2
+ {
+ 
+-Viewer::Viewer(System* pSystem, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, const string &strSettingPath):
++Viewer::Viewer(System* pSystem, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, const string &strSettingPath, bool mbReuseMap_):
+     mpSystem(pSystem), mpFrameDrawer(pFrameDrawer),mpMapDrawer(pMapDrawer), mpTracker(pTracking),
+-    mbFinishRequested(false), mbFinished(true), mbStopped(true), mbStopRequested(false)
++    mbFinishRequested(false), mbFinished(true), mbStopped(true), mbStopRequested(false), mbReuseMap(mbReuseMap_)
+ {
+     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
+ 
+@@ -70,7 +70,7 @@ void Viewer::Run()
+     pangolin::Var<bool> menuShowPoints("menu.Show Points",true,true);
+     pangolin::Var<bool> menuShowKeyFrames("menu.Show KeyFrames",true,true);
+     pangolin::Var<bool> menuShowGraph("menu.Show Graph",true,true);
+-    pangolin::Var<bool> menuLocalizationMode("menu.Localization Mode",false,true);
++    pangolin::Var<bool> menuLocalizationMode("menu.Localization Mode",mbReuseMap,true);
+     pangolin::Var<bool> menuReset("menu.Reset",false,false);
+ 
+     // Define Camera Render Object (for view / scene browsing)
+@@ -157,7 +157,7 @@ void Viewer::Run()
+         {
+             while(isStopped())
+             {
+-                usleep(3000);
++                std::this_thread::sleep_for(std::chrono::microseconds(3000));
+             }
+         }
+ 

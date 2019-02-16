@@ -43,7 +43,7 @@ using namespace std;
 namespace ORB_SLAM2
 {
 
-Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor):
+Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, bool bReuseMap):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(false), mbVO(false), mpORBVocabulary(pVoc),
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0)
@@ -131,11 +131,11 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     // cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
     // cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
 
-    // if(sensor==System::STEREO || sensor==System::RGBD)
-    // {
-    //     mThDepth = mbf*(float)fSettings["ThDepth"]/fx;
-    //     cout << endl << "Depth Threshold (Close/Far Points): " << mThDepth << endl;
-    // }
+    if(sensor==System::STEREO || sensor==System::RGBD)
+    {
+        mThDepth = mbf*(float)fSettings["ThDepth"]/fx;
+        cout << endl << "Depth Threshold (Close/Far Points): " << mThDepth << endl;
+    }
 
     if(sensor==System::RGBD)
     {
@@ -145,7 +145,8 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
         else
             mDepthMapFactor = 1.0f/mDepthMapFactor;
     }
-
+    if (bReuseMap)
+        mState = LOST;
 }
 
 void Tracking::SetLocalMapper(LocalMapping *pLocalMapper)
@@ -421,7 +422,7 @@ void Tracking::Track()
         // Update drawer
         mpFrameDrawer->Update(this);
 
-        // If tracking were good, check if we insert a keyframe (THIS POINT)
+        // If tracking were good, check if we insert a keyframe
         if(bOK)
         {
             // Update motion model
@@ -458,7 +459,6 @@ void Tracking::Track()
             mlpTemporalPoints.clear();
 
             // Check if we need to insert a new keyframe
-            // HERE
             if(NeedNewKeyFrame())
                 CreateNewKeyFrame();
 
@@ -502,7 +502,8 @@ void Tracking::Track()
     else
     {
         // This can happen if tracking is lost
-        mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());
+        if (!mlRelativeFramePoses.empty())
+            mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());
         mlpReferences.push_back(mlpReferences.back());
         mlFrameTimes.push_back(mlFrameTimes.back());
         mlbLost.push_back(mState==LOST);
@@ -686,7 +687,7 @@ void Tracking::CreateInitialMapMonocular()
     pKFcur->UpdateConnections();
 
     // Bundle Adjustment
-    //cout << "New Map created with " << mpMap->MapPointsInMap() << " points" << endl;
+    // cout << "New Map created with " << mpMap->MapPointsInMap() << " points" << endl;
 
     Optimizer::GlobalBundleAdjustemnt(mpMap,20);
 
@@ -694,10 +695,9 @@ void Tracking::CreateInitialMapMonocular()
     float medianDepth = pKFini->ComputeSceneMedianDepth(2);
     float invMedianDepth = 1.0f/medianDepth;
 
-    //TODO: add negative rewards for wrong initialization?
     if(medianDepth<0 || pKFcur->TrackedMapPoints(1)<100)
     {
-        //cout << "Wrong initialization, reseting..." << endl;
+        // cout << "Wrong initialization, reseting..." << endl;
         Reset();
         return;
     }
@@ -1499,6 +1499,7 @@ bool Tracking::Relocalization()
 
     if(!bMatch)
     {
+        mCurrentFrame.mTcw = cv::Mat::zeros(0, 0, CV_32F); // set mTcw back to empty if relocation is failed
         return false;
     }
     else
@@ -1512,28 +1513,30 @@ bool Tracking::Relocalization()
 void Tracking::Reset()
 {
 
-    //cout << "System Reseting" << endl;
+    // cout << "System Reseting" << endl;
     if(mpViewer)
     {
         mpViewer->RequestStop();
         while(!mpViewer->isStopped())
-            usleep(3000);
+        {
+            std::this_thread::sleep_for(std::chrono::microseconds(3000));
+        }
     }
 
     // Reset Local Mapping
-    //cout << "Reseting Local Mapper...";
+    // cout << "Reseting Local Mapper...";
     mpLocalMapper->RequestReset();
-    //cout << " done" << endl;
+    // cout << " done" << endl;
 
     // Reset Loop Closing
-    //cout << "Reseting Loop Closing...";
+    // cout << "Reseting Loop Closing...";
     mpLoopClosing->RequestReset();
-    //cout << " done" << endl;
+    // cout << " done" << endl;
 
     // Clear BoW Database
-    //cout << "Reseting Database...";
+    // cout << "Reseting Database...";
     mpKeyFrameDB->clear();
-    //cout << " done" << endl;
+    // cout << " done" << endl;
 
     // Clear Map (this erase MapPoints and KeyFrames)
     mpMap->clear();
