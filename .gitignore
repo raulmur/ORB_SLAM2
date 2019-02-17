@@ -22,3 +22,7 @@ build/
 *~
 lib/
 
+saved_maps
+
+
+.vscode/

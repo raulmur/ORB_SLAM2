@@ -63,7 +63,7 @@ public:
 public:
 
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true, bool is_save_map_=false);
+    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true, const string &strMapFile = "");  //, bool is_save_map_=false);
 
     // Proccess the given stereo frame. Images must be synchronized and rectified.
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
@@ -126,6 +126,9 @@ public:
     // Save/Load functions
     void SaveMap(const string &filename);
     bool LoadMap(const string &filename);
+    
+    void SaveManual(const string &strMapFile);
+    void ResetAndLoad(const string &strMapFile);
 
 private:
 
@@ -142,7 +145,7 @@ private:
     Map* mpMap;
 
     string mapfile;
-    bool is_save_map;
+    // bool is_save_map;
 
     // Tracker. It receives a frame and computes the associated camera pose.
     // It also decides when to insert a new keyframe, create some new MapPoints and
@@ -171,6 +174,7 @@ private:
     // Reset flag
     std::mutex mMutexReset;
     bool mbReset;
+    bool mbResetAndLoad;
 
     // Change mode flags
     std::mutex mMutexMode;

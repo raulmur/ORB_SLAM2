@@ -99,7 +99,7 @@ protected:
     bool mbFinished;
     std::mutex mMutexFinish;
 
-    Map* mpMap;
+    Map* mpMap;  //Important
 
     LoopClosing* mpLoopCloser;
     Tracking* mpTracker;

@@ -35,8 +35,11 @@ static bool has_suffix(const std::string &str, const std::string &suffix)
 namespace ORB_SLAM2
 {
 
+// System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
+//                const bool bUseViewer, bool is_save_map_):mSensor(sensor), is_save_map(is_save_map_), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),
+//         mbActivateLocalizationMode(false), mbDeactivateLocalizationMode(false)
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
-               const bool bUseViewer, bool is_save_map_):mSensor(sensor), is_save_map(is_save_map_), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),
+               const bool bUseViewer, const string &strMapFile):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false), mbResetAndLoad(false),
         mbActivateLocalizationMode(false), mbDeactivateLocalizationMode(false)
 {
     // Output welcome message
@@ -63,14 +66,6 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
        exit(-1);
     }
 
-    cv::FileNode mapfilen = fsSettings["Map.mapfile"];  // get map file name
-    bool bReuseMap = false;
-    if (!mapfilen.empty())
-    {
-        // used for saving map
-        mapfile = (string)mapfilen;
-    }
-
     //Load ORB Vocabulary
     // cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
 
@@ -93,9 +88,13 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     //Create KeyFrame Database
     //Create the Map
-    if (!mapfile.empty() && LoadMap(mapfile))
+    bool bReuseMap = false;
+    if (has_suffix(strMapFile, ".bin"))
+        mapfile = strMapFile;
+    
+    if (!mapfile.empty() && LoadMap(mapfile))  // call on len 0 string
     {
-        bReuseMap = true;  //
+        bReuseMap = true;  // if this is turned on it will be relocalization mode
     }
     else
     {
@@ -110,20 +109,25 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //Initialize the Tracking thread
     //(it will live in the main thread of execution, the one that called this constructor)
     mpTracker = new Tracking(this, mpVocabulary, mpFrameDrawer, mpMapDrawer,
-                             mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor, bReuseMap);
+                             mpMap, mpKeyFrameDatabase,  // TODO: want to make this switchable
+                             strSettingsFile, mSensor,
+                             bReuseMap);  // TODO: want to make this switchable
 
     //Initialize the Local Mapping thread and launch
-    mpLocalMapper = new LocalMapping(mpMap, mSensor==MONOCULAR);
-    mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run,mpLocalMapper);
+    mpLocalMapper = new LocalMapping(mpMap, mSensor==MONOCULAR); // TODO: want to make this switchable
+    mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run, mpLocalMapper);
 
     //Initialize the Loop Closing thread and launch
-    mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDatabase, mpVocabulary, mSensor!=MONOCULAR);
+    mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDatabase,  // TODO: want to make this switchable
+                                   mpVocabulary, mSensor!=MONOCULAR);
     mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, mpLoopCloser);
 
     //Initialize the Viewer thread and launch
     if(bUseViewer)
     {
-        mpViewer = new Viewer(this, mpFrameDrawer,mpMapDrawer,mpTracker,strSettingsFile, bReuseMap);
+        // force slam mode first (replaced bReuseMap with false)
+        // turning it to false makes it so that mpActiveLocalizationMode doesn't get turned on 
+        mpViewer = new Viewer(this, mpFrameDrawer, mpMapDrawer, mpTracker, strSettingsFile, false);
         mptViewer = new thread(&Viewer::Run, mpViewer);
         mpTracker->SetViewer(mpViewer);
     }
@@ -252,8 +256,11 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
     // Check mode change
     {
         unique_lock<mutex> lock(mMutexMode);
+
+        // Don't really know what activelocalization mode is used for
         if(mbActivateLocalizationMode)
         {
+            cout << "Localization mode started" << endl;
             mpLocalMapper->RequestStop();
 
             // Wait until Local Mapping has effectively stopped
@@ -275,12 +282,22 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
 
     // Check reset
     {
-    unique_lock<mutex> lock(mMutexReset);
-    if(mbReset)
-    {
-        mpTracker->Reset();
-        mbReset = false;
+        unique_lock<mutex> lock(mMutexReset);
+        if(mbReset)
+        {
+            mpTracker->Reset();
+            mbReset = false;
+        }
     }
+
+    // Check reset and load
+    {
+        unique_lock<mutex> lock(mMutexReset);
+        if(mbResetAndLoad)
+        {
+            mpTracker->ResetAfterLoaded();
+            mbResetAndLoad = false;
+        }
     }
 
     cv::Mat Tcw = mpTracker->GrabImageMonocular(im,timestamp);
@@ -324,6 +341,36 @@ void System::Reset()
     mbReset = true;
 }
 
+void System::SaveManual(const string &strMapFile)
+{
+    if (has_suffix(strMapFile, ".bin"))
+        mapfile = strMapFile;
+
+    // TODO: TEST!
+    SaveMap(mapfile);
+}
+
+void System::ResetAndLoad(const string &strMapFile)
+{
+    unique_lock<mutex> lock(mMutexReset);
+    mbResetAndLoad = true;
+
+    // get string
+    if (has_suffix(strMapFile, ".bin"))
+        mapfile = strMapFile;
+
+    if (!mapfile.empty())
+    {
+        if (LoadMap(mapfile))
+        {
+            // Nothing  
+        }
+    }
+    else {
+        cout << "No map to load, incorrect file name" << endl;
+    }
+}
+
 void System::Shutdown()
 {
     mpLocalMapper->RequestFinish();
@@ -344,8 +391,8 @@ void System::Shutdown()
     }
     if(mpViewer)
         pangolin::BindToContext("ORB-SLAM2: Map Viewer");
-    if (is_save_map)
-        SaveMap(mapfile);
+    // if (is_save_map)
+    //     SaveMap(mapfile);
 }
 
 void System::SaveTrajectoryTUM(const string &filename)
@@ -558,9 +605,13 @@ bool System::LoadMap(const string &filename)
     boost::archive::binary_iarchive ia(in, boost::archive::no_header);
     ia >> mpMap;
     ia >> mpKeyFrameDatabase;
-    mpKeyFrameDatabase->SetORBvocabulary(mpVocabulary);
+
+    mpKeyFrameDatabase->SetORBvocabulary(mpVocabulary);  // set vocabulary file here
+
     cout << " ...done" << std::endl;
     cout << "Map Reconstructing" << flush;
+
+    // Initialize all of the keyframes, count how many 
     vector<ORB_SLAM2::KeyFrame*> vpKFS = mpMap->GetAllKeyFrames();
     unsigned long mnFrameId = 0;
     for (auto it:vpKFS) {

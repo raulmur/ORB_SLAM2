@@ -118,6 +118,7 @@ public:
     bool didUpdateKeyFrame;
 
     void Reset();
+    void ResetAfterLoaded();
 
 protected:
 

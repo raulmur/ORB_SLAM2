@@ -134,3 +134,28 @@ if(USE_EXAMPLE_WEBCAM)
     target_include_directories(mono_android_ipcam_ar PUBLIC Examples/AR/)
     target_link_libraries(mono_android_ipcam_ar ${PROJECT_NAME} ${CURL_LIBRARIES})
 endif()
+
+# ---------------
+# Installation instructions.
+# Will install to CMAKE_INSTALL_PREFIX
+# This defaults to /usr/local/, specify -DCMAKE_INSTALL_PREFIX when calling cmake to specify an alternate location
+# e.g. cmake -DCMAKE_INSTALL_PREFIX="~/local"
+# ---------------
+
+install(TARGETS ${PROJECT_NAME}
+    DESTINATION  lib
+    COMPONENT library)
+install(FILES
+        ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
+        ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+    DESTINATION lib
+    COMPONENT library)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/
+    DESTINATION include/ORB_SLAM2
+    COMPONENT library
+    FILES_MATCHING PATTERN "*.h"
+    PATTERN "Thirdparty" EXCLUDE)
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/Thirdparty/
+    DESTINATION include/ORB_SLAM2/Thirdparty
+    COMPONENT library
+FILES_MATCHING REGEX ".*\\.h(pp)?")

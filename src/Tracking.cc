@@ -1560,6 +1560,48 @@ void Tracking::Reset()
         mpViewer->Release();
 }
 
+void Tracking::ResetAfterLoaded()
+{
+
+    //cout << "System Reseting" << endl;
+    if(mpViewer)
+    {
+        mpViewer->RequestStop();
+        while(!mpViewer->isStopped())
+        {
+            std::this_thread::sleep_for(std::chrono::microseconds(3000));
+        }
+    }
+
+    // Reset Local Mapping
+    // cout << "Reseting Local Mapper...";
+    mpLocalMapper->RequestReset();
+    // cout << " done" << endl;
+
+    // Reset Loop Closing
+    // cout << "Reseting Loop Closing...";
+    mpLoopClosing->RequestReset();
+    // cout << " done" << endl;
+
+    // KeyFrame::nNextId = 0;  // FIXME: this might be uncommented
+    // Frame::nNextId = 0;
+    mState = LOST;  // important
+
+    if(mpInitializer)
+    {
+        delete mpInitializer;
+        mpInitializer = static_cast<Initializer*>(NULL);
+    }
+
+    mlRelativeFramePoses.clear();
+    mlpReferences.clear();
+    mlFrameTimes.clear();
+    mlbLost.clear();
+
+    if(mpViewer)
+        mpViewer->Release();
+}
+
 void Tracking::ChangeCalibration(const string &strSettingPath)
 {
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
