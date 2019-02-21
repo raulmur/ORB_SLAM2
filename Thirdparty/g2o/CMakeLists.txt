@@ -172,3 +172,17 @@ g2o/stuff/string_tools.cpp
 g2o/stuff/property.cpp       
 g2o/stuff/property.h       
 )
+
+# rename ORB_SLAM2 specific variant of library
+set_target_properties(g2o PROPERTIES OUTPUT_NAME ORB_SLAM2-g2o)
+
+# install headers
+install(DIRECTORY g2o DESTINATION include/ORB_SLAM2/Thirdparty/g2o FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp")
+install(FILES	config.h DESTINATION include/ORB_SLAM2/Thirdparty/g2o)
+
+# install the library
+install(TARGETS g2o
+	EXPORT g2oTargets
+	LIBRARY DESTINATION lib
+	ARCHIVE DESTINATION lib
+)

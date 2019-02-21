@@ -74,9 +74,16 @@ target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
 ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
-${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
-${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libORB_SLAM2-DBoW2.so
+${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libORB_SLAM2-g2o.so
 )
+
+
+# Install
+
+install(TARGETS ${PROJECT_NAME} DESTINATION lib)
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME} FILES_MATCHING PATTERN "*.h")
+
 
 # Build examples
 

@@ -33,6 +33,75 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
                const bool bUseViewer):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
         mbDeactivateLocalizationMode(false)
 {
+    //Load ORB Vocabulary
+    cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
+
+    ORBVocabulary* pVocabulary = new ORBVocabulary();
+    bool bVocLoad = pVocabulary->loadFromTextFile(strVocFile);
+    if(!bVocLoad)
+    {
+        cerr << "Wrong path to vocabulary. " << endl;
+        cerr << "Falied to open at: " << strVocFile << endl;
+        exit(-1);
+    }
+    cout << "Vocabulary loaded!" << endl << endl;
+
+    //Load settings file
+    cv::FileStorage fsSettings(strSettingsFile.c_str(), cv::FileStorage::READ);
+    if(!fsSettings.isOpened())
+    {
+        cerr << "Failed to open settings file at: " << strSettingsFile << endl;
+        exit(-1);
+    }
+    Parameters parameters;
+    parameters.Camera.width = fsSettings["Camera.width"];
+    parameters.Camera.height = fsSettings["Camera.height"];
+    parameters.Camera.fx = fsSettings["Camera.fx"];
+    parameters.Camera.fy = fsSettings["Camera.fy"];
+    parameters.Camera.cx = fsSettings["Camera.cx"];
+    parameters.Camera.cy = fsSettings["Camera.cy"];
+    parameters.Camera.k1 = fsSettings["Camera.k1"];
+    parameters.Camera.k2 = fsSettings["Camera.k2"];
+    parameters.Camera.p1 = fsSettings["Camera.p1"];
+    parameters.Camera.p2 = fsSettings["Camera.p2"];
+    parameters.Camera.k3 = fsSettings["Camera.k3"];
+    parameters.Camera.bf = fsSettings["Camera.bf"];
+    parameters.Camera.fps = fsSettings["Camera.fps"];
+    parameters.Camera.RGB = fsSettings["Camera.RGB"];
+
+    parameters.ORBextractor.nFeatures = fsSettings["ORBextractor.nFeatures"];
+    parameters.ORBextractor.scaleFactor = fsSettings["ORBextractor.scaleFactor"];
+    parameters.ORBextractor.nLevels = fsSettings["ORBextractor.nLevels"];
+    parameters.ORBextractor.iniThFAST = fsSettings["ORBextractor.iniThFAST"];
+    parameters.ORBextractor.minThFAST = fsSettings["ORBextractor.minThFAST"];
+
+    parameters.ThDepth = fsSettings["ThDepth"];
+    parameters.DepthMapFactor = fsSettings["DepthMapFactor"];
+
+    parameters.Viewer.KeyFrameSize = fsSettings["Viewer.KeyFrameSize"];
+    parameters.Viewer.KeyFrameLineWidth = fsSettings["Viewer.KeyFrameLineWidth"];
+    parameters.Viewer.GraphLineWidth = fsSettings["Viewer.GraphLineWidth"];
+    parameters.Viewer.PointSize = fsSettings["Viewer.PointSize"];
+    parameters.Viewer.CameraSize = fsSettings["Viewer.CameraSize"];
+    parameters.Viewer.CameraLineWidth = fsSettings["Viewer.CameraLineWidth"];
+
+    parameters.Viewer.ViewpointX = fsSettings["Viewer.ViewpointX"];
+    parameters.Viewer.ViewpointY = fsSettings["Viewer.ViewpointY"];
+    parameters.Viewer.ViewpointZ = fsSettings["Viewer.ViewpointZ"];
+    parameters.Viewer.ViewpointF = fsSettings["Viewer.ViewpointF"];
+
+    Init(pVocabulary, parameters, sensor, bUseViewer);
+}
+
+System::System(ORBVocabulary* pVocabulary, const Parameters &parameters, const eSensor sensor,
+               const bool bUseViewer):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
+        mbDeactivateLocalizationMode(false)
+{
+    Init(pVocabulary, parameters, sensor, bUseViewer);
+}
+
+void System::Init(ORBVocabulary* pVocabulary, const Parameters &parameters, const eSensor sensor, const bool bUseViewer)
+{
     // Output welcome message
     cout << endl <<
     "ORB-SLAM2 Copyright (C) 2014-2016 Raul Mur-Artal, University of Zaragoza." << endl <<
@@ -49,27 +118,8 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     else if(mSensor==RGBD)
         cout << "RGB-D" << endl;
 
-    //Check settings file
-    cv::FileStorage fsSettings(strSettingsFile.c_str(), cv::FileStorage::READ);
-    if(!fsSettings.isOpened())
-    {
-       cerr << "Failed to open settings file at: " << strSettingsFile << endl;
-       exit(-1);
-    }
-
-
-    //Load ORB Vocabulary
-    cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
-
-    mpVocabulary = new ORBVocabulary();
-    bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
-    if(!bVocLoad)
-    {
-        cerr << "Wrong path to vocabulary. " << endl;
-        cerr << "Falied to open at: " << strVocFile << endl;
-        exit(-1);
-    }
-    cout << "Vocabulary loaded!" << endl << endl;
+    //Set vocabulary
+    mpVocabulary = pVocabulary;
 
     //Create KeyFrame Database
     mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
@@ -79,12 +129,12 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     //Create Drawers. These are used by the Viewer
     mpFrameDrawer = new FrameDrawer(mpMap);
-    mpMapDrawer = new MapDrawer(mpMap, strSettingsFile);
+    mpMapDrawer = new MapDrawer(mpMap, parameters.Viewer);
 
     //Initialize the Tracking thread
     //(it will live in the main thread of execution, the one that called this constructor)
     mpTracker = new Tracking(this, mpVocabulary, mpFrameDrawer, mpMapDrawer,
-                             mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor);
+                             mpMap, mpKeyFrameDatabase, parameters, mSensor);
 
     //Initialize the Local Mapping thread and launch
     mpLocalMapper = new LocalMapping(mpMap, mSensor==MONOCULAR);
@@ -97,7 +147,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //Initialize the Viewer thread and launch
     if(bUseViewer)
     {
-        mpViewer = new Viewer(this, mpFrameDrawer,mpMapDrawer,mpTracker,strSettingsFile);
+        mpViewer = new Viewer(this, mpFrameDrawer,mpMapDrawer,mpTracker,parameters);
         mptViewer = new thread(&Viewer::Run, mpViewer);
         mpTracker->SetViewer(mpViewer);
     }

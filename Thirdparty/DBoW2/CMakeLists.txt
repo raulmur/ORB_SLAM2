@@ -38,3 +38,16 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 add_library(DBoW2 SHARED ${SRCS_DBOW2} ${SRCS_DUTILS})
 target_link_libraries(DBoW2 ${OpenCV_LIBS})
 
+# rename ORB_SLAM2 specific variant of library
+set_target_properties(DBoW2 PROPERTIES OUTPUT_NAME ORB_SLAM2-DBoW2)
+
+# install headers
+install(DIRECTORY DBoW2 DESTINATION include/ORB_SLAM2/Thirdparty/DBoW2 FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY DUtils DESTINATION include/ORB_SLAM2/Thirdparty/DBoW2 FILES_MATCHING PATTERN "*.h")
+
+# install the library
+install(TARGETS DBoW2
+	EXPORT ${PROJECT_NAME}Targets
+	LIBRARY DESTINATION lib
+	ARCHIVE DESTINATION lib
+)

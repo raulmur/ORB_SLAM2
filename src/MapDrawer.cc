@@ -28,16 +28,14 @@ namespace ORB_SLAM2
 {
 
 
-MapDrawer::MapDrawer(Map* pMap, const string &strSettingPath):mpMap(pMap)
+MapDrawer::MapDrawer(Map* pMap, const ViewerParameters &viewerParameters):mpMap(pMap)
 {
-    cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
-
-    mKeyFrameSize = fSettings["Viewer.KeyFrameSize"];
-    mKeyFrameLineWidth = fSettings["Viewer.KeyFrameLineWidth"];
-    mGraphLineWidth = fSettings["Viewer.GraphLineWidth"];
-    mPointSize = fSettings["Viewer.PointSize"];
-    mCameraSize = fSettings["Viewer.CameraSize"];
-    mCameraLineWidth = fSettings["Viewer.CameraLineWidth"];
+    mKeyFrameSize = viewerParameters.KeyFrameSize;
+    mKeyFrameLineWidth = viewerParameters.KeyFrameLineWidth;
+    mGraphLineWidth = viewerParameters.GraphLineWidth;
+    mPointSize = viewerParameters.PointSize;
+    mCameraSize = viewerParameters.CameraSize;
+    mCameraLineWidth = viewerParameters.CameraLineWidth;
 
 }
 

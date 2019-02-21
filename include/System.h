@@ -25,6 +25,7 @@
 #include<string>
 #include<thread>
 #include<opencv2/core/core.hpp>
+#include<unistd.h>
 
 #include "Tracking.h"
 #include "FrameDrawer.h"
@@ -46,6 +47,7 @@ class Tracking;
 class LocalMapping;
 class LoopClosing;
 
+
 class System
 {
 public:
@@ -60,6 +62,9 @@ public:
 
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
     System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true);
+
+    // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
+    System(ORBVocabulary* pVocabulary, const Parameters &parameters, const eSensor sensor, const bool bUseViewer = true);
 
     // Proccess the given stereo frame. Images must be synchronized and rectified.
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
@@ -123,6 +128,7 @@ public:
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
 private:
+    void Init(ORBVocabulary* pVocabulary, const Parameters &parameters, const eSensor sensor, const bool bUseViewer);
 
     // Input sensor
     eSensor mSensor;
