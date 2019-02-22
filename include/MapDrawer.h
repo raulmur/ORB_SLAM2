@@ -24,6 +24,7 @@
 #include"Map.h"
 #include"MapPoint.h"
 #include"KeyFrame.h"
+#include"Parameters.h"
 #include<pangolin/pangolin.h>
 
 #include<mutex>
@@ -34,7 +35,7 @@ namespace ORB_SLAM2
 class MapDrawer
 {
 public:
-    MapDrawer(Map* pMap, const string &strSettingPath);
+    MapDrawer(Map* pMap, const ViewerParameters &viewerParameters);
 
     Map* mpMap;
 
