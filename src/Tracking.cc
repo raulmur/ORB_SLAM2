@@ -19,6 +19,7 @@
 */
 
 
+#include <unistd.h>
 #include "Tracking.h"
 
 #include<opencv2/core/core.hpp>
