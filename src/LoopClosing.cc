@@ -224,8 +224,6 @@ bool LoopClosing::DetectLoop()
         return true;
     }
 
-    mpCurrentKF->SetErase();
-    return false;
 }
 
 bool LoopClosing::ComputeSim3()
