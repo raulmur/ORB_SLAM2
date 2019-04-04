@@ -117,7 +117,6 @@ bool Initializer::Initialize(const Frame &CurrentFrame, const vector<int> &vMatc
     else //if(pF_HF>0.6)
         return ReconstructF(vbMatchesInliersF,F,mK,R21,t21,vP3D,vbTriangulated,1.0,50);
 
-    return false;
 }
 
 
