@@ -22,6 +22,7 @@
 #define FRAME_H
 
 #include<vector>
+#include "DLC.h"
 
 #include "MapPoint.h"
 #include "Thirdparty/DBoW2/DBoW2/BowVector.h"
@@ -60,8 +61,12 @@ public:
     // Extract ORB on the image. 0 for left image and 1 for right image.
     void ExtractORB(int flag, const cv::Mat &im);
 
+    // Deep HOG Representation
+    void ExtractHOG(const cv::Mat &im);
+
     // Compute Bag of Words representation.
     void ComputeBoW();
+    void ComputeHOG();
 
     // Set the camera pose.
     void SetPose(cv::Mat Tcw);
@@ -145,6 +150,9 @@ public:
     // Bag of Words Vector structures.
     DBoW2::BowVector mBowVec;
     DBoW2::FeatureVector mFeatVec;
+
+    //Deep HOG Descriptor
+    HOGdescriptor mHogDesc;
 
     // ORB descriptor, each row associated to a keypoint.
     cv::Mat mDescriptors, mDescriptorsRight;
