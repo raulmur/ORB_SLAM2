@@ -28,7 +28,6 @@
 #include "ORBextractor.h"
 #include "Frame.h"
 #include "KeyFrameDatabase.h"
-#include "DLC.h"
 
 #include <mutex>
 
@@ -57,7 +56,6 @@ public:
 
     // Bag of Words Representation
     void ComputeBoW();
-    void ComputeHOG();
 
     // Covisibility graph functions
     void AddConnection(KeyFrame* pKF, const int &weight);
@@ -171,9 +169,6 @@ public:
     //BoW
     DBoW2::BowVector mBowVec;
     DBoW2::FeatureVector mFeatVec;
-
-    //Deep HOG Descriptor
-    HOGdescriptor mHogDesc;
 
     // Pose relative to parent (this is computed when bad flag is activated)
     cv::Mat mTcp;

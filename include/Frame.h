@@ -152,7 +152,7 @@ public:
     DBoW2::FeatureVector mFeatVec;
 
     //Deep HOG Descriptor
-    HOGdescriptor mHogDesc;
+    DLC::HOGdescriptor mHogDesc;
 
     // ORB descriptor, each row associated to a keypoint.
     cv::Mat mDescriptors, mDescriptorsRight;

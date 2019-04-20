@@ -6,42 +6,16 @@
 #include <opencv2/opencv.hpp>
 
 
-const int hog_length = 3648;
-typedef  std::array<double, hog_length> HOGdescriptor;
-
 namespace DLC {
-	
-	double ComputeL2Norm(HOGdescriptor h1, HOGdescriptor h2)
-	{
-		double distance = 0.0;
-		for(
-			int i = 0;
-			i < hog_length;
-			i++ )
-		{
-			distance += pow( (h1[i] - h2[i]), 2);
-		}
-		return distance;
-	}
 
-	double ComputeL1Norm(HOGdescriptor h1, HOGdescriptor h2)
-	{
-		double distance = 0.0;
-		for(
-			int i = 0;
-			i < hog_length;
-			i++ )
-		{
-			distance += pow( (h1[i] - h2[i]), 2);
-		}
-		return distance;
-	}
+	const int hog_length = 3648;
+	typedef  std::array<double, hog_length> HOGdescriptor;
 
-	HOGdescriptor ExtractHOG(const cv::Mat &im)
-	{
-		// run HOG classifier
-		HOGdescriptor imDescriptor = {0};
-	}
+	double ComputeL2Norm(HOGdescriptor h1, HOGdescriptor h2);
+
+	double ComputeL1Norm(HOGdescriptor h1, HOGdescriptor h2);
+
+	HOGdescriptor ExtractHOG(const cv::Mat &im);
 	// possible extensions - compute KL divergence, Bhattacharyya distance
 }
 

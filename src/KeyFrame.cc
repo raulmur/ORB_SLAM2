@@ -67,12 +67,6 @@ void KeyFrame::ComputeBoW()
     }
 }
 
-void KeyFrame::ComputeHOG()
-{
-    // Use .h5 model of trained deep loop closure to perform inference
-    // this->mHogDesc = DLC::ComputeHOG(this->);
-}
-
 void KeyFrame::SetPose(const cv::Mat &Tcw_)
 {
     unique_lock<mutex> lock(mMutexPose);
