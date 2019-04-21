@@ -44,6 +44,7 @@ Frame::Frame(const Frame &frame)
      mvDepth(frame.mvDepth), mBowVec(frame.mBowVec), mFeatVec(frame.mFeatVec),
      mDescriptors(frame.mDescriptors.clone()), mDescriptorsRight(frame.mDescriptorsRight.clone()),
      mvpMapPoints(frame.mvpMapPoints), mvbOutlier(frame.mvbOutlier), mnId(frame.mnId),
+     mHogVec(frame.mHogVec), current_lcd(frame.current_lcd),
      mpReferenceKF(frame.mpReferenceKF), mnScaleLevels(frame.mnScaleLevels),
      mfScaleFactor(frame.mfScaleFactor), mfLogScaleFactor(frame.mfLogScaleFactor),
      mvScaleFactors(frame.mvScaleFactors), mvInvScaleFactors(frame.mvInvScaleFactors),
@@ -134,7 +135,6 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 
     // ORB extraction
     ExtractORB(0,imGray);
-    ExtractHOG(imGray);
 
     N = mvKeys.size();
 
@@ -190,6 +190,9 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
 
     // ORB extraction
     ExtractORB(0,imGray);
+
+    // Deep HOG score extraction
+    this->mHogVec = this->current_lcd.calcDescr(imGray); //this->current_lcd.query(imGray, 0);
 
     N = mvKeys.size();
 
@@ -251,11 +254,6 @@ void Frame::ExtractORB(int flag, const cv::Mat &im)
         (*mpORBextractorLeft)(im,cv::Mat(),mvKeys,mDescriptors);
     else
         (*mpORBextractorRight)(im,cv::Mat(),mvKeysRight,mDescriptorsRight);
-}
-
-void Frame::ExtractHOG(const cv::Mat &im)
-{
-    this->mHogDesc = DLC::ExtractHOG(im);
 }
 
 void Frame::SetPose(cv::Mat Tcw)
@@ -405,12 +403,6 @@ void Frame::ComputeBoW()
         vector<cv::Mat> vCurrentDesc = Converter::toDescriptorVector(mDescriptors);
         mpORBvocabulary->transform(vCurrentDesc,mBowVec,mFeatVec,4);
     }
-}
-
-void Frame::ComputeHOG()
-{
-    // Use .h5 model of trained deep loop closure to perform inference
-    // this->mHogDesc = DLC::ComputeHOG(this->);
 }
 
 void Frame::UndistortKeyPoints()

@@ -8,7 +8,7 @@ ENDIF()
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3 -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3 -march=native -std=c++11 -DCPU_ONLY=1")
 
 # Check C++11 or C++0x support
 include(CheckCXXCompilerFlag)
@@ -38,12 +38,34 @@ endif()
 
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
+find_package(Boost COMPONENTS filesystem REQUIRED)
+#find_package(deeplcd REQUIRED)
+
+if (NOT Caffe_ROOT_DIR)
+        set(Caffe_ROOT_DIR $ENV{HOME}/eecs568-project/caffe)
+endif()
+
+#if (NOT deeplcd_ROOT_DIR)
+#        set(deeplcd_ROOT_DIR $ENV{HOME}/eecs568-project/calc/DeepLCD)
+#endif()
+
+MESSAGE("${GREEN}Using Caffe_ROOT_DIR: ${Caffe_ROOT_DIR}${ENDL}")
+set(Caffe_LIBS ${Caffe_ROOT_DIR}/build/lib/libcaffe.so)
+set(Caffe_INCLUDE_DIRS ${Caffe_ROOT_DIR}/include)
+MESSAGE("Caffe_LIBS: ${Caffe_LIBS}")
+MESSAGE("Caffe_INCLUDE_DIRS: ${Caffe_INCLUDE_DIRS}")
+
+#set(deeplcd_INCLUDE_DIRS ${deeplcd_ROOT_DIR}/include/deeplcd)
+#set(deeplcd_LIBRARIES ${deeplcd_ROOT_DIR}/build/libdeeplcd.so)
 
 include_directories(
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
+${Caffe_INCLUDE_DIRS}
+${Boost_INCLUDE_DIRS}
+#${deeplcd_INCLUDE_DIRS}
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
@@ -68,7 +90,8 @@ src/KeyFrameDatabase.cc
 src/Sim3Solver.cc
 src/Initializer.cc
 src/Viewer.cc
-src/DLC.cc
+src/deeplcd.cpp
+#src/DLC.cc
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -77,6 +100,13 @@ ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+#${deeplcd_LIBRARIES}
+${Caffe_LIBS}
+${Boost_LIBRARIES}
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+        ${Caffe_INCLUDE_DIRS}
 )
 
 # Build examples

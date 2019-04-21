@@ -21,6 +21,8 @@
 #ifndef KEYFRAME_H
 #define KEYFRAME_H
 
+#include "deeplcd.h"
+
 #include "MapPoint.h"
 #include "Thirdparty/DBoW2/DBoW2/BowVector.h"
 #include "Thirdparty/DBoW2/DBoW2/FeatureVector.h"
@@ -188,6 +190,8 @@ public:
     const int mnMaxY;
     const cv::Mat mK;
 
+    deeplcd::DeepLCD current_lcd;
+    deeplcd::descriptor mHogVec;
 
     // The following variables need to be accessed trough a mutex to be thread safe.
 protected:

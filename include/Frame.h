@@ -22,7 +22,8 @@
 #define FRAME_H
 
 #include<vector>
-#include "DLC.h"
+//#include "DLC.h"
+#include "deeplcd.h"
 
 #include "MapPoint.h"
 #include "Thirdparty/DBoW2/DBoW2/BowVector.h"
@@ -32,6 +33,8 @@
 #include "ORBextractor.h"
 
 #include <opencv2/opencv.hpp>
+
+#include <opencv2/imgproc/imgproc.hpp>
 
 namespace ORB_SLAM2
 {
@@ -61,12 +64,8 @@ public:
     // Extract ORB on the image. 0 for left image and 1 for right image.
     void ExtractORB(int flag, const cv::Mat &im);
 
-    // Deep HOG Representation
-    void ExtractHOG(const cv::Mat &im);
-
     // Compute Bag of Words representation.
     void ComputeBoW();
-    void ComputeHOG();
 
     // Set the camera pose.
     void SetPose(cv::Mat Tcw);
@@ -151,9 +150,6 @@ public:
     DBoW2::BowVector mBowVec;
     DBoW2::FeatureVector mFeatVec;
 
-    //Deep HOG Descriptor
-    DLC::HOGdescriptor mHogDesc;
-
     // ORB descriptor, each row associated to a keypoint.
     cv::Mat mDescriptors, mDescriptorsRight;
 
@@ -194,6 +190,9 @@ public:
     static float mnMaxY;
 
     static bool mbInitialComputations;
+
+    deeplcd::DeepLCD current_lcd;
+    deeplcd::descriptor mHogVec;
 
 
 private:

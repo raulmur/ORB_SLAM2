@@ -4,7 +4,7 @@
 #include<array>
 #include<cmath>
 #include <opencv2/opencv.hpp>
-
+#include "deeplcd.h"
 
 namespace DLC {
 
