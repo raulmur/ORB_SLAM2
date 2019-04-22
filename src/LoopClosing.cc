@@ -123,7 +123,7 @@ bool LoopClosing::DetectLoop()
     // We will impose loop candidates to have a higher similarity than this
     const vector<KeyFrame*> vpConnectedKeyFrames = mpCurrentKF->GetVectorCovisibleKeyFrames();
     const DBoW2::BowVector &CurrentBowVec = mpCurrentKF->mBowVec;
-    const deeplcd::descriptor &CurrentHogVec = mpCurrentKF->mHogVec;
+    //const deeplcd::Vector &CurrentHogVec = mpCurrentKF->mHogVec;
     float minScore = 1;
     for(size_t i=0; i<vpConnectedKeyFrames.size(); i++)
     {
@@ -131,12 +131,18 @@ bool LoopClosing::DetectLoop()
         if(pKF->isBad())
             continue;
         const DBoW2::BowVector &BowVec = pKF->mBowVec;
-        const deeplcd::descriptor &HogVec = pKF->mHogVec;
+        //const deeplcd::Vector &HogVec = pKF->mHogVec;
 
-        // float score = mpORBVocabulary->score(CurrentBowVec, BowVec);
         // replace with DHOG vector!!
-        float score = pKF->current_lcd.score(CurrentHogVec.descr, HogVec.descr);
+
+        //float score = pKF->current_lcd.score(mpCurrentKF->mHogVec, pKF->mHogVec);
         // float score = get score between currentHOG and HOGvectors
+        //std::cout<<"\nIMAGE SIZE"<<mpCurrentKF->im_current.size().width;
+        //std::cout<<mpCurrentKF->im_current.size().width<<std::endl;
+
+
+        //float score = mpORBVocabulary->score(CurrentBowVec, BowVec);
+        float score = this->current_lcd.score(mpCurrentKF->im_current, pKF->im_current); //DHOG score
 
         if(score<minScore)
             minScore = score;

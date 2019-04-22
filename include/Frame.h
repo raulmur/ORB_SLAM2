@@ -35,6 +35,8 @@
 #include <opencv2/opencv.hpp>
 
 #include <opencv2/imgproc/imgproc.hpp>
+#include <vector>
+
 
 namespace ORB_SLAM2
 {
@@ -191,9 +193,9 @@ public:
 
     static bool mbInitialComputations;
 
-    deeplcd::DeepLCD current_lcd;
-    deeplcd::descriptor mHogVec;
-
+    //deeplcd::Vector mHogVec;
+    //std::vector mHogStdVec; //NOT descriptor, just Eigen::Map<Eigen::VectoXf>
+    cv::Mat im_current;
 
 private:
 

@@ -148,6 +148,13 @@ const descriptor DeepLCD::calcDescr(const cv::Mat& im_)
 
 }
 
+const float DeepLCD::score(const cv::Mat& im1, const cv::Mat& im2)
+{
+	Vector d1 = calcDescr(im1).descr;
+	Vector d2 = calcDescr(im2).descr;
+	return d1.dot(d2);
+}
+
 } // end namespace
 
 

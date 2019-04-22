@@ -30,8 +30,10 @@
 #include "ORBextractor.h"
 #include "Frame.h"
 #include "KeyFrameDatabase.h"
+#include "opencv2/imgproc/imgproc.hpp"
 
 #include <mutex>
+#include <vector>
 
 
 namespace ORB_SLAM2
@@ -190,9 +192,12 @@ public:
     const int mnMaxY;
     const cv::Mat mK;
 
-    deeplcd::DeepLCD current_lcd;
-    deeplcd::descriptor mHogVec;
+    //deeplcd::DeepLCD current_lcd;
+    //deeplcd::Vector mHogVec;
+    //std::vector mHogStdVec;
 
+    cv::Mat im_current;
+    
     // The following variables need to be accessed trough a mutex to be thread safe.
 protected:
 

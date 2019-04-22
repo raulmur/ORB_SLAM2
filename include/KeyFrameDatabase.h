@@ -56,6 +56,7 @@ public:
 
    // Relocalization
    std::vector<KeyFrame*> DetectRelocalizationCandidates(Frame* F);
+   deeplcd::DeepLCD current_lcd;
 
 protected:
 

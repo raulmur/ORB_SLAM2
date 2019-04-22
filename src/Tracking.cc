@@ -1488,6 +1488,8 @@ bool Tracking::Relocalization()
             }
         }
     }
+    //hack
+    //return false;
 
     if(!bMatch)
     {

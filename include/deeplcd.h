@@ -21,7 +21,6 @@ struct descriptor
 {
 	uint32_t id;	
 	Vector descr;
-
 	descriptor(size_t id_, Vector descr_) : id(id_), descr(descr_) {}
 	descriptor(size_t id_, float* descr_, int p) : id(id_), descr( Vector(descr_, p, 1) )
 	{
@@ -128,6 +127,9 @@ public:
 	const float score(const Vector& d1, const Vector& d2);
 
 	const descriptor calcDescr(const cv::Mat& im); // make a forward pass through the net, return the descriptor
+
+	const float score(const cv::Mat& im1, const cv::Mat& im2);
+
 }; // end class DeepLCD
 
 

@@ -28,4 +28,4 @@ echo "Configuring and building ORB_SLAM2 ..."
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release -DCaffe_ROOT_DIR=/home/parth/eecs568-project/caffe -DCPU_ONLY=1 ..
-make
+make -j${nproc}

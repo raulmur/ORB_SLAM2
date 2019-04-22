@@ -82,6 +82,8 @@ public:
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
+    deeplcd::DeepLCD current_lcd;
+
 protected:
 
     bool CheckNewKeyFrames();

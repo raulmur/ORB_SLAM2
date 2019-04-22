@@ -44,7 +44,7 @@ Frame::Frame(const Frame &frame)
      mvDepth(frame.mvDepth), mBowVec(frame.mBowVec), mFeatVec(frame.mFeatVec),
      mDescriptors(frame.mDescriptors.clone()), mDescriptorsRight(frame.mDescriptorsRight.clone()),
      mvpMapPoints(frame.mvpMapPoints), mvbOutlier(frame.mvbOutlier), mnId(frame.mnId),
-     mHogVec(frame.mHogVec), current_lcd(frame.current_lcd),
+     im_current(frame.im_current),
      mpReferenceKF(frame.mpReferenceKF), mnScaleLevels(frame.mnScaleLevels),
      mfScaleFactor(frame.mfScaleFactor), mfLogScaleFactor(frame.mfLogScaleFactor),
      mvScaleFactors(frame.mvScaleFactors), mvInvScaleFactors(frame.mvInvScaleFactors),
@@ -93,6 +93,12 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));    
     mvbOutlier = vector<bool>(N,false);
 
+    //deeplcd::descriptor tempDescr= current_lcd.calcDescr(imLeft); //this->current_lcd.query(imGray, 0);
+    //this->mHogVec = tempDescr.descr;
+    cv::Size sz(160, 120);
+    this->im_current = imLeft;
+    cv::cvtColor(this->im_current, this->im_current, cv::COLOR_BGR2GRAY); // convert to grayscale
+    cv::resize(this->im_current, this->im_current, sz);
 
     // This is done only for the first Frame (or after a change in the calibration)
     if(mbInitialComputations)
@@ -135,6 +141,13 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 
     // ORB extraction
     ExtractORB(0,imGray);
+
+    //deeplcd::descriptor tempDescr= current_lcd.calcDescr(imGray); //this->current_lcd.query(imGray, 0);
+    //this->mHogVec = tempDescr.descr;
+    cv::Size sz(160, 120);
+    this->im_current = imGray;
+    //cv::cvtColor(this->im_current, this->im_current, cv::COLOR_BGR2GRAY); // convert to grayscale
+    cv::resize(this->im_current, this->im_current, sz);
 
     N = mvKeys.size();
 
@@ -192,7 +205,12 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     ExtractORB(0,imGray);
 
     // Deep HOG score extraction
-    this->mHogVec = this->current_lcd.calcDescr(imGray); //this->current_lcd.query(imGray, 0);
+    //deeplcd::descriptor tempDescr= current_lcd.calcDescr(imGray); //this->current_lcd.query(imGray, 0);
+    //this->mHogVec = tempDescr.descr;
+    cv::Size sz(160, 120);
+    this->im_current = imGray;
+    //cv::cvtColor(this->im_current, this->im_current, cv::COLOR_BGR2GRAY); // convert to grayscale
+    cv::resize(this->im_current, this->im_current, sz);
 
     N = mvKeys.size();
 
