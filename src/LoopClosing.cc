@@ -124,7 +124,7 @@ bool LoopClosing::DetectLoop()
     const vector<KeyFrame*> vpConnectedKeyFrames = mpCurrentKF->GetVectorCovisibleKeyFrames();
     const DBoW2::BowVector &CurrentBowVec = mpCurrentKF->mBowVec;
     //const deeplcd::Vector &CurrentHogVec = mpCurrentKF->mHogVec;
-    float minScore = 1;
+    float minScore = 0.84;
     for(size_t i=0; i<vpConnectedKeyFrames.size(); i++)
     {
         KeyFrame* pKF = vpConnectedKeyFrames[i];
@@ -143,6 +143,8 @@ bool LoopClosing::DetectLoop()
 
         //float score = mpORBVocabulary->score(CurrentBowVec, BowVec);
         float score = this->current_lcd.score(mpCurrentKF->im_current, pKF->im_current); //DHOG score
+
+        std::cout<<"\n Current imgID:"<<mpCurrentKF->mnFrameId<<" Query imgID:"<<pKF->mnFrameId<<" dhog score:"<<score;
 
         if(score<minScore)
             minScore = score;
