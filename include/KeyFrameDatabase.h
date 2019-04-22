@@ -31,6 +31,8 @@
 
 #include<mutex>
 
+#include "deeplcd.h"
+
 
 namespace ORB_SLAM2
 {
@@ -53,10 +55,18 @@ public:
 
    // Loop Detection
    std::vector<KeyFrame *> DetectLoopCandidates(KeyFrame* pKF, float minScore);
+   std::vector<KeyFrame *> DetectDHOGLoopCandidates(KeyFrame* pKF, float minScore);
+
+   // utils for deeplcd
+   KeyFrame GetKeyframeByFrameId(deeplcd::Database db, KeyFrame* pKF, uint32_t matchId);
 
    // Relocalization
    std::vector<KeyFrame*> DetectRelocalizationCandidates(Frame* F);
    deeplcd::DeepLCD current_lcd;
+
+   int loop_hyp_cnt;
+   int last_loop_hyp_id;
+   int min_loop_hyp_cnt = 3;
 
 protected:
 

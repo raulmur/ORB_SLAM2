@@ -120,9 +120,15 @@ public:
 	// If add_after, the descriptor from im will be added to the database. 
 	query_result query(const cv::Mat& im, bool add_after=1);
 
+	query_result query(const cv::Mat& im, bool add_after=1, uint32_t id = 0);
+
 	// This is used internally by the above overload, but it is made public for convenience. 
 	query_result query(const descriptor& descr, bool add_after=1);
 
+	query_result query(const descriptor& descr, bool add_after = 1, uint32_t id = 0);
+
+	//for searching id in database;
+	bool query_db( uint32_t query_id);
 
 	const float score(const Vector& d1, const Vector& d2);
 
