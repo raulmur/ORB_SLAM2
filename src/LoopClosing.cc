@@ -145,6 +145,8 @@ bool LoopClosing::DetectLoop()
         float score = this->current_lcd.score(mpCurrentKF->im_current, pKF->im_current); //DHOG score
         std::cout<<"\nCurrent FrameID: "<<mpCurrentKF->mnFrameId<<" query FrameID: "<<pKF->mnFrameId<<"score: "<<score;
 
+        std::cout<<"\n Current imgID:"<<mpCurrentKF->mnFrameId<<" Query imgID:"<<pKF->mnFrameId<<" dhog score:"<<score;
+
         if(score<minScore)
             minScore = score;
     }

@@ -191,15 +191,15 @@ vector<KeyFrame*> KeyFrameDatabase::DetectLoopCandidates(KeyFrame* pKF, float mi
 
     list<pair<float,KeyFrame*> > lScoreAndMatch;
 
-    // Only compare against those keyframes that share enough words
-    //int maxCommonWords=0;
-    //for(list<KeyFrame*>::iterator lit=lKFsSharingWords.begin(), lend= lKFsSharingWords.end(); lit!=lend; lit++)
-    //{
-    //    if((*lit)->mnLoopWords>maxCommonWords)
-    //        maxCommonWords=(*lit)->mnLoopWords;
-    //}
+    Only compare against those keyframes that share enough words
+    int maxCommonWords=0;
+    for(list<KeyFrame*>::iterator lit=lKFsSharingWords.begin(), lend= lKFsSharingWords.end(); lit!=lend; lit++)
+    {
+       if((*lit)->mnLoopWords>maxCommonWords)
+           maxCommonWords=(*lit)->mnLoopWords;
+    }
 
-    //int minCommonWords = maxCommonWords*0.8f;
+    int minCommonWords = maxCommonWords*0.8f;
 
     int nscores=0;
 
@@ -208,8 +208,8 @@ vector<KeyFrame*> KeyFrameDatabase::DetectLoopCandidates(KeyFrame* pKF, float mi
     {
         KeyFrame* pKFi = *lit;
 
-        //if(pKFi->mnLoopWords>minCommonWords)
-        //{
+        if(pKFi->mnLoopWords>minCommonWords)
+        {
             nscores++;
 
 
@@ -219,7 +219,7 @@ vector<KeyFrame*> KeyFrameDatabase::DetectLoopCandidates(KeyFrame* pKF, float mi
             pKFi->mLoopScore = si;
             if(si>=minScore)
                 lScoreAndMatch.push_back(make_pair(si,pKFi));
-        //}
+        }
     }
 
     if(lScoreAndMatch.empty())
