@@ -3,8 +3,12 @@
 Addition requirement for compilation -
 Install caffe in ${HOME}/caffe , using `git clone https://github.com/BVLC/caffe.git` and following instructions therein.
 
-Install all other dependencies as specified below, and follow instructions to run KITTI Monocular Odometry sequences.
-Then run `./build.sh`.
+Run `./get_model.sh`, ensure that directory `calc_model/` containing `calc.caffemodel` and `deploy.prototxt` is in there.
+
+Install all other dependencies as specified below, then run `./build.sh`.
+
+
+Follow instructions to run KITTI Monocular Odometry sequences.
 
 
 
