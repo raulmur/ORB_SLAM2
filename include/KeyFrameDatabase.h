@@ -55,10 +55,11 @@ public:
 
    // Loop Detection
    std::vector<KeyFrame *> DetectLoopCandidates(KeyFrame* pKF, float minScore);
-   std::vector<KeyFrame *> DetectDHOGLoopCandidates(KeyFrame* pKF, float minScore);
+
+   //std::vector<KeyFrame *> DetectDHOGLoopCandidates(KeyFrame* pKF, float minScore); // currently buggy
 
    // utils for deeplcd
-   KeyFrame GetKeyframeByFrameId(deeplcd::Database db, KeyFrame* pKF, uint32_t matchId);
+  //  KeyFrame GetKeyframeByFrameId(deeplcd::Database db, KeyFrame* pKF, uint32_t matchId); // currently buggy
 
    // Relocalization
    std::vector<KeyFrame*> DetectRelocalizationCandidates(Frame* F);

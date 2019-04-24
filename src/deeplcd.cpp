@@ -88,11 +88,12 @@ query_result DeepLCD::query(const cv::Mat& im, bool add_after)
 	return query(descr, add_after);
 }
 
-query_result DeepLCD::query(const cv::Mat& im, bool add_after, uint32_t id)
-{
-	descriptor descr = calcDescr(im);
-	return query(descr, add_after, id);
-}
+// // // currently buggy
+// query_result DeepLCD::query(const cv::Mat& im, bool add_after, uint32_t id)
+// {
+// 	descriptor descr = calcDescr(im);
+// 	return query(descr, add_after, id);
+// }
 
 query_result DeepLCD::query(const descriptor& descr, bool add_after)
 {
@@ -116,29 +117,29 @@ query_result DeepLCD::query(const descriptor& descr, bool add_after)
 		db.push_back(descr);
 	return q;
 }
+// // // currently buggy
+// query_result DeepLCD::query(const descriptor& descr, bool add_after, uint32_t id)
+// {
 
-query_result DeepLCD::query(const descriptor& descr, bool add_after, uint32_t id)
-{
+// 	query_result q(-1.0, id);
+// 	float s;
+// 	int i = db.size();
+// 	for (descriptor d : db)
+// 	{
+// 		s = score(d.descr, descr.descr);
+// 		if (s > q.score)
+// 		{
+// 			q.score = s;
+// 			q.id = d.id;
+// 		}	
+// 		if (--i == n_exclude)
+// 			break;
+// 	}
 
-	query_result q(-1.0, id);
-	float s;
-	int i = db.size();
-	for (descriptor d : db)
-	{
-		s = score(d.descr, descr.descr);
-		if (s > q.score)
-		{
-			q.score = s;
-			q.id = d.id;
-		}	
-		if (--i == n_exclude)
-			break;
-	}
-
-	if (add_after)
-		db.push_back(descr);
-	return q;
-}
+// 	if (add_after)
+// 		db.push_back(descr);
+// 	return q;
+// }
 
 
 bool DeepLCD::query_db( uint32_t query_id)

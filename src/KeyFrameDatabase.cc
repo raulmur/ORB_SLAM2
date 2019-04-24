@@ -72,84 +72,87 @@ void KeyFrameDatabase::clear()
     mvInvertedFile.resize(mpVoc->size());
 }
 
-vector<KeyFrame*> KeyFrameDatabase::DetectDHOGLoopCandidates(KeyFrame* pKF, float minScore)
-{
-    vector<KeyFrame*> vpLoopCandidates;
 
-    deeplcd::query_result q = this->current_lcd.query(pKF->im_current, 20, pKF->mnFrameId);
+// // // Note: this implemented function doesn't work well right now /////////////////////
+// vector<KeyFrame*> KeyFrameDatabase::DetectDHOGLoopCandidates(KeyFrame* pKF, float minScore)
+// {
+//     vector<KeyFrame*> vpLoopCandidates;
 
-    if (q.score > minScore) 
-    {
-        if (this->loop_hyp_cnt == 0)
-            this->last_loop_hyp_id = q.id;
+//     deeplcd::query_result q = this->current_lcd.query(pKF->im_current, 20, pKF->mnFrameId);
 
-        this->loop_hyp_cnt++;
+//     if (q.score > minScore) 
+//     {
+//         if (this->loop_hyp_cnt == 0)
+//             this->last_loop_hyp_id = q.id;
+
+//         this->loop_hyp_cnt++;
         
-        std::cout << "Loop hypothesis strengthened! Curr frame = " << pKF->mnFrameId << ", " << q << ", loop_hyp_cnt=" << loop_hyp_cnt <<"\n";
+//         std::cout << "Loop hypothesis strengthened! Curr frame = " << pKF->mnFrameId << ", " << q << ", loop_hyp_cnt=" << loop_hyp_cnt <<"\n";
 
-        if (std::abs(q.id - this->last_loop_hyp_id) < 2 * this->min_loop_hyp_cnt) // Check that we are looking at a query from the same general location
-        {   
-            if (this->loop_hyp_cnt == this->min_loop_hyp_cnt)
-            {
-                int mid_frame_id = current_lcd.db.size() - 1 - this->min_loop_hyp_cnt/2; // Index for the middle of the loop hypothesis process
+//         if (std::abs(q.id - this->last_loop_hyp_id) < 2 * this->min_loop_hyp_cnt) // Check that we are looking at a query from the same general location
+//         {   
+//             if (this->loop_hyp_cnt == this->min_loop_hyp_cnt)
+//             {
+//                 int mid_frame_id = current_lcd.db.size() - 1 - this->min_loop_hyp_cnt/2; // Index for the middle of the loop hypothesis process
                 
-                // loop_lines.points.push_back(db_points[mid_frame_id]); 
-                // loop_lines.points.push_back(db_points[q.id]); // loop point for display
-                // marker_pub.publish(loop_lines);
+//                 // loop_lines.points.push_back(db_points[mid_frame_id]); 
+//                 // loop_lines.points.push_back(db_points[q.id]); // loop point for display
+//                 // marker_pub.publish(loop_lines);
                 
-                std::cout << "Loop Closed! Curr frame = " << current_lcd.db.size()-1 << ", " << q << "\n";
+//                 std::cout << "Loop Closed! Curr frame = " << current_lcd.db.size()-1 << ", " << q << "\n";
 
-                vpLoopCandidates.push_back(this->GetKeyframeByFrameId(mid_frame_id));
-                vpLoopCandidates.push_back(this->GetKeyframeByFrameId(q.id));
+//                 vpLoopCandidates.push_back(this->GetKeyframeByFrameId(current_lcd.db, pKF, mid_frame_id));
+//                 vpLoopCandidates.push_back(this->GetKeyframeByFrameId(current_lcd.db, pKF, q.id));
 
-                // loop_ids.push_back(mid_frame_id);
-                // loop_ids.push_back(q.id);
+//                 // loop_ids.push_back(mid_frame_id);
+//                 // loop_ids.push_back(q.id);
 
-                // cv::Mat curr_im = kf.back(); // Original size image for display
+//                 // cv::Mat curr_im = kf.back(); // Original size image for display
 
-                // cv::Size sz = curr_im.size();
-                // cv::Mat im_match(sz.height, 2*sz.width, curr_im.type());
-                // cv::Mat left(im_match, cv::Rect(0, 0, sz.width, sz.height));
-                // cv::Mat right(im_match, cv::Rect(sz.width, 0, sz.width, sz.height));
-                // curr_im.copyTo(left);
-                // kf[q.id].copyTo(right);
-                // sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", im_match).toImageMsg();
-                // im_pub.publish(msg);
+//                 // cv::Size sz = curr_im.size();
+//                 // cv::Mat im_match(sz.height, 2*sz.width, curr_im.type());
+//                 // cv::Mat left(im_match, cv::Rect(0, 0, sz.width, sz.height));
+//                 // cv::Mat right(im_match, cv::Rect(sz.width, 0, sz.width, sz.height));
+//                 // curr_im.copyTo(left);
+//                 // kf[q.id].copyTo(right);
+//                 // sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", im_match).toImageMsg();
+//                 // im_pub.publish(msg);
 
-                this->loop_hyp_cnt = 0;
-                // return 1;
-            }   
-        }
+//                 this->loop_hyp_cnt = 0;
+//                 // return 1;
+//             }   
+//         }
 
 
-    return vpLoopCandidates;
-}
+//     return vpLoopCandidates;
+// }
 
-KeyFrame KeyFrameDatabase::GetKeyframeByFrameId(deeplcd::Database db, KeyFrame* pKF, uint32_t matchId) {
+// vector<KeyFrame*> KeyFrameDatabase::GetKeyframeByFrameId(deeplcd::Database db, KeyFrame* pKF, uint32_t matchId) {
 
-    // KeyFrame FrameIdMatch;
-    //iterate over all keyframes to get matches for mnFrameId's stored in deeplcd database
+//     // KeyFrame FrameIdMatch;
+//     //iterate over all keyframes to get matches for mnFrameId's stored in deeplcd database
 
-    for(DBoW2::BowVector::const_iterator vit=pKF->mBowVec.begin(), vend=pKF->mBowVec.end(); vit != vend; vit++)
-    {
-        list<KeyFrame*> &lKFs =   mvInvertedFile[vit->first];
+//     for(DBoW2::BowVector::const_iterator vit=pKF->mBowVec.begin(), vend=pKF->mBowVec.end(); vit != vend; vit++)
+//     {
+//         list<KeyFrame*> &lKFs =   mvInvertedFile[vit->first];
 
-        for(list<KeyFrame*>::iterator lit=lKFs.begin(), lend= lKFs.end(); lit!=lend; lit++)
-        {
-            KeyFrame* pKFi=*lit;
-            if(matchId == pKFi->mnFrameId )//&& this->current_lcd.query_db(uint32_t(matchId)))
-            {
-                return pKFi;
-            }
-            // if(pKFi->mnFrameId == pKF->mnId)
-            // {
-            //     vpFrameIdMatches.push_back
-            // }
-        }
+//         for(list<KeyFrame*>::iterator lit=lKFs.begin(), lend= lKFs.end(); lit!=lend; lit++)
+//         {
+//             KeyFrame* pKFi=*lit;
+//             if(matchId == pKFi->mnFrameId)//&& this->current_lcd.query_db(uint32_t(matchId)))
+//             {
+//                 return pKFi;
+//             }
+//             // if(pKFi->mnFrameId == pKF->mnId)
+//             // {
+//             //     vpFrameIdMatches.push_back
+//             // }
+//         }
 
-    }
-    return NULL;
-}
+//     }
+//     return NULL;
+// }
+// // // //////////////////
 vector<KeyFrame*> KeyFrameDatabase::DetectLoopCandidates(KeyFrame* pKF, float minScore)
 {
     set<KeyFrame*> spConnectedKeyFrames = pKF->GetConnectedKeyFrames();
