@@ -75,4 +75,4 @@ ADD ./orbslam_config ${BASE_DIR}/config
 
 # runtime
 WORKDIR ${BASE_DIR}
-CMD ./orbslam2/Examples/Monocular/mono_kitti orbslam2/Vocabulary/ORBvoc.txt config/monoDrive.yaml data/dataset/sequences/00
+CMD ./orbslam2/Examples/Monocular/mono_kitti orbslam2/Vocabulary/ORBvoc.txt config/monoDrive.yaml data/dataset/sequences/00 keyframes.txt
