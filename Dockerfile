@@ -48,7 +48,12 @@ RUN tar -xzf 3.3.7.tar.gz
 RUN mv eigen-eigen-323c052e1731 /usr/local/include/eigen
 
 # orb-slam2
-RUN git clone https://github.com/monoDriveIO/ORB_SLAM2 --branch dockerize --depth 1 ${BASE_DIR}/orbslam2
+COPY Thirdparty ${BASE_DIR}/orbslam2/Thirdparty
+COPY Vocabulary ${BASE_DIR}/orbslam2/Vocabulary
+COPY cmake_modules ${BASE_DIR}/orbslam2/cmake_modules
+COPY include ${BASE_DIR}/orbslam2/include
+
+COPY CMakeLists.txt ${BASE_DIR}/orbslam2/CMakeLists.txt
 
 # orb-slam2 // dbow2
 WORKDIR ${BASE_DIR}/orbslam2/Thirdparty/DBoW2/build
@@ -63,6 +68,10 @@ RUN make -j8
 # orb-slam2 // vocab
 WORKDIR ${BASE_DIR}/orbslam2/Vocabulary
 RUN tar -xf ORBvoc.txt.tar.gz
+
+# orb-slam // source
+COPY src ${BASE_DIR}/orbslam2/src
+COPY Examples ${BASE_DIR}/orbslam2/Examples
 
 # orb-slam2 // build
 WORKDIR ${BASE_DIR}/orbslam2/build
