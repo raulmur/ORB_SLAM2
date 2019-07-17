@@ -78,10 +78,9 @@ WORKDIR ${BASE_DIR}/orbslam2/build
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release
 RUN make -j8
 
-# add some sample files
-ADD ./parsed_kitti_dev ${BASE_DIR}/data
-ADD ./orbslam_config ${BASE_DIR}/config
+# add etc files (these will need to be placed before building)
+ADD ./etc ${BASE_DIR}/etc
 
 # runtime
 WORKDIR ${BASE_DIR}
-CMD ./orbslam2/Examples/Monocular/mono_kitti orbslam2/Vocabulary/ORBvoc.txt config/monoDrive.yaml data/dataset/sequences/00 keyframes.txt
+CMD ./orbslam2/Examples/Monocular/mono_kitti orbslam2/Vocabulary/ORBvoc.txt etc/monoDrive.yaml workspace/kitti/dataset/sequences/00 workspace/orbslam2/keyframes.txt
