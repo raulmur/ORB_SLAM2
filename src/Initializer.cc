@@ -885,11 +885,9 @@ int Initializer::CheckRT(const cv::Mat &R, const cv::Mat &t, const vector<cv::Ke
         if(squareError2>th2)
             continue;
 
-        if(cosParallax < 0.99998) {
-            vCosParallax.push_back(cosParallax);
-            vP3D[vMatches12[i].first] = cv::Point3f(p3dC1.at<float>(0),p3dC1.at<float>(1),p3dC1.at<float>(2));
-            nGood++;
-        }
+        vCosParallax.push_back(cosParallax);
+        vP3D[vMatches12[i].first] = cv::Point3f(p3dC1.at<float>(0), p3dC1.at<float>(1), p3dC1.at<float>(2));
+        nGood++;
 
         if(cosParallax<0.99998)
             vbGood[vMatches12[i].first]=true;
