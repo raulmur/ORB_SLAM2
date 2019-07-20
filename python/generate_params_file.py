@@ -30,6 +30,7 @@ def main():
 
     # write update params to output file
     with open(args['output'], 'w') as file:
+        file.write('%YAML 1.0\n---\n')
         yaml.dump(params, file)
 
 
