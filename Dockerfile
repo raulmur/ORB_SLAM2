@@ -47,6 +47,10 @@ RUN wget http://bitbucket.org/eigen/eigen/get/3.3.7.tar.gz
 RUN tar -xzf 3.3.7.tar.gz
 RUN mv eigen-eigen-323c052e1731 /usr/local/include/eigen
 
+# python
+RUN apt-get install -y python3-pip
+RUN pip3 install PyYAML
+
 # orb-slam2
 COPY Thirdparty ${BASE_DIR}/orbslam2/Thirdparty
 COPY Vocabulary ${BASE_DIR}/orbslam2/Vocabulary
