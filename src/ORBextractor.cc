@@ -60,7 +60,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <vector>
 
-#include "ORBextractor.h"
+#include "ORBextractor.h"   // IWYU pragma: associated
 
 
 using namespace cv;

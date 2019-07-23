@@ -50,7 +50,7 @@
 
 #include <iostream>
 
-#include "PnPsolver.h"
+#include "PnPsolver.h"   // IWYU pragma: associated
 
 #include <vector>
 #include <cmath>

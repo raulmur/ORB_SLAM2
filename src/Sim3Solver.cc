@@ -19,7 +19,7 @@
 */
 
 
-#include "Sim3Solver.h"
+#include "Sim3Solver.h"   // IWYU pragma: associated
 
 #include <vector>
 #include <cmath>

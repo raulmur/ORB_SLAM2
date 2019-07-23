@@ -18,7 +18,7 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Initializer.h"
+#include "Initializer.h"   // IWYU pragma: associated
 
 #include "Thirdparty/DBoW2/DUtils/Random.h"
 

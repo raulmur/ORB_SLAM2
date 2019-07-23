@@ -19,7 +19,7 @@
 */
 
 
-#include "Tracking.h"
+#include "Tracking.h"   // IWYU pragma: associated
 
 #include<opencv2/core/core.hpp>
 #include<opencv2/imgproc/imgproc_c.h>

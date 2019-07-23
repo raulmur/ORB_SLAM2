@@ -18,7 +18,7 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "LoopClosing.h"
+#include "LoopClosing.h"   // IWYU pragma: associated
 
 #include "Sim3Solver.h"
 

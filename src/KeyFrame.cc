@@ -18,7 +18,7 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "KeyFrame.h"
+#include "KeyFrame.h"   // IWYU pragma: associated
 #include "Converter.h"
 #include "ORBmatcher.h"
 #include<mutex>

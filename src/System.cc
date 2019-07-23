@@ -20,7 +20,7 @@
 
 
 
-#include "System.h"
+#include "System.h"   // IWYU pragma: associated
 #include "Converter.h"
 #include <thread>
 #include <pangolin/pangolin.h>

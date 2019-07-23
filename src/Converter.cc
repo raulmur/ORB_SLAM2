@@ -19,7 +19,7 @@
 */
 
 
-#include "Converter.h"
+#include "Converter.h"   // IWYU pragma: associated
 
 namespace ORB_SLAM2
 {

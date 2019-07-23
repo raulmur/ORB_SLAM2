@@ -18,7 +18,7 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Viewer.h"
+#include "Viewer.h"   // IWYU pragma: associated
 #include <pangolin/pangolin.h>
 
 #include <mutex>

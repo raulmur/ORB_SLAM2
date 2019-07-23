@@ -18,7 +18,7 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "FrameDrawer.h"
+#include "FrameDrawer.h"   // IWYU pragma: associated
 #include "Tracking.h"
 
 #include <opencv2/core/core.hpp>

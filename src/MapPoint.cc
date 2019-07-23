@@ -18,7 +18,7 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "MapPoint.h"
+#include "MapPoint.h"   // IWYU pragma: associated
 #include "ORBmatcher.h"
 
 #include<mutex>
