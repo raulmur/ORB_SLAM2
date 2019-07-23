@@ -19,10 +19,15 @@
 */
 
 #include "FrameDrawer.h"   // IWYU pragma: associated
-#include "Tracking.h"
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+#include <memory>
+#include <ostream>
+
+#include "Tracking.h"
+#include "Frame.h"
+#include "Map.h"
+#include "MapPoint.h"
 
 #include<mutex>
 

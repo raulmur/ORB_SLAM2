@@ -19,7 +19,18 @@
 */
 
 #include "MapPoint.h"   // IWYU pragma: associated
+
+#include <limits.h>
+#include <math.h>
+#include <algorithm>
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "ORBmatcher.h"
+#include "Frame.h"
+#include "KeyFrame.h"
+#include "Map.h"
 
 #include<mutex>
 

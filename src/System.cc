@@ -21,14 +21,31 @@
 
 
 #include "System.h"   // IWYU pragma: associated
-#include "Converter.h"
-#include <thread>
+
 #include <pangolin/pangolin.h>
-#include <iomanip>
 #include <unistd.h>
+#include <stdlib.h>
+#include <thread>
+#include <iomanip>
+#include <algorithm>
+#include <iostream>
+#include <list>
+
+#include "Converter.h"
+#include "Frame.h"
+#include "FrameDrawer.h"
+#include "KeyFrame.h"
+#include "KeyFrameDatabase.h"
+#include "LocalMapping.h"
+#include "LoopClosing.h"
+#include "Map.h"
+#include "MapDrawer.h"
+#include "Tracking.h"
+#include "Viewer.h"
 
 namespace ORB_SLAM2
 {
+class MapPoint;
 
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
                const bool bUseViewer):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),

@@ -20,6 +20,9 @@
 
 #include "Map.h"   // IWYU pragma: associated
 
+#include "KeyFrame.h"
+#include "MapPoint.h"
+
 #include<mutex>
 
 namespace ORB_SLAM2

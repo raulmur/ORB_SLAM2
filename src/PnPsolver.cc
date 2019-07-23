@@ -48,16 +48,17 @@
 *   either expressed or implied, of the FreeBSD Project
 */
 
-#include <iostream>
-
 #include "PnPsolver.h"   // IWYU pragma: associated
 
+#include <iostream>
 #include <vector>
 #include <cmath>
-#include <opencv2/core/core.hpp>
-#include <opencv2/core/core_c.h>
-#include "Thirdparty/DBoW2/DUtils/Random.h"
 #include <algorithm>
+#include <memory>
+
+#include "Thirdparty/DBoW2/DUtils/Random.h"
+#include "Frame.h"
+#include "MapPoint.h"
 
 using namespace std;
 

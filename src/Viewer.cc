@@ -19,10 +19,17 @@
 */
 
 #include "Viewer.h"   // IWYU pragma: associated
-#include <pangolin/pangolin.h>
 
-#include <mutex>
+#include <pangolin/pangolin.h>
 #include <unistd.h>
+#include <GL/glew.h>
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+#include <mutex>
+
+#include "FrameDrawer.h"
+#include "MapDrawer.h"
+#include "System.h"
 
 namespace ORB_SLAM2
 {

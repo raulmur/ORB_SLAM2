@@ -21,18 +21,28 @@
 #ifndef OPTIMIZER_H
 #define OPTIMIZER_H
 
+#include <stddef.h>
+#include <map>
+#include <set>
+#include <vector>
+
 #include "Map.h"
 #include "MapPoint.h"
 #include "KeyFrame.h"
 #include "LoopClosing.h"
 #include "Frame.h"
-
 #include "Thirdparty/g2o/g2o/types/types_seven_dof_expmap.h"
+
+namespace g2o { struct Sim3; }
 
 namespace ORB_SLAM2
 {
 
 class LoopClosing;
+class Frame;
+class KeyFrame;
+class Map;
+class MapPoint;
 
 class Optimizer
 {
