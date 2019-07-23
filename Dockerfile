@@ -82,6 +82,9 @@ WORKDIR ${BASE_DIR}/orbslam2/build
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release
 RUN make -j8
 
+# orb-slam2 // python
+COPY python ${BASE_DIR}/orbslam2/python
+
 # runtime
 WORKDIR ${BASE_DIR}
 CMD ./orbslam2/Examples/Monocular/mono_kitti orbslam2/Vocabulary/ORBvoc.txt etc/monoDrive.yaml workspace/kitti/dataset/sequences/00 workspace/orbslam2/keyframes.txt
