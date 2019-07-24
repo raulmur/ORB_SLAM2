@@ -25,7 +25,7 @@ RUN apt-get install -y \
 RUN git clone https://github.com/stevenlovegrove/Pangolin.git ${BASE_DIR}/pangolin
 WORKDIR ${BASE_DIR}/pangolin/build
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release
-RUN cmake --build . -- -j8
+RUN cmake --build . -- -j4
 
 # opencv
 RUN apt-get install -y \
@@ -38,7 +38,7 @@ RUN apt-get install -y \
 RUN git clone https://github.com/opencv/opencv.git --branch 3.2.0 --depth 1 ${BASE_DIR}/opencv
 WORKDIR ${BASE_DIR}/opencv/build
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release
-RUN make -j8
+RUN make -j4
 RUN make install
 
 # eigen
@@ -62,12 +62,12 @@ COPY CMakeLists.txt ${BASE_DIR}/orbslam2/CMakeLists.txt
 # orb-slam2 // dbow2
 WORKDIR ${BASE_DIR}/orbslam2/Thirdparty/DBoW2/build
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release
-RUN make -j8
+RUN make -j4
 
 # orb-slam2 // g2o
 WORKDIR ${BASE_DIR}/orbslam2/Thirdparty/g2o/build
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release
-RUN make -j8
+RUN make -j4
 
 # orb-slam2 // vocab
 WORKDIR ${BASE_DIR}/orbslam2/Vocabulary
@@ -80,7 +80,7 @@ COPY Examples ${BASE_DIR}/orbslam2/Examples
 # orb-slam2 // build
 WORKDIR ${BASE_DIR}/orbslam2/build
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release
-RUN make -j8
+RUN make -j4
 
 # orb-slam2 // python
 COPY python ${BASE_DIR}/orbslam2/python
