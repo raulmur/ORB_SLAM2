@@ -28,6 +28,8 @@ endif()
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-int-in-bool-context -Wno-ignored-attributes -Wno-ignored-attributes -Wno-deprecated-copy")
+
 find_package(OpenCV 3.0 QUIET)
 if(NOT OpenCV_FOUND)
    find_package(OpenCV 2.4.3 QUIET)

@@ -36,6 +36,8 @@ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${g2o_RUNTIME_OUTPUT_DIRECTORY})
 # look for SuiteSparse, QGLViewer, and Eigen3.
 LIST(APPEND CMAKE_MODULE_PATH ${g2o_SOURCE_DIR}/cmake_modules)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-int-in-bool-context -Wno-ignored-attributes -Wno-ignored-attributes -Wno-deprecated-copy")
+
 # Detect OS and define macros appropriately
 IF(UNIX)
   ADD_DEFINITIONS(-DUNIX)
