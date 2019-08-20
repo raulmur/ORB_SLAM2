@@ -13,20 +13,24 @@ def main():
     args = parse_arguments()
 
     # load camera config and template
-    with open(args['camera']) as file:
-        camera_config = json.load(file)
     with open(args['template']) as file:
         template_params = yaml.safe_load(file)
 
+    # Read the KITTI camera calibration file to extract the projection matrix
+    with open(args['camera']) as file:
+        lines = file.readlines()
+        for line in lines:
+            if line.startswith("P_rect"):
+                proj_mat = line[line.find(':')+1:]. \
+                    strip('\n').rstrip(' ').lstrip(' ').split(sep=' ')
+                proj_mat = list(map(float, proj_mat))
+
     # calculate new params
     params = template_params.copy()
-    params['Camera.cx'] = camera_config['stream_dimensions']['x'] / 2.0
-    params['Camera.cy'] = camera_config['stream_dimensions']['y'] / 2.0
-    params['Camera.fx'] = (
-            camera_config['stream_dimensions']['x']
-            / (2.0 * math.tan(math.radians(0.5 * camera_config['fov'])))
-    )
-    params['Camera.fy'] = params['Camera.fx']
+    params['Camera.cx'] = proj_mat[2]
+    params['Camera.cy'] = proj_mat[6]
+    params['Camera.fx'] = proj_mat[0]
+    params['Camera.fy'] = proj_mat[5]
 
     # write update params to output file
     with open(args['output'], 'w') as file:
