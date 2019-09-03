@@ -20,7 +20,7 @@ def main():
     with open(args['camera']) as file:
         lines = file.readlines()
         for line in lines:
-            if line.startswith("P_rect"):
+            if line.startswith("P_rect_00"):
                 proj_mat = line[line.find(':')+1:]. \
                     strip('\n').rstrip(' ').lstrip(' ').split(sep=' ')
                 proj_mat = list(map(float, proj_mat))
