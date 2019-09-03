@@ -75,6 +75,12 @@ int main(int argc, char **argv)
             cerr << endl << "Failed to load image at: "
                  << string(vstrImageLeft[ni]) << endl;
             return 1;
+        } 
+        else if(imRight.empty())
+        {
+            cerr << endl << "Failed to load image at: "
+                 << string(vstrImageRight[ni]) << endl;
+            return 1;
         }
 
 #ifdef COMPILEDWITHC11
