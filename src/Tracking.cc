@@ -539,11 +539,7 @@ void Tracking::StereoInitialization()
 
         cout << "New map created with " << mpMap->MapPointsInMap() << " points" << endl;
 
-        mpLocalMapper->InsertKeyFrame(pKFini);
-
-        mLastFrame = Frame(mCurrentFrame);
-        mnLastKeyFrameId=mCurrentFrame.mnId;
-        mpLastKeyFrame = pKFini;
+        mpLocalMapper->InsertKeyFrame(pKFini);        
 
         mvpLocalKeyFrames.push_back(pKFini);
         mvpLocalMapPoints=mpMap->GetAllMapPoints();
@@ -555,6 +551,10 @@ void Tracking::StereoInitialization()
         mpMap->mvpKeyFrameOrigins.push_back(pKFini);
 
         mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
+        
+        mLastFrame = Frame(mCurrentFrame);
+        mnLastKeyFrameId=mCurrentFrame.mnId;
+        mpLastKeyFrame = pKFini;
 
         mState=OK;
     }
