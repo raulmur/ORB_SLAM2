@@ -22,6 +22,7 @@
 
 #include "System.h"
 #include "Converter.h"
+#include <unistd.h>
 #include <thread>
 #include <pangolin/pangolin.h>
 #include <iomanip>
