@@ -18,12 +18,17 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Initializer.h"
+#include "Initializer.h"   // IWYU pragma: associated
+
+#include <ext/alloc_traits.h>
+#include <algorithm>
+#include <cmath>
+#include <functional>
+#include <memory>
+#include <type_traits>
 
 #include "Thirdparty/DBoW2/DUtils/Random.h"
-
-#include "Optimizer.h"
-#include "ORBmatcher.h"
+#include "Frame.h"
 
 #include<thread>
 

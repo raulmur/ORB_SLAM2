@@ -52,11 +52,18 @@
 #define PNPSOLVER_H
 
 #include <opencv2/core/core.hpp>
+#include <opencv2/core/core_c.h>
+#include <stddef.h>
+#include <opencv2/core.hpp>
+#include <vector>
+
 #include "MapPoint.h"
 #include "Frame.h"
 
 namespace ORB_SLAM2
 {
+class Frame;
+class MapPoint;
 
 class PnPsolver {
  public:

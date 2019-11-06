@@ -23,6 +23,7 @@
 #define TRACKING_H
 
 #include<opencv2/core/core.hpp>
+#include<opencv2/imgproc/imgproc_c.h>
 #include<opencv2/features2d/features2d.hpp>
 
 #include"Viewer.h"
@@ -105,10 +106,14 @@ public:
 
     // Lists used to recover the full camera trajectory at the end of the execution.
     // Basically we store the reference keyframe for each frame and its relative transformation
-    list<cv::Mat> mlRelativeFramePoses;
-    list<KeyFrame*> mlpReferences;
-    list<double> mlFrameTimes;
-    list<bool> mlbLost;
+    struct TrackedFrame
+    {
+        cv::Mat relative_frame_pose;
+        KeyFrame* reference_keyframe;
+        double time;
+        bool lost;
+    };
+    list<TrackedFrame> tracked_frames;
 
     // True if local mapping is deactivated and we are performing only localization
     bool mbOnlyTracking;

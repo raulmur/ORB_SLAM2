@@ -18,15 +18,27 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "LoopClosing.h"
+#include "LoopClosing.h"   // IWYU pragma: associated
+
+#include <unistd.h>
+#include <ext/alloc_traits.h>
+#include <stddef.h>
+#include <Eigen/Geometry>
+#include <algorithm>
+#include <iostream>
+#include <memory>
 
 #include "Sim3Solver.h"
-
 #include "Converter.h"
-
 #include "Optimizer.h"
-
 #include "ORBmatcher.h"
+#include "KeyFrame.h"
+#include "KeyFrameDatabase.h"
+#include "LocalMapping.h"
+#include "Map.h"
+#include "MapPoint.h"
+
+namespace DBoW2 { class BowVector; }
 
 #include<mutex>
 #include<thread>

@@ -18,9 +18,21 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "KeyFrame.h"
+#include "KeyFrame.h"   // IWYU pragma: associated
+
+#include <ext/alloc_traits.h>
+#include <math.h>
+#include <algorithm>
+#include <list>
+#include <memory>
+#include <utility>
+
 #include "Converter.h"
-#include "ORBmatcher.h"
+#include "Frame.h"
+#include "KeyFrameDatabase.h"
+#include "Map.h"
+#include "MapPoint.h"
+
 #include<mutex>
 
 namespace ORB_SLAM2

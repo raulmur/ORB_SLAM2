@@ -19,7 +19,11 @@
 */
 
 
-#include "Converter.h"
+#include "Converter.h"   // IWYU pragma: associated
+
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+#include <algorithm>
 
 namespace ORB_SLAM2
 {

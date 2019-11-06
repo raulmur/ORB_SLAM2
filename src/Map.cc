@@ -18,7 +18,10 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Map.h"
+#include "Map.h"   // IWYU pragma: associated
+
+#include "KeyFrame.h"
+#include "MapPoint.h"
 
 #include<mutex>
 
