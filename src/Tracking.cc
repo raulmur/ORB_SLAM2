@@ -503,6 +503,7 @@ void Tracking::Track()
         // This can happen if tracking is lost
         TrackedFrame tracked_frame = tracked_frames.back();
         tracked_frame.lost = (mState == LOST);
+        tracked_frames.push_back(tracked_frame);
     }
 
 }
