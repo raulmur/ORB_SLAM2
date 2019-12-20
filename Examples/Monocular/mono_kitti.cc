@@ -32,20 +32,29 @@
 using namespace std;
 
 void LoadImages(const string &strSequence, vector<string> &vstrImageFilenames,
-                vector<double> &vTimestamps);
+                vector<double> &vTimestamps, int start_frame=0, int end_frame=-1);
 
 int main(int argc, char **argv)
 {
-    if(argc != 5)
+    if(argc < 5)
     {
-        cerr << endl << "Usage: ./mono_kitti path_to_vocabulary path_to_settings path_to_sequence path_to_output_file" << endl;
+        cerr << endl << "Usage: ./mono_kitti path_to_vocabulary path_to_settings path_to_sequence path_to_output_file <start frame> <end frame>" << endl;
         return 1;
+    }
+
+    int start_frame = 0;
+    int end_frame = -1;
+    if(argc >= 6) {
+        start_frame = std::stoi(argv[5]);
+    } 
+    if(argc >= 7) {
+        end_frame = std::stoi(argv[6]);
     }
 
     // Retrieve paths to images
     vector<string> vstrImageFilenames;
     vector<double> vTimestamps;
-    LoadImages(string(argv[3]), vstrImageFilenames, vTimestamps);
+    LoadImages(string(argv[3]), vstrImageFilenames, vTimestamps, start_frame, end_frame);
 
     int nImages = vstrImageFilenames.size();
 
@@ -124,11 +133,16 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void LoadImages(const string &strPathToSequence, vector<string> &vstrImageFilenames, vector<double> &vTimestamps)
+void LoadImages(const string &strPathToSequence, vector<string> &vstrImageFilenames, vector<double> &vTimestamps, int start_frame, int end_frame)
 {
     ifstream fTimes;
     string strPathTimeFile = strPathToSequence + "/times.txt";
     fTimes.open(strPathTimeFile.c_str());
+
+    int count = 0;
+    if(end_frame < 0) {
+        end_frame = std::numeric_limits<int>::max();
+    }
     while(!fTimes.eof())
     {
         string s;
@@ -139,7 +153,10 @@ void LoadImages(const string &strPathToSequence, vector<string> &vstrImageFilena
             ss << s;
             double t;
             ss >> t;
-            vTimestamps.push_back(t);
+            ++count;
+            if(count > start_frame and count <= end_frame) {
+                vTimestamps.push_back(t);
+            }
         }
     }
 
@@ -151,7 +168,7 @@ void LoadImages(const string &strPathToSequence, vector<string> &vstrImageFilena
     for(int i=0; i<nTimes; i++)
     {
         stringstream ss;
-        ss << setfill('0') << setw(6) << i;
+        ss << setfill('0') << setw(6) << i + start_frame;
         vstrImageFilenames[i] = strPrefixLeft + ss.str() + ".png";
     }
 }
