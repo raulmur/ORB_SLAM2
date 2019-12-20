@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     for(int ni=0; ni<nImages; ni++)
     {
         // Read image from file
-        im = cv::imread(string(argv[3])+"/"+vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
+        im = cv::imread(string(argv[3])+"/"+vstrImageFilenames[ni],IMREAD_COLOR);
         double tframe = vTimestamps[ni];
 
         if(im.empty())
@@ -131,10 +131,10 @@ void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vecto
     f.open(strFile.c_str());
 
     // skip first three lines
-    string s0;
-    getline(f,s0);
-    getline(f,s0);
-    getline(f,s0);
+    //string s0;
+    //getline(f,s0);
+    //getline(f,s0);
+    //getline(f,s0);
 
     while(!f.eof())
     {
