@@ -121,8 +121,9 @@ cv::Mat FrameDrawer::DrawFrame()
 
     cv::Mat imWithInfo;
     DrawTextInfo(im,state, imWithInfo);
-
-    return imWithInfo;
+    cv::Mat imWithInfoResized = cv::Mat(480,640,CV_8UC3, cv::Scalar(0,0,0));
+    cv::resize(imWithInfo, imWithInfoResized, imWithInfoResized.size(), 0, 0, CV_INTER_AREA);
+    return imWithInfoResized;
 }
 
 

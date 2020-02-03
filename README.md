@@ -186,7 +186,7 @@ This will create **libORB_SLAM2.so**  at *lib* folder and the executables **mono
 For a monocular input from topic `/camera/image_raw` run node ORB_SLAM2/Mono. You will need to provide the vocabulary file and a settings file. See the monocular examples above.
 
   ```
-  rosrun ORB_SLAM2 Mono PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE
+  rosrun ORB_SLAM2 Mono PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE NAME_OF_IMAGE_TOPIC
   ```
   
 ### Running Monocular Augmented Reality Demo
