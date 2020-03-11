@@ -19,6 +19,7 @@
 */
 
 #include "Initializer.h"
+#include "unistd.h"
 
 #include "Thirdparty/DBoW2/DUtils/Random.h"
 

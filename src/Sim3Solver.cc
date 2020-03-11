@@ -24,6 +24,7 @@
 #include <vector>
 #include <cmath>
 #include <opencv2/core/core.hpp>
+#include "unistd.h"
 
 #include "KeyFrame.h"
 #include "ORBmatcher.h"

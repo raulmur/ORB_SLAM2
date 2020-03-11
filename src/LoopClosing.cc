@@ -23,6 +23,7 @@
 #include "Sim3Solver.h"
 
 #include "Converter.h"
+#include "unistd.h"
 
 #include "Optimizer.h"
 

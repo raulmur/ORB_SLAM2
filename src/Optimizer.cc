@@ -27,6 +27,7 @@
 #include "Thirdparty/g2o/g2o/core/robust_kernel_impl.h"
 #include "Thirdparty/g2o/g2o/solvers/linear_solver_dense.h"
 #include "Thirdparty/g2o/g2o/types/types_seven_dof_expmap.h"
+#include "unistd.h"
 
 #include<Eigen/StdVector>
 
