@@ -23,6 +23,7 @@
 #include<algorithm>
 #include<fstream>
 #include<chrono>
+#include "unistd.h"
 
 #include<ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
