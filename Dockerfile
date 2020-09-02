@@ -57,7 +57,7 @@ ENV PATH ${BASE}/dump/opencv_install:${PATH}
 
 # eigen
 WORKDIR ${BASE}/dump
-RUN wget https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.gz
+RUN wget -O 3.3.7.tar.gz https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.gz
 RUN tar -xzf 3.3.7.tar.gz
 RUN mv eigen-eigen-323c052e1731 /usr/local/include/eigen
 
