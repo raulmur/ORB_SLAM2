@@ -2,19 +2,17 @@ from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
-import numpy
+import numpy as np
 import sys
-import os
-import glob
+from os.path import join, sep
+from glob import glob
 
-lib_folder = os.path.join(sys.prefix, 'local', 'lib')
-lib_dirs = [lib_folder, '/usr/lib/x86_64-linux-gnu']
+lib_dirs = ['/usr/local/lib', '/usr/lib/x86_64-linux-gnu']
 
-libs = []
-for file in glob.glob(os.path.join(lib_folder, 'libopencv_*')):
-    libs.append(file.split('.')[0])
-libs = list(set(libs))
-libs = ['opencv_{}'.format(lib.split(os.path.sep)[-1].split('libopencv_')[-1]) for lib in libs]
+libs = set([])
+for file in glob(join(lib_dirs[0], 'libopencv_*')):
+    libs.add(file.split('.')[0])
+libs = [lib.split(sep)[-1][3:] for lib in libs]
 
 libs.append('GLEW')
 libs.append('pangolin')
@@ -24,13 +22,13 @@ setup(
     ext_modules=cythonize(Extension("orbslam2",
                                     sources=["orbslam2.pyx"],
                                     language="c++",
-                                    include_dirs=[numpy.get_include(),
-                                                  os.path.join(sys.prefix, 'local', 'include', 'opencv2'),
-                                                  os.path.join(sys.prefix, 'local', 'include', 'eigen3'),
-                                                  os.path.join(sys.prefix, 'include', 'GL')
+                                    include_dirs=[np.get_include(),
+                                                  '/usr/local/include/opencv2',
+                                                  '/usr/local/include/eigen3',
+                                                  '/usr/include/GL'
                                                  ],
                                     library_dirs=lib_dirs,
-                                    libraries=libs,
-                                    )
+                                    libraries=libs
+                                   )
                           )
 )
