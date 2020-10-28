@@ -29,17 +29,22 @@ cdef extern from "Python.h":
     enum:
         PyBUF_FULL_RO
 
-# ORB_SLAM2 System
-#cdef extern from "include/System.h" namespace "ORB_SLAM2":
-#    cdef cppclass System:
-#        ctypedef enum eSensor:
-#            MONOCULAR,
-#            STEREO,
-#            RGBD
-#        System(string, string, eSensor, bool) except +
-#        Mat TrackMonocular(Mat, double)
-
-
 cdef Mat np2Mat(np.ndarray ary)
 
 cdef object Mat2np(Mat mat)
+
+# ORB_SLAM2 System
+cdef extern from "include/System.h" namespace "ORB_SLAM2":
+  cdef cppclass System:
+    ctypedef enum eSensor:
+      MONOCULAR,
+      STEREO,
+      RGBD
+    System() except +
+    System(char*, char*, eSensor, bool) except +
+    Mat TrackMonocular(Mat, double)
+
+cpdef enum eSensor:
+  MONOCULAR,
+  STEREO,
+  RGBD

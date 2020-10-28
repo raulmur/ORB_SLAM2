@@ -1,5 +1,6 @@
 import numpy as np
 cimport numpy as np  # for np.ndarray
+from libcpp cimport bool
 from libc.string cimport memcpy
 from orbslam2 cimport *
 
@@ -114,6 +115,13 @@ cdef class PyMat:
     def get_mat(self):
         return Mat2np(self.mat)
 
-#cdef class Sys:
-#    def __cinit__(self, vocab_file, settings_file, sensor, useViewer):
-#        System(vocab_file, settings_file, sensor, useViewer)
+cdef char* vocab = "Vocabulary/ORBvoc.txt"
+cdef char* settings = 'Examples/Monocular/TUM3.yaml'
+cdef bool useV = True
+
+System(vocab, settings, MONOCULAR, useV).TrackMonocular(np2Mat(np.zeros((256, 256, 3), dtype=np.uint8)), 1.05)
+
+#cdef class PySystem:
+#    cdef System system
+#    def __init__(self, string vocab_file, string settings_file, System.eSensor sensor, bool useViewer):
+#        system = new System(vocab_file, settings_file, sensor, useViewer)
