@@ -1,13 +1,8 @@
 cimport numpy as np
-import numpy as np
 
 # For cv::Mat usage
 cdef extern from "core/core.hpp":
-  cdef int  CV_WINDOW_AUTOSIZE
   cdef int CV_8UC3
-  cdef int CV_8UC1
-  cdef int CV_32FC1
-  cdef int CV_8U
   cdef int CV_32F
 
 cdef extern from "core/core.hpp" namespace "cv":
@@ -43,6 +38,8 @@ cdef extern from "include/System.h" namespace "ORB_SLAM2":
     System() except +
     System(char*, char*, eSensor, bool) except +
     Mat TrackMonocular(Mat, double)
+    void Shutdown()
+    void SaveKeyFrameTrajectoryTUM(char*)
 
 cpdef enum eSensor:
   MONOCULAR,
