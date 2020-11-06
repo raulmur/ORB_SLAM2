@@ -1,9 +1,11 @@
 cimport numpy as np
+from libcpp cimport bool
 
 # For cv::Mat usage
 cdef extern from "core/core.hpp":
   cdef int CV_8UC3
   cdef int CV_32F
+  cdef int CV_32FC1
 
 cdef extern from "core/core.hpp" namespace "cv":
   cdef cppclass Mat:
@@ -15,6 +17,7 @@ cdef extern from "core/core.hpp" namespace "cv":
     int channels()
     int depth()
     size_t elemSize()
+    bool empty()
 
 # For Buffer usage
 cdef extern from "Python.h":
@@ -24,11 +27,13 @@ cdef extern from "Python.h":
     enum:
         PyBUF_FULL_RO
 
-cdef Mat np2Mat(np.ndarray ary)
 
-cdef object Mat2np(Mat mat)
+# For ORB_SLAM2 usage
+cpdef enum eSensor:
+  MONOCULAR,
+  STEREO,
+  RGBD
 
-# ORB_SLAM2 System
 cdef extern from "include/System.h" namespace "ORB_SLAM2":
   cdef cppclass System:
     ctypedef enum eSensor:
@@ -37,11 +42,17 @@ cdef extern from "include/System.h" namespace "ORB_SLAM2":
       RGBD
     System() except +
     System(char*, char*, eSensor, bool) except +
+    Mat TrackStereo(Mat, Mat, double)
+    Mat TrackRGBD(Mat, Mat, double)
     Mat TrackMonocular(Mat, double)
+    void ActivateLocalizationMode()
+    void DeactivateLocalizationMode()
+    bool MapChanged()
+    void Reset()
     void Shutdown()
+    void SaveTrajectoryTUM(char*)
     void SaveKeyFrameTrajectoryTUM(char*)
-
-cpdef enum eSensor:
-  MONOCULAR,
-  STEREO,
-  RGBD
+    void SaveTrajectoryKITTI(char*)
+    int GetTrackingState()
+    # std::vector<MapPoint*> GetTrackedMapPoints()
+    # std::vector<cv::KeyPoint> GetTrackedKeyPointsUn()
