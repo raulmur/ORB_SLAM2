@@ -477,6 +477,23 @@ int System::GetTrackingState()
     return mTrackingState;
 }
 
+cv::Mat System::GetTrackedPose() {
+    ORB_SLAM2::KeyFrame* pKF = mpTracker->mlpReferences.back();
+    cv::Mat Trw = cv::Mat::eye(4, 4, CV_32F);
+    while(pKF->isBad()) {
+        Trw = Trw * pKF->mTcp;
+        pKF = pKF->GetParent();
+    }
+    Trw = Trw * pKF->GetPose();
+    cv::Mat relPose = mpTracker->mlRelativeFramePoses.back();
+    cv::Mat Tcw = relPose * Trw;
+    cv::Mat Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
+    cv::Mat twc = -Rwc*Tcw.rowRange(0,3).col(3);
+    Rwc.copyTo(Trw.rowRange(0,3).colRange(0,3));
+    twc.copyTo(Trw.rowRange(0,3).col(3));
+    return Trw;
+}
+
 vector<MapPoint*> System::GetTrackedMapPoints()
 {
     unique_lock<mutex> lock(mMutexState);

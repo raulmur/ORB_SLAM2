@@ -54,5 +54,6 @@ cdef extern from "include/System.h" namespace "ORB_SLAM2":
     void SaveKeyFrameTrajectoryTUM(char*)
     void SaveTrajectoryKITTI(char*)
     int GetTrackingState()
+    Mat GetTrackedPose()
     # std::vector<MapPoint*> GetTrackedMapPoints()
     # std::vector<cv::KeyPoint> GetTrackedKeyPointsUn()
