@@ -41,7 +41,7 @@ cdef extern from "include/System.h" namespace "ORB_SLAM2":
       STEREO,
       RGBD
     System() except +
-    System(char*, char*, eSensor, bool) except +
+    System(char*, char*, eSensor, bool, Mat) except +
     Mat TrackStereo(Mat, Mat, double)
     Mat TrackRGBD(Mat, Mat, double)
     Mat TrackMonocular(Mat, double)
