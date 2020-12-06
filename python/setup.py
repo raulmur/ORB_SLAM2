@@ -7,10 +7,10 @@ from os.path import join, sep
 from glob import glob
 
 
-incl_dirs = [np.get_include(), '/usr/local/include/opencv2', '/usr/local/include/eigen3', '/usr/include/GL']
+incl_dirs = ['.', np.get_include(), '/usr/local/include/opencv2', '/usr/local/include/eigen3', '/usr/include/GL']
 
 opencv_lib_dir = '/usr/local/lib'
-lib_dirs = ['/app/ORB_SLAM2/lib', opencv_lib_dir, '/usr/lib/x86_64-linux-gnu']
+lib_dirs = ['lib', opencv_lib_dir, '/usr/lib/x86_64-linux-gnu']
 
 libs = set([])
 for file in glob(join(opencv_lib_dir, 'libopencv_*')):
@@ -25,7 +25,7 @@ setup(
     cmdclass={'build_ext': build_ext},
     ext_modules=cythonize(Extension(
         "orbslam2",
-        sources=["orbslam2.pyx"],
+        sources=["python/orbslam2.pyx"],
         language="c++",
         include_dirs=incl_dirs,
         library_dirs=lib_dirs,
