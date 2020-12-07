@@ -23,7 +23,6 @@ libs.append('ORB_SLAM2')
 
 setup(
     cmdclass={'build_ext': build_ext},
-    build_dir="lib",
     ext_modules=cythonize(Extension(
         "orbslam2",
         sources=["python/orbslam2.pyx"],
@@ -31,5 +30,5 @@ setup(
         include_dirs=incl_dirs,
         library_dirs=lib_dirs,
         libraries=libs
-    ))
+    ), build_dir="build")
 )

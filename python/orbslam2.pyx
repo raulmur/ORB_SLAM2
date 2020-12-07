@@ -99,12 +99,13 @@ cdef class SLAM:
     def shutdown(self):
         self.sys.Shutdown()
 
-    def save_trajectory(self, out_file, format):
+    def save_trajectory_tum(self, out_file):
         out_file = out_file.encode('utf-8')
-        if format == 'TUM':
-            self.sys.SaveTrajectoryTUM(out_file)
-        elif format == 'KITTI':
-            self.sys.SaveTrajectoryKITTI(out_file)
+        self.sys.SaveTrajectoryTUM(out_file)
+
+    def save_trajectory_kitti(self, out_file):
+        out_file = out_file.encode('utf-8')
+        self.sys.SaveTrajectoryKITTI(out_file)
 
     def save_keyframe_trajectory(self, out_file):
         out_file = out_file.encode('utf-8')
