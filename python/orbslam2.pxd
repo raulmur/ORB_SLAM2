@@ -1,5 +1,6 @@
 cimport numpy as np
 from libcpp cimport bool
+from libcpp.vector cimport vector
 
 # For cv::Mat usage
 cdef extern from "core/core.hpp":
@@ -54,6 +55,7 @@ cdef extern from "include/System.h" namespace "ORB_SLAM2":
     void SaveKeyFrameTrajectoryTUM(char*)
     void SaveTrajectoryKITTI(char*)
     int GetTrackingState()
-    Mat GetTrackedPose()
-    # std::vector<MapPoint*> GetTrackedMapPoints()
+    Mat GetWorldPose()
+    vector[Mat] PyGetTrackedMapPoints()
+    vector[Mat] PyGetAllMapPoints()
     # std::vector<cv::KeyPoint> GetTrackedKeyPointsUn()

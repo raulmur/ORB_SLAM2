@@ -82,7 +82,9 @@ cdef class SLAM:
         elif self.sensor == RGBD:
             frame, depth_frame = inputs
             self.sys.TrackRGBD(frame2Mat(frame), depth2Mat(depth_frame), timestamp)
-        return self.get_tracked_pose()
+        pose = self.get_world_pose()
+        map_points = self.get_tracked_map_points()
+        return pose, map_points
 
     def activateLocalizationMode(self):
         self.sys.ActivateLocalizationMode()
@@ -114,6 +116,14 @@ cdef class SLAM:
     def get_tracking_state(self):
         return self.sys.GetTrackingState()
 
-    def get_tracked_pose(self):
-        pose = self.sys.GetTrackedPose()
+    def get_world_pose(self):
+        pose = self.sys.GetWorldPose()
         return Mat2np(pose)
+
+    def get_tracked_map_points(self):
+        map_points = self.sys.PyGetTrackedMapPoints()
+        return [Mat2np(mp) for mp in map_points]
+
+    def get_all_map_points(self):
+        map_points = self.sys.PyGetAllMapPoints()
+        return [Mat2np(mp) for mp in map_points]

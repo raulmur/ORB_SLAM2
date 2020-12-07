@@ -121,8 +121,11 @@ public:
     // Information from most recent processed frame
     // You can call this right after TrackMonocular (or stereo or RGBD)
     int GetTrackingState();
-    cv::Mat GetTrackedPose();
+    cv::Mat GetWorldPose();
     std::vector<MapPoint*> GetTrackedMapPoints();
+    std::vector<cv::Mat> PyGetTrackedMapPoints();
+    std::vector<MapPoint*> GetAllMapPoints();
+    std::vector<cv::Mat> PyGetAllMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
 private:

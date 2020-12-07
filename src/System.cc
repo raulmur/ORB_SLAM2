@@ -487,7 +487,7 @@ int System::GetTrackingState()
     return mTrackingState;
 }
 
-cv::Mat System::GetTrackedPose() {
+cv::Mat System::GetWorldPose() {
     ORB_SLAM2::KeyFrame* pKF = mpTracker->mlpReferences.back();
     cv::Mat Trw = cv::Mat::eye(4, 4, CV_32F);
     while(pKF->isBad()) {
@@ -508,6 +508,37 @@ vector<MapPoint*> System::GetTrackedMapPoints()
 {
     unique_lock<mutex> lock(mMutexState);
     return mTrackedMapPoints;
+}
+
+vector<cv::Mat> System::PyGetTrackedMapPoints()
+{
+    unique_lock<mutex> lock(mMutexState);
+    vector<cv::Mat> mapPointMats;
+    for(vector<MapPoint*>::iterator mpIt = mTrackedMapPoints.begin(), mpItEnd = mTrackedMapPoints.end(); mpIt != mpItEnd; mpIt++) {
+        if((*mpIt) && !(*mpIt)->isBad()) {
+            mapPointMats.push_back((*mpIt)->GetWorldPos());
+        }
+    }
+    return mapPointMats;
+}
+
+vector<MapPoint*> System::GetAllMapPoints()
+{
+    unique_lock<mutex> lock(mMutexState);
+    return mpMap->GetAllMapPoints();
+}
+
+vector<cv::Mat> System::PyGetAllMapPoints()
+{
+    unique_lock<mutex> lock(mMutexState);
+    vector<MapPoint*> mapPoints = mpMap->GetAllMapPoints();
+    vector<cv::Mat> mapPointMats;
+    for(vector<MapPoint*>::iterator mpIt = mapPoints.begin(), mpItEnd = mapPoints.end(); mpIt != mpItEnd; mpIt++) {
+        if((*mpIt) && !(*mpIt)->isBad()) {
+            mapPointMats.push_back((*mpIt)->GetWorldPos());
+        }
+    }
+    return mapPointMats;
 }
 
 vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
