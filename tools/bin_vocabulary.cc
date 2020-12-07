@@ -45,8 +45,8 @@ int main(int argc, char **argv) {
   cout << "BoW load/save benchmark" << endl;
   ORB_SLAM2::ORBVocabulary* voc = new ORB_SLAM2::ORBVocabulary();
 
-  load_as_binary(voc, "ORBvoc.bin");
-  save_as_text(voc, "ORBvoc.txt");
+  load_as_binary(voc, "Vocabulary/ORBvoc.bin");
+  save_as_text(voc, "Vocabulary/ORBvoc.txt");
 
   return 0;
 }
