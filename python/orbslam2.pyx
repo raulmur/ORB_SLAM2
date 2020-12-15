@@ -4,18 +4,20 @@ from libc.string cimport memcpy
 from orbslam2 cimport *
 
 
-cdef Mat pose2Mat(np.ndarray pose):
-    assert pose.dtype == np.float32 and pose.ndim == 2, "ASSERT::pose must be a 2D np.float32 array"
+cdef Mat np2Mat(np.ndarray np_array):
+    assert np_array.dtype == np.float32 and np_array.ndim == 2, "ASSERT::input must be a 2D np.float32 array"
 
-    cdef np.ndarray[np.float32_t, ndim=2, mode ='c'] np_buff = np.ascontiguousarray(pose, dtype=np.float32)
+    cdef np.ndarray[np.float32_t, ndim=2, mode ='c'] np_buff = np.ascontiguousarray(np_array, dtype=np.float32)
     cdef float* im_buff = <float*> np_buff.data
+    cdef int r = np_array.shape[0]
+    cdef int c = np_array.shape[1]
 
     cdef Mat m
-    m.create(4, 4, CV_32F)
-    memcpy(m.data, im_buff, 4*4*sizeof(float))
+    m.create(r, c, CV_32FC1)
+    memcpy(m.data, im_buff, r*c*sizeof(float))
     return m
 
-cdef Mat frame2Mat(np.ndarray frame):
+cdef Mat rgb2Mat(np.ndarray frame):
     assert frame.dtype == np.uint8 and frame.ndim == 3 and frame.shape[2] == 3, "ASSERT::frame must be an RGB image (3-channel np.uint8 array)"
 
     frame = np.flip(frame, axis=2) # RGB to BGR
@@ -27,19 +29,6 @@ cdef Mat frame2Mat(np.ndarray frame):
     cdef Mat m
     m.create(r, c, CV_8UC3)
     memcpy(m.data, im_buff, r*c*3)
-    return m
-
-cdef Mat depth2Mat(np.ndarray depth_frame):
-    assert depth_frame.dtype == np.float32 and depth_frame.ndim == 2, "ASSERT::depth_frame must be a 2D np.float32 array"
-
-    cdef np.ndarray[np.float32_t, ndim=2, mode ='c'] np_buff = np.ascontiguousarray(depth_frame, dtype=np.float32)
-    cdef float* im_buff = <float*> np_buff.data
-    cdef int r = depth_frame.shape[0]
-    cdef int c = depth_frame.shape[1]
-
-    cdef Mat m
-    m.create(r, c, CV_32FC1)
-    memcpy(m.data, im_buff, r*c*sizeof(float))
     return m
 
 cdef object Mat2np(Mat m):
@@ -70,21 +59,18 @@ cdef class SLAM:
         vocab_file = vocab_file.encode('utf-8')
         settings_file = settings_file.encode('utf-8')
         self.sensor = {'monocular' : MONOCULAR, 'stereo' : STEREO, 'rgbd' : RGBD}[sensor]
-        self.sys = new System(vocab_file, settings_file, self.sensor, use_viewer, pose2Mat(init_pose))
+        self.sys = new System(vocab_file, settings_file, self.sensor, use_viewer, np2Mat(init_pose))
 
-    def track(self, *inputs, timestamp=0):
+    def track(self, *inputs, timestamp=0.0):
         if self.sensor == MONOCULAR:
             frame = inputs[0]
-            self.sys.TrackMonocular(frame2Mat(frame), timestamp)
+            self.sys.TrackMonocular(rgb2Mat(frame), timestamp)
         elif self.sensor == STEREO:
             frame_l, frame_r = inputs
-            self.sys.TrackStereo(frame2Mat(frame_l), frame2Mat(frame_r), timestamp)
+            self.sys.TrackStereo(rgb2Mat(frame_l), rgb2Mat(frame_r), timestamp)
         elif self.sensor == RGBD:
             frame, depth_frame = inputs
-            self.sys.TrackRGBD(frame2Mat(frame), depth2Mat(depth_frame), timestamp)
-        pose = self.get_world_pose()
-        map_points = self.get_tracked_map_points()
-        return pose, map_points
+            self.sys.TrackRGBD(rgb2Mat(frame), np2Mat(depth_frame), timestamp)
 
     def activateLocalizationMode(self):
         self.sys.ActivateLocalizationMode()
