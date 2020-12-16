@@ -50,6 +50,7 @@ cdef extern from "include/System.h" namespace "ORB_SLAM2":
     void DeactivateLocalizationMode()
     bool MapChanged()
     void Reset()
+    void Reset(Mat)
     void Shutdown()
     void SaveTrajectoryTUM(char*)
     void SaveKeyFrameTrajectoryTUM(char*)

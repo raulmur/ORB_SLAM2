@@ -81,8 +81,11 @@ cdef class SLAM:
     def mapChanged(self):
         self.sys.MapChanged()
     
-    def reset(self):
-        self.sys.Reset()
+    def reset(self, new_pose=None):
+        if new_pose is None:
+            self.sys.Reset()
+        else:
+            self.sys.Reset(np2Mat(new_pose))
 
     def shutdown(self):
         self.sys.Shutdown()

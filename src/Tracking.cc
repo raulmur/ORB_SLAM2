@@ -148,6 +148,11 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
 
 }
 
+void Tracking::SetInitPose(const cv::Mat &pose)
+{
+    mInitPose = pose;
+}
+
 void Tracking::SetLocalMapper(LocalMapping *pLocalMapper)
 {
     mpLocalMapper=pLocalMapper;
@@ -162,7 +167,6 @@ void Tracking::SetViewer(Viewer *pViewer)
 {
     mpViewer=pViewer;
 }
-
 
 cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRectRight, const double &timestamp)
 {
