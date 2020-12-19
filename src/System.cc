@@ -495,6 +495,7 @@ int System::GetTrackingState()
 }
 
 cv::Mat System::GetWorldPose() {
+    unique_lock<mutex> lock(mMutexState);
     ORB_SLAM2::KeyFrame* pKF = mpTracker->mlpReferences.back();
     cv::Mat Trw = cv::Mat::eye(4, 4, CV_32F);
     while(pKF->isBad()) {
