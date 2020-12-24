@@ -46,7 +46,7 @@ namespace ORB_SLAM2
 Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, const cv::Mat &initPose):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(false), mbVO(false), mpORBVocabulary(pVoc),
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
-    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0), mInitPose(initPose)
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0)
 {
     // Load camera parameters from settings file
 
@@ -108,6 +108,8 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     else
         cout << "- color order: BGR (ignored if grayscale)" << endl;
 
+    SetInitPose(initPose);
+
     // Load ORB parameters
 
     int nFeatures = fSettings["ORBextractor.nFeatures"];
@@ -150,7 +152,16 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
 
 void Tracking::SetInitPose(const cv::Mat &pose)
 {
-    mInitPose = pose;
+    // Frame.mTcw records pose as [R.T -(R^-1)*t]
+    // So we encode initial pose (relative to world) accordingly
+    // [R t] is recovered later
+    mInitPose = cv::Mat::eye(4, 4, CV_32F);
+    cv::Mat R_0 = pose.rowRange(0,3).colRange(0,3);
+    cv::Mat t_0 = pose.rowRange(0,3).col(3);
+    cv::Mat R = R_0.t();
+    cv::Mat t = -R_0.inv()*t_0;
+    R.copyTo(mInitPose.rowRange(0,3).colRange(0,3));
+    t.copyTo(mInitPose.rowRange(0,3).col(3));
 }
 
 void Tracking::SetLocalMapper(LocalMapping *pLocalMapper)
@@ -488,6 +499,8 @@ void Tracking::Track()
 
         mLastFrame = Frame(mCurrentFrame);
     }
+
+    // cout << "End of Track" << endl << mCurrentFrame.mTcw << endl;
 
     // Store frame pose information to retrieve the complete camera trajectory afterwards.
     if(!mCurrentFrame.mTcw.empty())

@@ -496,17 +496,24 @@ int System::GetTrackingState()
 
 cv::Mat System::GetWorldPose() {
     unique_lock<mutex> lock(mMutexState);
-    ORB_SLAM2::KeyFrame* pKF = mpTracker->mlpReferences.back();
+
+    cv::Mat Tcw = mpTracker->mCurrentFrame.mTcw;
     cv::Mat Trw = cv::Mat::eye(4, 4, CV_32F);
-    while(pKF->isBad()) {
-        Trw = Trw * pKF->mTcp;
-        pKF = pKF->GetParent();
+
+    if(Tcw.empty()) {
+        ORB_SLAM2::KeyFrame* pKF = mpTracker->mlpReferences.back();
+        while(pKF->isBad()) {
+            Trw = Trw * pKF->mTcp;
+            pKF = pKF->GetParent();
+        }
+        Trw = Trw * pKF->GetPose();
+        cv::Mat relPose = mpTracker->mlRelativeFramePoses.back();
+        Tcw = relPose * Trw;
     }
-    Trw = Trw * pKF->GetPose();
-    cv::Mat relPose = mpTracker->mlRelativeFramePoses.back();
-    cv::Mat Tcw = relPose * Trw;
+
     cv::Mat Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
-    cv::Mat twc = -Rwc*Tcw.rowRange(0,3).col(3);
+    cv::Mat tcw = Tcw.rowRange(0,3).col(3);
+    cv::Mat twc = -Rwc*tcw;
     Rwc.copyTo(Trw.rowRange(0,3).colRange(0,3));
     twc.copyTo(Trw.rowRange(0,3).col(3));
     return Trw;
