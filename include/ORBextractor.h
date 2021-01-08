@@ -23,8 +23,8 @@
 
 #include <vector>
 #include <list>
-#include <opencv/cv.h>
-
+#include <opencv2/imgcodecs/legacy/constants_c.h>
+#include <unistd.h>
 
 namespace ORB_SLAM2
 {
