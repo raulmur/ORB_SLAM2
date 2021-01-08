@@ -162,6 +162,8 @@ void Tracking::SetInitPose(const cv::Mat &pose)
     cv::Mat t = -R_0.inv()*t_0;
     R.copyTo(mInitPose.rowRange(0,3).colRange(0,3));
     t.copyTo(mInitPose.rowRange(0,3).col(3));
+    R_0.release(); t_0.release();
+    R.release(); t.release();
 }
 
 void Tracking::SetLocalMapper(LocalMapping *pLocalMapper)
@@ -1502,6 +1504,9 @@ bool Tracking::Relocalization()
             }
         }
     }
+
+    for ( auto pSolver : vpPnPsolvers )
+        delete pSolver;
 
     if(!bMatch)
     {
