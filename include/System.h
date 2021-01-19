@@ -26,6 +26,8 @@
 #include<thread>
 #include<opencv2/core/core.hpp>
 
+#include <unistd.h>
+
 #include "Tracking.h"
 #include "FrameDrawer.h"
 #include "MapDrawer.h"
@@ -59,7 +61,7 @@ public:
 public:
 
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true);
+    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true, const cv::Mat &initPose = cv::Mat::eye(4, 4, CV_32F));
 
     // Proccess the given stereo frame. Images must be synchronized and rectified.
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
@@ -88,6 +90,7 @@ public:
 
     // Reset the system (clear map)
     void Reset();
+    void Reset(const cv::Mat &newPose);
 
     // All threads will be requested to finish.
     // It waits until all threads have finished.
@@ -119,7 +122,11 @@ public:
     // Information from most recent processed frame
     // You can call this right after TrackMonocular (or stereo or RGBD)
     int GetTrackingState();
+    cv::Mat GetWorldPose();
     std::vector<MapPoint*> GetTrackedMapPoints();
+    std::vector<cv::Mat> PyGetTrackedMapPoints();
+    std::vector<MapPoint*> GetAllMapPoints();
+    std::vector<cv::Mat> PyGetAllMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
 private:

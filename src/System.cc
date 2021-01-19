@@ -25,12 +25,18 @@
 #include <thread>
 #include <pangolin/pangolin.h>
 #include <iomanip>
+#include <time.h>
+
+bool has_suffix(const std::string &str, const std::string &suffix) {
+  std::size_t index = str.find(suffix, str.size() - suffix.size());
+  return (index != std::string::npos);
+}
 
 namespace ORB_SLAM2
 {
 
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
-               const bool bUseViewer):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
+               const bool bUseViewer, const cv::Mat &initPose):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
         mbDeactivateLocalizationMode(false)
 {
     // Output welcome message
@@ -60,16 +66,20 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     //Load ORB Vocabulary
     cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
-
+    clock_t tStart = clock();
     mpVocabulary = new ORBVocabulary();
-    bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
+    bool bVocLoad = false; // chose loading method based on file extension
+    if (has_suffix(strVocFile, ".txt"))
+	  bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
+	else
+	  bVocLoad = mpVocabulary->loadFromBinaryFile(strVocFile);
     if(!bVocLoad)
     {
         cerr << "Wrong path to vocabulary. " << endl;
-        cerr << "Falied to open at: " << strVocFile << endl;
+        cerr << "Failed to open at: " << strVocFile << endl;
         exit(-1);
     }
-    cout << "Vocabulary loaded!" << endl << endl;
+    printf("Vocabulary loaded in %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);
 
     //Create KeyFrame Database
     mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
@@ -84,7 +94,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //Initialize the Tracking thread
     //(it will live in the main thread of execution, the one that called this constructor)
     mpTracker = new Tracking(this, mpVocabulary, mpFrameDrawer, mpMapDrawer,
-                             mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor);
+                             mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor, initPose);
 
     //Initialize the Local Mapping thread and launch
     mpLocalMapper = new LocalMapping(mpMap, mSensor==MONOCULAR);
@@ -298,6 +308,13 @@ void System::Reset()
     mbReset = true;
 }
 
+void System::Reset(const cv::Mat &newPose)
+{
+    unique_lock<mutex> lock(mMutexReset);
+    mbReset = true;
+    mpTracker->SetInitPose(newPose);
+}
+
 void System::Shutdown()
 {
     mpLocalMapper->RequestFinish();
@@ -314,9 +331,6 @@ void System::Shutdown()
     {
         usleep(5000);
     }
-
-    if(mpViewer)
-        pangolin::BindToContext("ORB-SLAM2: Map Viewer");
 }
 
 void System::SaveTrajectoryTUM(const string &filename)
@@ -477,10 +491,66 @@ int System::GetTrackingState()
     return mTrackingState;
 }
 
+cv::Mat System::GetWorldPose() {
+    unique_lock<mutex> lock(mMutexState);
+
+    cv::Mat Tcw = mpTracker->mCurrentFrame.mTcw;
+    cv::Mat Trw = cv::Mat::eye(4, 4, CV_32F);
+
+    if(Tcw.empty()) {
+        ORB_SLAM2::KeyFrame* pKF = mpTracker->mlpReferences.back();
+        while(pKF->isBad()) {
+            Trw = Trw * pKF->mTcp;
+            pKF = pKF->GetParent();
+        }
+        Trw = Trw * pKF->GetPose();
+        cv::Mat relPose = mpTracker->mlRelativeFramePoses.back();
+        Tcw = relPose * Trw;
+    }
+
+    cv::Mat Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
+    cv::Mat tcw = Tcw.rowRange(0,3).col(3);
+    cv::Mat twc = -Rwc*tcw;
+    Rwc.copyTo(Trw.rowRange(0,3).colRange(0,3));
+    twc.copyTo(Trw.rowRange(0,3).col(3));
+    return Trw;
+}
+
 vector<MapPoint*> System::GetTrackedMapPoints()
 {
     unique_lock<mutex> lock(mMutexState);
     return mTrackedMapPoints;
+}
+
+vector<cv::Mat> System::PyGetTrackedMapPoints()
+{
+    unique_lock<mutex> lock(mMutexState);
+    vector<cv::Mat> mapPointMats;
+    for(vector<MapPoint*>::iterator mpIt = mTrackedMapPoints.begin(), mpItEnd = mTrackedMapPoints.end(); mpIt != mpItEnd; mpIt++) {
+        if((*mpIt) && !(*mpIt)->isBad()) {
+            mapPointMats.push_back((*mpIt)->GetWorldPos());
+        }
+    }
+    return mapPointMats;
+}
+
+vector<MapPoint*> System::GetAllMapPoints()
+{
+    unique_lock<mutex> lock(mMutexState);
+    return mpMap->GetAllMapPoints();
+}
+
+vector<cv::Mat> System::PyGetAllMapPoints()
+{
+    unique_lock<mutex> lock(mMutexState);
+    vector<MapPoint*> mapPoints = mpMap->GetAllMapPoints();
+    vector<cv::Mat> mapPointMats;
+    for(vector<MapPoint*>::iterator mpIt = mapPoints.begin(), mpItEnd = mapPoints.end(); mpIt != mpItEnd; mpIt++) {
+        if((*mpIt) && !(*mpIt)->isBad()) {
+            mapPointMats.push_back((*mpIt)->GetWorldPos());
+        }
+    }
+    return mapPointMats;
 }
 
 vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()

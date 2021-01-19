@@ -161,8 +161,11 @@ void Viewer::Run()
             }
         }
 
-        if(CheckFinish())
+        if(CheckFinish()) {
+            pangolin::DestroyWindow("ORB-SLAM2: Map Viewer");
+            cv::destroyWindow("ORB-SLAM2: Current Frame");
             break;
+        }
     }
 
     SetFinish();
