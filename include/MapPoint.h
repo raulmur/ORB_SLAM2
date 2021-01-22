@@ -24,6 +24,7 @@
 #include"KeyFrame.h"
 #include"Frame.h"
 #include"Map.h"
+#include "Serialize.h"
 
 #include<opencv2/core/core.hpp>
 #include<mutex>
@@ -41,6 +42,8 @@ class MapPoint
 public:
     MapPoint(const cv::Mat &Pos, KeyFrame* pRefKF, Map* pMap);
     MapPoint(const cv::Mat &Pos,  Map* pMap, Frame* pFrame, const int &idxF);
+    // for serizalize
+    MapPoint();
 
     void SetWorldPos(const cv::Mat &Pos);
     cv::Mat GetWorldPos();
@@ -81,6 +84,19 @@ public:
     int PredictScale(const float &currentDist, KeyFrame*pKF);
     int PredictScale(const float &currentDist, Frame* pF);
 
+    void SetRefKF(ORB_SLAM2::KeyFrame *pKF){
+        mpRefKF = pKF;
+    };
+
+    void SetMap(ORB_SLAM2::Map *pMap){
+        mpMap = pMap;
+    };
+
+private:
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive &ar, const unsigned int version);
+
 public:
     long unsigned int mnId;
     static long unsigned int nNextId;
@@ -109,6 +125,7 @@ public:
     cv::Mat mPosGBA;
     long unsigned int mnBAGlobalForKF;
 
+    KeyFrame* mpRefKF = nullptr;
 
     static std::mutex mGlobalMutex;
 
@@ -127,7 +144,6 @@ protected:
      cv::Mat mDescriptor;
 
      // Reference KeyFrame
-     KeyFrame* mpRefKF;
 
      // Tracking counters
      int mnVisible;

@@ -57,6 +57,12 @@ public:
     // Constructor for Monocular cameras.
     Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
 
+    // for Load Map
+    Frame(const cv::Size& imgSize, const cv::Mat& Tcw, const std::vector<cv::KeyPoint>& keypoint,
+          const std::vector<cv::KeyPoint>& keypoint_un, const cv::Mat& descriptor, const double timeStamp,
+          ORBextractor* const extractor, ORBVocabulary* const voc, const cv::Mat& K, const float bf,
+          const float thDepth, const unsigned long frame_id);
+
     // Extract ORB on the image. 0 for left image and 1 for right image.
     void ExtractORB(int flag, const cv::Mat &im);
 

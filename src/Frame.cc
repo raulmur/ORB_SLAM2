@@ -227,6 +227,69 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     AssignFeaturesToGrid();
 }
 
+Frame::Frame(const cv::Size& imgSize, const cv::Mat& Tcw, const std::vector<cv::KeyPoint>& keypoint,
+             const std::vector<cv::KeyPoint>& keypoint_un, const cv::Mat& descriptor, const double timeStamp,
+             ORBextractor* const extractor, ORBVocabulary* const voc, const cv::Mat& K, const float bf, 
+             const float thDepth, const unsigned long frame_id)
+        :mpORBvocabulary(voc), mpORBextractorLeft(extractor), mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
+         mTimeStamp(timeStamp), mK(K.clone()), mbf(bf), mThDepth(thDepth)
+{
+    // Frame ID
+    // mnId=nNextId++;
+    mnId = frame_id;
+
+    // Scale Level Info
+    mnScaleLevels = mpORBextractorLeft->GetLevels();
+    mfScaleFactor = mpORBextractorLeft->GetScaleFactor();
+    mfLogScaleFactor = log(mfScaleFactor);
+    mvScaleFactors = mpORBextractorLeft->GetScaleFactors();
+    mvInvScaleFactors = mpORBextractorLeft->GetInverseScaleFactors();
+    mvLevelSigma2 = mpORBextractorLeft->GetScaleSigmaSquares();
+    mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
+
+    // ORB extraction
+    mvKeys = keypoint;
+    mvKeysUn = keypoint_un;
+    mDescriptors = descriptor;
+
+    N = mvKeysUn.size();
+    SetPose(Tcw);
+    /*if(mvKeys.empty())
+        return;*/
+
+    //UndistortKeyPoints();
+
+    // Set no stereo information
+    mvuRight = vector<float>(N,-1);
+    mvDepth = vector<float>(N,-1);
+
+    mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));
+    mvbOutlier = vector<bool>(N,false);
+
+    // This is done only for the first Frame (or after a change in the calibration)
+    {
+        mnMinX = 0.0f;
+        mnMaxX = imgSize.width;
+        mnMinY = 0.0f;
+        mnMaxY = imgSize.height;
+
+        mfGridElementWidthInv=static_cast<float>(FRAME_GRID_COLS)/static_cast<float>(mnMaxX-mnMinX);
+        mfGridElementHeightInv=static_cast<float>(FRAME_GRID_ROWS)/static_cast<float>(mnMaxY-mnMinY);
+
+        fx = K.at<float>(0,0);
+        fy = K.at<float>(1,1);
+        cx = K.at<float>(0,2);
+        cy = K.at<float>(1,2);
+        invfx = 1.0f/fx;
+        invfy = 1.0f/fy;
+
+    }
+
+    mb = mbf/fx;
+    if(mvKeysUn.size()>0)
+        AssignFeaturesToGrid();
+}
+
 void Frame::AssignFeaturesToGrid()
 {
     int nReserve = 0.5f*N/(FRAME_GRID_COLS*FRAME_GRID_ROWS);
