@@ -58,6 +58,7 @@ class BowVector:
 {
 public:
 
+	typedef std::map<WordId, WordValue> super;
 	/** 
 	 * Constructor
 	 */

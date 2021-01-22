@@ -122,6 +122,16 @@ public:
     std::vector<MapPoint*> GetTrackedMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
+    bool SaveMap(const string& file_name);
+    bool LoadMap(const string& file_name);
+
+private:
+    bool SaveKeyFrames(const std::vector<KeyFrame *> keyframes, const string& file_name);
+
+    void LoadKeyFrames(const std::vector<KeyFrame*>& vpKFs, Map* const pMap);
+    void LoadMapPoints(Map* const pMap);
+    void AddKeyFrame(ORB_SLAM2::KeyFrame *keyframe, ORB_SLAM2::Map *pMap);
+
 private:
 
     // Input sensor

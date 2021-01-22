@@ -416,6 +416,31 @@ int MapPoint::PredictScale(const float &currentDist, Frame* pF)
     return nScale;
 }
 
+MapPoint::MapPoint()
+    : mnFirstKFid(-1),
+      nObs(0),
+      mnTrackReferenceForFrame(0),
+      mnLastFrameSeen(0),
+      mnBALocalForKF(0),
+      mnFuseCandidateForKF(0),
+      mnLoopPointForKF(0),
+      mnCorrectedByKF(0),
+      mnCorrectedReference(0),
+      mnBAGlobalForKF(0),
+      mnVisible(1),
+      mnFound(1),
+      mbBad(false),
+      mpReplaced(static_cast<MapPoint*>(NULL)),
+      mfMinDistance(0),
+      mfMaxDistance(0)
+      {}
+
+template <class Archive>
+void MapPoint::serialize(Archive& ar, const unsigned int version) {
+    ar& mWorldPos;
+}
+template void MapPoint::serialize(boost::archive::binary_iarchive&, const unsigned int);
+template void MapPoint::serialize(boost::archive::binary_oarchive&, const unsigned int);
 
 
 } //namespace ORB_SLAM

@@ -662,4 +662,50 @@ float KeyFrame::ComputeSceneMedianDepth(const int q)
     return vDepths[(vDepths.size()-1)/q];
 }
 
+KeyFrame::KeyFrame()
+    : mnFrameId(0),
+      mTimeStamp(0.0),
+      mnGridCols(FRAME_GRID_COLS),
+      mnGridRows(FRAME_GRID_ROWS),
+      mfGridElementWidthInv(0.0),
+      mfGridElementHeightInv(0.0),
+      mnTrackReferenceForFrame(0),
+      mnFuseTargetForKF(0),
+      mnBALocalForKF(0),
+      mnBAFixedForKF(0),
+      mnLoopQuery(0),
+      mnLoopWords(0),
+      mnRelocQuery(0),
+      mnRelocWords(0),
+      mnBAGlobalForKF(0),
+      fx(0.0),
+      fy(0.0),
+      cx(0.0),
+      cy(0.0),
+      invfx(0.0),
+      invfy(0.0),
+      mbf(0.0),
+      mb(0.0),
+      mThDepth(0.0),
+      N(0),
+      mnScaleLevels(0),
+      mfScaleFactor(0),
+      mfLogScaleFactor(0.0),
+      mnMinX(0),
+      mnMinY(0),
+      mnMaxX(0),
+      mnMaxY(0) {}
+
+// For boost serialize
+template<class Archive>
+void KeyFrame::serialize(Archive &ar, const unsigned int version)
+{
+    ar & mnId;
+    ar & const_cast<std::vector<cv::KeyPoint> &>(mvKeysUn);
+    ar & const_cast<cv::Mat &>(mDescriptors);
+    ar & Tcw;
+    ar & mvpMapPoints;
+}
+template void KeyFrame::serialize(boost::archive::binary_iarchive&, const unsigned int);
+template void KeyFrame::serialize(boost::archive::binary_oarchive&, const unsigned int);
 } //namespace ORB_SLAM

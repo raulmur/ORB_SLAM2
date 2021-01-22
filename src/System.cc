@@ -111,6 +111,16 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     mpLoopCloser->SetTracker(mpTracker);
     mpLoopCloser->SetLocalMapper(mpLocalMapper);
+
+    {
+        bool isLoadSucess = LoadMap("test.map");
+        if(isLoadSucess)
+        {
+            ActivateLocalizationMode();
+            mpTracker->mState = ORB_SLAM2::Tracking::eTrackingState::LOST;
+            //mTrackingState = mpTracker->mState;
+        }
+    }
 }
 
 cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp)
@@ -487,6 +497,131 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
 {
     unique_lock<mutex> lock(mMutexState);
     return mTrackedKeyPointsUn;
+}
+
+bool System::SaveMap(const string &file_name)
+{
+    std::vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+    // TODO erase null keyframe
+    return SaveKeyFrames(vpKFs,file_name);
+}
+
+bool System::SaveKeyFrames(const std::vector<KeyFrame *> keyframes,
+                   const string &file_name) {
+    cout << "save keyframe size: " << keyframes.size() << endl;
+    std::ofstream out(file_name, std::ios_base::binary);
+    if (!out) {
+      cerr << "file_name is empty" << endl;
+      return false;
+    }
+
+    cout << "Saving Map " << file_name << std::flush;
+    boost::archive::binary_oarchive oa(out, boost::archive::no_header);
+    oa << keyframes;
+    cout << "...Done!" << endl;
+    out.close();
+    return true;
+}
+
+bool System::LoadMap(const string &file_name)
+{
+    ifstream in(file_name,std::ios_base::binary);
+    if(!in)
+    {
+        cerr << "Load Map " << file_name << " is empty" << endl;
+        return false;
+    }
+    cout<<"Loading Map from "<<file_name<<std::endl;
+    vector<KeyFrame*> vpKFs;
+
+    boost::archive::binary_iarchive ia(in,boost::archive::no_header);
+    ia >> vpKFs;
+
+    size_t total_size = 0;
+    if (vpKFs.size() == 0) {
+        cerr << "Load Map has no Keyframes!" << endl;
+        // return true, will not continue SLAM.
+        return true;
+    } else {
+        total_size = vpKFs.size() - 1;
+    }
+ 
+    // LoadKeyFrames
+    LoadKeyFrames(vpKFs, mpMap);
+    // LoadMapPoints
+    LoadMapPoints(mpMap);
+   // Update KeyFrame Connections
+    vector<KeyFrame*> vpKFs_in_map = mpMap->GetAllKeyFrames();
+    for (size_t i = 0; i < vpKFs_in_map.size(); ++i) {
+        std::cout << "\rUpdate Connections Current/Total: " << i << " / " << total_size << std::flush;
+        vpKFs_in_map[i]->UpdateConnections();
+    }
+
+    std::cout<<"\nMap Reconstructing ... Done." << std::endl;
+    in.close();
+    return true;
+}
+
+void System::LoadMapPoints(Map* const pMap){
+    vector<MapPoint*> vMPs = pMap->GetAllMapPoints();
+    for (size_t i = 0; i < vMPs.size(); ++i) {
+        vMPs[i]->ComputeDistinctiveDescriptors();
+        vMPs[i]->UpdateNormalAndDepth();
+    }
+    std::cout << "\nLoad Map Points Finished." << std::endl;
+}
+
+void System::LoadKeyFrames(const std::vector<KeyFrame*>& vpKFs, Map* const pMap){
+    for (auto& pKF:vpKFs) {
+        if(pKF == nullptr || pKF->isBad()){
+            continue;
+        }
+        AddKeyFrame(pKF, pMap);
+    }
+}
+
+void System::AddKeyFrame(ORB_SLAM2::KeyFrame *keyframe, ORB_SLAM2::Map *pMap)
+{
+    // TODO be value
+    Frame frame(cv::Size(640, 480), 
+                keyframe->GetPose(), 
+                keyframe->mvKeys, 
+                keyframe->mvKeysUn,
+                keyframe->mDescriptors,
+                keyframe->mTimeStamp, 
+                mpTracker->mpORBextractorLeft, 
+                mpVocabulary,
+                mpTracker->mK,
+                mpTracker->mbf,
+                mpTracker->mThDepth, 
+                keyframe->mnFrameId);
+
+    KeyFrame* pKF = new KeyFrame(frame,pMap,mpKeyFrameDatabase);
+    pKF->SetPose(keyframe->GetPose());
+    vector<cv::Mat> vDesc = Converter::toDescriptorVector(pKF->mDescriptors);
+    mpVocabulary->transform(vDesc,pKF->mBowVec,pKF->mFeatVec,4);
+
+    pMap->AddKeyFrame(pKF);
+    mpKeyFrameDatabase->add(pKF);
+
+    vector<MapPoint*> vpMps = keyframe->GetMapPointMatches();
+
+    for (unsigned i = 0; i < vpMps.size(); ++i) {
+        MapPoint* pMP = vpMps[i];
+        if (pMP == nullptr || pMP->isBad()) {
+            continue;
+        }
+        if(pMP->mpRefKF == nullptr || pMP->mnFirstKFid > static_cast<long long>(keyframe->mnId)) {
+            pMP->SetRefKF(pKF);
+            pMP->SetMap(pMap);
+            pMP->mnFirstKFid = static_cast<long long>(pKF->mnId);
+            pMP->mnFirstFrame = static_cast<long long>(pKF->mnFrameId);
+        }
+        pMP->AddObservation(pKF,i);
+        pKF->AddMapPoint(pMP,i);
+
+        pMap->AddMapPoint(pMP);
+    }
 }
 
 } //namespace ORB_SLAM

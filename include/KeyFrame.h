@@ -28,6 +28,7 @@
 #include "ORBextractor.h"
 #include "Frame.h"
 #include "KeyFrameDatabase.h"
+#include "Serialize.h"
 
 #include <mutex>
 
@@ -44,6 +45,8 @@ class KeyFrame
 {
 public:
     KeyFrame(Frame &F, Map* pMap, KeyFrameDatabase* pKFDB);
+    // for serizalize
+    KeyFrame();
 
     // Pose functions
     void SetPose(const cv::Mat &Tcw);
@@ -116,7 +119,10 @@ public:
         return pKF1->mnId<pKF2->mnId;
     }
 
-
+private:
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive &ar, const unsigned int version);
     // The following variables are accesed from only 1 thread or never change (no mutex needed).
 public:
 

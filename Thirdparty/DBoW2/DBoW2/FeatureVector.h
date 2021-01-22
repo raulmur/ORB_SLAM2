@@ -23,6 +23,7 @@ class FeatureVector:
 {
 public:
 
+  typedef std::map<NodeId, std::vector<unsigned int> > super;
   /**
    * Constructor
    */
