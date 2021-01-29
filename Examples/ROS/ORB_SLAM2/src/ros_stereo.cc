@@ -50,7 +50,7 @@ public:
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "RGBD");
+    ros::init(argc, argv, "stereo");
     ros::start();
 
     if(argc != 4)
