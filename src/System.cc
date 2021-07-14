@@ -26,6 +26,9 @@
 #include <pangolin/pangolin.h>
 #include <iomanip>
 
+//fix certain bug
+#include<unistd.h>
+
 namespace ORB_SLAM2
 {
 

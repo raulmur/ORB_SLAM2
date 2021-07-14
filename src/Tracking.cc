@@ -37,6 +37,9 @@
 
 #include<mutex>
 
+//fix certain bug
+#include<unistd.h>
+
 
 using namespace std;
 

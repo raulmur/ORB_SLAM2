@@ -22,8 +22,12 @@
 #include "LoopClosing.h"
 #include "ORBmatcher.h"
 #include "Optimizer.h"
+//fix certain bug
+#include<unistd.h>
 
 #include<mutex>
+
+
 
 namespace ORB_SLAM2
 {

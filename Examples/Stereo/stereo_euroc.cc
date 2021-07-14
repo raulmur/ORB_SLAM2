@@ -29,6 +29,9 @@
 
 #include<System.h>
 
+//fix certain bug
+#include<unistd.h>
+
 using namespace std;
 
 void LoadImages(const string &strPathLeft, const string &strPathRight, const string &strPathTimes,
