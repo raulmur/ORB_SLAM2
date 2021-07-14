@@ -23,6 +23,10 @@
 
 #include <mutex>
 
+//fix certain bug
+#include<unistd.h>
+
+
 namespace ORB_SLAM2
 {
 
