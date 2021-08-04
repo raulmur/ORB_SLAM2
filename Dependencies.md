@@ -1,7 +1,7 @@
 ##List of Known Dependencies
-###ORB-SLAM2 version 1.0
+###ORB-SLAM3 version 0.3
 
-In this document we list all the pieces of code included  by ORB-SLAM2 and linked libraries which are not property of the authors of ORB-SLAM2.
+In this document we list all the pieces of code included  by ORB-SLAM3 and linked libraries which are not property of the authors of ORB-SLAM3.
 
 
 #####Code in **src** and **include** folders
@@ -12,6 +12,10 @@ This is a modified version of orb.cpp of OpenCV library. The original code is BS
 * *PnPsolver.h, PnPsolver.cc*.
 This is a modified version of the epnp.h and epnp.cc of Vincent Lepetit. 
 This code can be found in popular BSD licensed computer vision libraries as [OpenCV](https://github.com/Itseez/opencv/blob/master/modules/calib3d/src/epnp.cpp) and [OpenGV](https://github.com/laurentkneip/opengv/blob/master/src/absolute_pose/modules/Epnp.cpp). The original code is FreeBSD.
+
+* *MLPnPsolver.h, MLPnPsolver.cc*.
+This is a modified version of the MLPnP of Steffen Urban from [here](https://github.com/urbste/opengv). 
+The original code is BSD licensed.
 
 * Function *ORBmatcher::DescriptorDistance* in *ORBmatcher.cc*.
 The code is from: http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel.

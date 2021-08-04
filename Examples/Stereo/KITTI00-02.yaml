@@ -3,6 +3,7 @@
 #--------------------------------------------------------------------------------------------
 # Camera Parameters. Adjust them!
 #--------------------------------------------------------------------------------------------
+Camera.type: "PinHole"
 
 # Camera calibration and distortion parameters (OpenCV) 
 Camera.fx: 718.856
@@ -14,6 +15,8 @@ Camera.k1: 0.0
 Camera.k2: 0.0
 Camera.p1: 0.0
 Camera.p2: 0.0
+
+Camera.bFishEye: 0
 
 Camera.width: 1241
 Camera.height: 376
@@ -28,7 +31,7 @@ Camera.bf: 386.1448
 Camera.RGB: 1
 
 # Close/Far threshold. Baseline times.
-ThDepth: 35
+ThDepth: 35.0
 
 #--------------------------------------------------------------------------------------------
 # ORB Parameters
@@ -56,7 +59,7 @@ ORBextractor.minThFAST: 7
 Viewer.KeyFrameSize: 0.6
 Viewer.KeyFrameLineWidth: 2
 Viewer.GraphLineWidth: 1
-Viewer.PointSize:2
+Viewer.PointSize: 2
 Viewer.CameraSize: 0.7
 Viewer.CameraLineWidth: 3
 Viewer.ViewpointX: 0

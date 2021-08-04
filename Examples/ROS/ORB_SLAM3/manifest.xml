@@ -1,0 +1,15 @@
+<package>
+  <description brief="ORB_SLAM3">
+     ORB_SLAM3
+  </description>
+  <author>Carlos Campos, Richard Elvira, Juan J. Gomez, Jose M.M. Montiel, Juan D. Tardos</author>
+  <license>GPLv3</license>
+  <depend package="roscpp"/>
+  <depend package="tf"/>
+  <depend package="sensor_msgs"/>
+  <depend package="image_transport"/>
+  <depend package="cv_bridge"/>
+</package>
+
+
+

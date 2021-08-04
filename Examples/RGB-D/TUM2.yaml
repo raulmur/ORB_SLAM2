@@ -3,6 +3,7 @@
 #--------------------------------------------------------------------------------------------
 # Camera Parameters. Adjust them!
 #--------------------------------------------------------------------------------------------
+Camera.type: "PinHole"
 
 # Camera calibration and distortion parameters (OpenCV) 
 Camera.fx: 520.908620
@@ -33,6 +34,9 @@ ThDepth: 40.0
 
 # Deptmap values factor 
 DepthMapFactor: 5208.0
+
+Camera.width: 640
+Camera.height: 480
 
 #--------------------------------------------------------------------------------------------
 # ORB Parameters

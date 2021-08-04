@@ -1,21 +1,19 @@
 /**
-* This file is part of ORB-SLAM2.
+* This file is part of ORB-SLAM3
 *
-* Copyright (C) 2014-2016 Raúl Mur-Artal <raulmur at unizar dot es> (University of Zaragoza)
-* For more information see <https://github.com/raulmur/ORB_SLAM2>
+* Copyright (C) 2017-2020 Carlos Campos, Richard Elvira, Juan J. Gómez Rodríguez, José M.M. Montiel and Juan D. Tardós, University of Zaragoza.
+* Copyright (C) 2014-2016 Raúl Mur-Artal, José M.M. Montiel and Juan D. Tardós, University of Zaragoza.
 *
-* ORB-SLAM2 is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
+* ORB-SLAM3 is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
+* License as published by the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
 *
-* ORB-SLAM2 is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* ORB-SLAM3 is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
+* the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 * GNU General Public License for more details.
 *
-* You should have received a copy of the GNU General Public License
-* along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
+* You should have received a copy of the GNU General Public License along with ORB-SLAM3.
+* If not, see <http://www.gnu.org/licenses/>.
 */
 
 
@@ -30,13 +28,22 @@
 
 #include "Thirdparty/DBoW2/DUtils/Random.h"
 
-namespace ORB_SLAM2
+namespace ORB_SLAM3
 {
 
 
-Sim3Solver::Sim3Solver(KeyFrame *pKF1, KeyFrame *pKF2, const vector<MapPoint *> &vpMatched12, const bool bFixScale):
-    mnIterations(0), mnBestInliers(0), mbFixScale(bFixScale)
+Sim3Solver::Sim3Solver(KeyFrame *pKF1, KeyFrame *pKF2, const vector<MapPoint *> &vpMatched12, const bool bFixScale,
+                       vector<KeyFrame*> vpKeyFrameMatchedMP):
+    mnIterations(0), mnBestInliers(0), mbFixScale(bFixScale),
+    pCamera1(pKF1->mpCamera), pCamera2(pKF2->mpCamera)
 {
+    bool bDifferentKFs = false;
+    if(vpKeyFrameMatchedMP.empty())
+    {
+        bDifferentKFs = true;
+        vpKeyFrameMatchedMP = vector<KeyFrame*>(vpMatched12.size(), pKF2);
+    }
+
     mpKF1 = pKF1;
     mpKF2 = pKF2;
 
@@ -59,6 +66,8 @@ Sim3Solver::Sim3Solver(KeyFrame *pKF1, KeyFrame *pKF2, const vector<MapPoint *> 
     mvAllIndices.reserve(mN1);
 
     size_t idx=0;
+
+    KeyFrame* pKFm = pKF2; //Default variable
     for(int i1=0; i1<mN1; i1++)
     {
         if(vpMatched12[i1])
@@ -72,17 +81,20 @@ Sim3Solver::Sim3Solver(KeyFrame *pKF1, KeyFrame *pKF2, const vector<MapPoint *> 
             if(pMP1->isBad() || pMP2->isBad())
                 continue;
 
-            int indexKF1 = pMP1->GetIndexInKeyFrame(pKF1);
-            int indexKF2 = pMP2->GetIndexInKeyFrame(pKF2);
+            if(bDifferentKFs)
+                pKFm = vpKeyFrameMatchedMP[i1];
+
+            int indexKF1 = get<0>(pMP1->GetIndexInKeyFrame(pKF1));
+            int indexKF2 = get<0>(pMP2->GetIndexInKeyFrame(pKFm));
 
             if(indexKF1<0 || indexKF2<0)
                 continue;
 
             const cv::KeyPoint &kp1 = pKF1->mvKeysUn[indexKF1];
-            const cv::KeyPoint &kp2 = pKF2->mvKeysUn[indexKF2];
+            const cv::KeyPoint &kp2 = pKFm->mvKeysUn[indexKF2];
 
             const float sigmaSquare1 = pKF1->mvLevelSigma2[kp1.octave];
-            const float sigmaSquare2 = pKF2->mvLevelSigma2[kp2.octave];
+            const float sigmaSquare2 = pKFm->mvLevelSigma2[kp2.octave];
 
             mvnMaxError1.push_back(9.210*sigmaSquare1);
             mvnMaxError2.push_back(9.210*sigmaSquare2);
@@ -105,8 +117,8 @@ Sim3Solver::Sim3Solver(KeyFrame *pKF1, KeyFrame *pKF2, const vector<MapPoint *> 
     mK1 = pKF1->mK;
     mK2 = pKF2->mK;
 
-    FromCameraToImage(mvX3Dc1,mvP1im1,mK1);
-    FromCameraToImage(mvX3Dc2,mvP2im2,mK2);
+    FromCameraToImage(mvX3Dc1,mvP1im1,pCamera1);
+    FromCameraToImage(mvX3Dc2,mvP2im2,pCamera2);
 
     SetRansacParameters();
 }
@@ -206,6 +218,84 @@ cv::Mat Sim3Solver::iterate(int nIterations, bool &bNoMore, vector<bool> &vbInli
     return cv::Mat();
 }
 
+cv::Mat Sim3Solver::iterate(int nIterations, bool &bNoMore, vector<bool> &vbInliers, int &nInliers, bool &bConverge)
+{
+    bNoMore = false;
+    bConverge = false;
+    vbInliers = vector<bool>(mN1,false);
+    nInliers=0;
+
+    if(N<mRansacMinInliers)
+    {
+        bNoMore = true;
+        return cv::Mat();
+    }
+
+    vector<size_t> vAvailableIndices;
+
+    cv::Mat P3Dc1i(3,3,CV_32F);
+    cv::Mat P3Dc2i(3,3,CV_32F);
+
+    int nCurrentIterations = 0;
+
+    cv::Mat bestSim3;
+
+    while(mnIterations<mRansacMaxIts && nCurrentIterations<nIterations)
+    {
+        nCurrentIterations++;
+        mnIterations++;
+
+        vAvailableIndices = mvAllIndices;
+
+        // Get min set of points
+        for(short i = 0; i < 3; ++i)
+        {
+            int randi = DUtils::Random::RandomInt(0, vAvailableIndices.size()-1);
+
+            int idx = vAvailableIndices[randi];
+
+            mvX3Dc1[idx].copyTo(P3Dc1i.col(i));
+            mvX3Dc2[idx].copyTo(P3Dc2i.col(i));
+
+            vAvailableIndices[randi] = vAvailableIndices.back();
+            vAvailableIndices.pop_back();
+        }
+
+        ComputeSim3(P3Dc1i,P3Dc2i);
+
+        CheckInliers();
+
+        if(mnInliersi>=mnBestInliers)
+        {
+            mvbBestInliers = mvbInliersi;
+            mnBestInliers = mnInliersi;
+            mBestT12 = mT12i.clone();
+            mBestRotation = mR12i.clone();
+            mBestTranslation = mt12i.clone();
+            mBestScale = ms12i;
+
+            if(mnInliersi>mRansacMinInliers)
+            {
+                nInliers = mnInliersi;
+                for(int i=0; i<N; i++)
+                    if(mvbInliersi[i])
+                        vbInliers[mvnIndices1[i]] = true;
+                bConverge = true;
+                return mBestT12;
+            }
+            else
+            {
+                bestSim3 = mBestT12;
+            }
+        }
+    }
+
+    if(mnIterations>=mRansacMaxIts)
+        bNoMore=true;
+
+    return bestSim3;
+}
+
 cv::Mat Sim3Solver::find(vector<bool> &vbInliers12, int &nInliers)
 {
     bool bFlag;
@@ -214,7 +304,7 @@ cv::Mat Sim3Solver::find(vector<bool> &vbInliers12, int &nInliers)
 
 void Sim3Solver::ComputeCentroid(cv::Mat &P, cv::Mat &Pr, cv::Mat &C)
 {
-    cv::reduce(P,C,1,CV_REDUCE_SUM);
+    cv::reduce(P,C,1,cv::REDUCE_SUM);
     C = C/P.cols;
 
     for(int i=0; i<P.cols; i++)
@@ -340,8 +430,8 @@ void Sim3Solver::ComputeSim3(cv::Mat &P1, cv::Mat &P2)
 void Sim3Solver::CheckInliers()
 {
     vector<cv::Mat> vP1im2, vP2im1;
-    Project(mvX3Dc2,vP2im1,mT12i,mK1);
-    Project(mvX3Dc1,vP1im2,mT21i,mK2);
+    Project(mvX3Dc2,vP2im1,mT12i,pCamera1);
+    Project(mvX3Dc1,vP1im2,mT21i,pCamera2);
 
     mnInliersi=0;
 
@@ -379,14 +469,10 @@ float Sim3Solver::GetEstimatedScale()
     return mBestScale;
 }
 
-void Sim3Solver::Project(const vector<cv::Mat> &vP3Dw, vector<cv::Mat> &vP2D, cv::Mat Tcw, cv::Mat K)
+void Sim3Solver::Project(const vector<cv::Mat> &vP3Dw, vector<cv::Mat> &vP2D, cv::Mat Tcw, GeometricCamera* pCamera)
 {
     cv::Mat Rcw = Tcw.rowRange(0,3).colRange(0,3);
     cv::Mat tcw = Tcw.rowRange(0,3).col(3);
-    const float &fx = K.at<float>(0,0);
-    const float &fy = K.at<float>(1,1);
-    const float &cx = K.at<float>(0,2);
-    const float &cy = K.at<float>(1,2);
 
     vP2D.clear();
     vP2D.reserve(vP3Dw.size());
@@ -395,30 +481,27 @@ void Sim3Solver::Project(const vector<cv::Mat> &vP3Dw, vector<cv::Mat> &vP2D, cv
     {
         cv::Mat P3Dc = Rcw*vP3Dw[i]+tcw;
         const float invz = 1/(P3Dc.at<float>(2));
-        const float x = P3Dc.at<float>(0)*invz;
-        const float y = P3Dc.at<float>(1)*invz;
+        const float x = P3Dc.at<float>(0);
+        const float y = P3Dc.at<float>(1);
+        const float z = P3Dc.at<float>(2);
 
-        vP2D.push_back((cv::Mat_<float>(2,1) << fx*x+cx, fy*y+cy));
+        vP2D.push_back(pCamera->projectMat(cv::Point3f(x,y,z)));
     }
 }
 
-void Sim3Solver::FromCameraToImage(const vector<cv::Mat> &vP3Dc, vector<cv::Mat> &vP2D, cv::Mat K)
+void Sim3Solver::FromCameraToImage(const vector<cv::Mat> &vP3Dc, vector<cv::Mat> &vP2D, GeometricCamera* pCamera)
 {
-    const float &fx = K.at<float>(0,0);
-    const float &fy = K.at<float>(1,1);
-    const float &cx = K.at<float>(0,2);
-    const float &cy = K.at<float>(1,2);
-
     vP2D.clear();
     vP2D.reserve(vP3Dc.size());
 
     for(size_t i=0, iend=vP3Dc.size(); i<iend; i++)
     {
         const float invz = 1/(vP3Dc[i].at<float>(2));
-        const float x = vP3Dc[i].at<float>(0)*invz;
-        const float y = vP3Dc[i].at<float>(1)*invz;
+        const float x = vP3Dc[i].at<float>(0);
+        const float y = vP3Dc[i].at<float>(1);
+        const float z = vP3Dc[i].at<float>(2);
 
-        vP2D.push_back((cv::Mat_<float>(2,1) << fx*x+cx, fy*y+cy));
+        vP2D.push_back(pCamera->projectMat(cv::Point3f(x,y,z)));
     }
 }
 

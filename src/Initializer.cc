@@ -1,21 +1,19 @@
 /**
-* This file is part of ORB-SLAM2.
+* This file is part of ORB-SLAM3
 *
-* Copyright (C) 2014-2016 Raúl Mur-Artal <raulmur at unizar dot es> (University of Zaragoza)
-* For more information see <https://github.com/raulmur/ORB_SLAM2>
+* Copyright (C) 2017-2020 Carlos Campos, Richard Elvira, Juan J. Gómez Rodríguez, José M.M. Montiel and Juan D. Tardós, University of Zaragoza.
+* Copyright (C) 2014-2016 Raúl Mur-Artal, José M.M. Montiel and Juan D. Tardós, University of Zaragoza.
 *
-* ORB-SLAM2 is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
+* ORB-SLAM3 is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
+* License as published by the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
 *
-* ORB-SLAM2 is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* ORB-SLAM3 is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
+* the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 * GNU General Public License for more details.
 *
-* You should have received a copy of the GNU General Public License
-* along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
+* You should have received a copy of the GNU General Public License along with ORB-SLAM3.
+* If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "Initializer.h"
@@ -26,12 +24,14 @@
 #include "ORBmatcher.h"
 
 #include<thread>
+#include <include/CameraModels/Pinhole.h>
 
-namespace ORB_SLAM2
+namespace ORB_SLAM3
 {
 
 Initializer::Initializer(const Frame &ReferenceFrame, float sigma, int iterations)
 {
+    mpCamera = ReferenceFrame.mpCamera;
     mK = ReferenceFrame.mK.clone();
 
     mvKeys1 = ReferenceFrame.mvKeysUn;
@@ -44,8 +44,7 @@ Initializer::Initializer(const Frame &ReferenceFrame, float sigma, int iteration
 bool Initializer::Initialize(const Frame &CurrentFrame, const vector<int> &vMatches12, cv::Mat &R21, cv::Mat &t21,
                              vector<cv::Point3f> &vP3D, vector<bool> &vbTriangulated)
 {
-    // Fill structures with current keypoints and matches with reference frame
-    // Reference Frame: 1, Current Frame: 2
+
     mvKeys2 = CurrentFrame.mvKeysUn;
 
     mvMatches12.clear();
@@ -62,9 +61,10 @@ bool Initializer::Initialize(const Frame &CurrentFrame, const vector<int> &vMatc
             mvbMatched1[i]=false;
     }
 
+
+
     const int N = mvMatches12.size();
 
-    // Indices for minimum set selection
     vector<size_t> vAllIndices;
     vAllIndices.reserve(N);
     vector<size_t> vAvailableIndices;
@@ -73,7 +73,6 @@ bool Initializer::Initialize(const Frame &CurrentFrame, const vector<int> &vMatc
     {
         vAllIndices.push_back(i);
     }
-
     // Generate sets of 8 points for each RANSAC iteration
     mvSets = vector< vector<size_t> >(mMaxIterations,vector<size_t>(8,0));
 
@@ -111,11 +110,18 @@ bool Initializer::Initialize(const Frame &CurrentFrame, const vector<int> &vMatc
     // Compute ratio of scores
     float RH = SH/(SH+SF);
 
+    float minParallax = 1.0; // 1.0 originally
+
+    cv::Mat K = static_cast<Pinhole*>(mpCamera)->toK();
     // Try to reconstruct from homography or fundamental depending on the ratio (0.40-0.45)
     if(RH>0.40)
-        return ReconstructH(vbMatchesInliersH,H,mK,R21,t21,vP3D,vbTriangulated,1.0,50);
-    else //if(pF_HF>0.6)
-        return ReconstructF(vbMatchesInliersF,F,mK,R21,t21,vP3D,vbTriangulated,1.0,50);
+    {
+        return ReconstructH(vbMatchesInliersH,H, K,R21,t21,vP3D,vbTriangulated,minParallax,50);
+    }
+    else
+    {
+        return ReconstructF(vbMatchesInliersF,F,K,R21,t21,vP3D,vbTriangulated,minParallax,50);
+    }
 
     return false;
 }
@@ -580,7 +586,6 @@ bool Initializer::ReconstructH(vector<bool> &vbMatchesInliers, cv::Mat &H21, cv:
     // We recover 8 motion hypotheses using the method of Faugeras et al.
     // Motion and structure from motion in a piecewise planar environment.
     // International Journal of Pattern Recognition and Artificial Intelligence, 1988
-
     cv::Mat invK = K.inv();
     cv::Mat A = invK*H21*K;
 
@@ -799,12 +804,6 @@ int Initializer::CheckRT(const cv::Mat &R, const cv::Mat &t, const vector<cv::Ke
                        const vector<Match> &vMatches12, vector<bool> &vbMatchesInliers,
                        const cv::Mat &K, vector<cv::Point3f> &vP3D, float th2, vector<bool> &vbGood, float &parallax)
 {
-    // Calibration parameters
-    const float fx = K.at<float>(0,0);
-    const float fy = K.at<float>(1,1);
-    const float cx = K.at<float>(0,2);
-    const float cy = K.at<float>(1,2);
-
     vbGood = vector<bool>(vKeys1.size(),false);
     vP3D.resize(vKeys1.size());
 
@@ -864,23 +863,15 @@ int Initializer::CheckRT(const cv::Mat &R, const cv::Mat &t, const vector<cv::Ke
             continue;
 
         // Check reprojection error in first image
-        float im1x, im1y;
-        float invZ1 = 1.0/p3dC1.at<float>(2);
-        im1x = fx*p3dC1.at<float>(0)*invZ1+cx;
-        im1y = fy*p3dC1.at<float>(1)*invZ1+cy;
-
-        float squareError1 = (im1x-kp1.pt.x)*(im1x-kp1.pt.x)+(im1y-kp1.pt.y)*(im1y-kp1.pt.y);
+        cv::Point2f uv1 = mpCamera->project(p3dC1);
+        float squareError1 = (uv1.x-kp1.pt.x)*(uv1.x-kp1.pt.x)+(uv1.y-kp1.pt.y)*(uv1.y-kp1.pt.y);
 
         if(squareError1>th2)
             continue;
 
         // Check reprojection error in second image
-        float im2x, im2y;
-        float invZ2 = 1.0/p3dC2.at<float>(2);
-        im2x = fx*p3dC2.at<float>(0)*invZ2+cx;
-        im2y = fy*p3dC2.at<float>(1)*invZ2+cy;
-
-        float squareError2 = (im2x-kp2.pt.x)*(im2x-kp2.pt.x)+(im2y-kp2.pt.y)*(im2y-kp2.pt.y);
+        cv::Point2f uv2 = mpCamera->project(p3dC2);
+        float squareError2 = (uv2.x-kp2.pt.x)*(uv2.x-kp2.pt.x)+(uv2.y-kp2.pt.y)*(uv2.y-kp2.pt.y);
 
         if(squareError2>th2)
             continue;

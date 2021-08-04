@@ -44,11 +44,11 @@ namespace g2o {
     OptimizationAlgorithmWithHessian(solver)
   {
     _currentLambda = -1.;
-    _tau = 1e-5;
+    _tau = 1e-5; // Carlos: originally 1e-5
     _goodStepUpperScale = 2./3.;
     _goodStepLowerScale = 1./3.;
     _userLambdaInit = _properties.makeProperty<Property<double> >("initialLambda", 0.);
-    _maxTrialsAfterFailure = _properties.makeProperty<Property<int> >("maxTrialsAfterFailure", 10);
+    _maxTrialsAfterFailure = _properties.makeProperty<Property<int> >("maxTrialsAfterFailure", 10); // Carlos: Originally 10 iterations
     _ni=2.;
     _levenbergIterations = 0;
     _nBad = 0;
@@ -122,7 +122,7 @@ namespace g2o {
 
       _optimizer->computeActiveErrors();
       tempChi = _optimizer->activeRobustChi2();
-
+      // cout << "tempChi: " << tempChi << endl;
       if (! ok2)
         tempChi=std::numeric_limits<double>::max();
 
@@ -149,7 +149,10 @@ namespace g2o {
     } while (rho<0 && qmax < _maxTrialsAfterFailure->value() && ! _optimizer->terminate());
 
     if (qmax == _maxTrialsAfterFailure->value() || rho==0)
+    {
+      // cout << "qmax = " << qmax << "             rho = " << rho << endl;
       return Terminate;
+    }
 
     //Stop criterium (Raul)
     if((iniChi-currentChi)*1e3<iniChi)
@@ -158,7 +161,9 @@ namespace g2o {
         _nBad=0;
 
     if(_nBad>=3)
+    {
         return Terminate;
+    }
 
     return OK;
   }

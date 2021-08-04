@@ -69,6 +69,46 @@ bool VertexSE3Expmap::write(std::ostream& os) const {
   return os.good();
 }
 
+  EdgeSE3::EdgeSE3() :
+      BaseBinaryEdge<6, SE3Quat, VertexSE3Expmap, VertexSE3Expmap>()
+  {
+  }
+
+  bool EdgeSE3::read(std::istream& is)
+  {
+    Vector6d v6;
+    for (int i=0; i<6; i++){
+      is >> v6[i];
+    }
+
+    SE3Quat cam2world(v6);
+    setMeasurement(cam2world.inverse());
+
+    for (int i=0; i<6; i++)
+      for (int j=i; j<6; j++)
+      {
+        is >> information()(i,j);
+        if (i!=j)
+          information()(j,i)=information()(i,j);
+      }
+    return true;
+  }
+
+  bool EdgeSE3::write(std::ostream& os) const
+  {
+    SE3Quat cam2world(measurement().inverse());
+    Vector6d v6 = cam2world.log();
+    for (int i=0; i<6; i++)
+    {
+      os  << v6[i] << " ";
+    }
+    for (int i=0; i<6; i++)
+      for (int j=i; j<6; j++){
+        os << " " <<  information()(i,j);
+    }
+    return os.good();
+  }
+
 
 EdgeSE3ProjectXYZ::EdgeSE3ProjectXYZ() : BaseBinaryEdge<2, Vector2d, VertexSBAPointXYZ, VertexSE3Expmap>() {
 }

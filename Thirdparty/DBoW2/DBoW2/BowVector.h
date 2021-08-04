@@ -14,6 +14,9 @@
 #include <map>
 #include <vector>
 
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/map.hpp>
+
 namespace DBoW2 {
 
 /// Id of words
@@ -56,6 +59,13 @@ enum ScoringType
 class BowVector: 
 	public std::map<WordId, WordValue>
 {
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive& ar, const int version)
+    {
+        ar & boost::serialization::base_object<std::map<WordId, WordValue> >(*this);
+    }
+
 public:
 
 	/** 

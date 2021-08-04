@@ -1,22 +1,21 @@
 /**
-* This file is part of ORB-SLAM2.
+* This file is part of ORB-SLAM3
 *
-* Copyright (C) 2014-2016 Raúl Mur-Artal <raulmur at unizar dot es> (University of Zaragoza)
-* For more information see <https://github.com/raulmur/ORB_SLAM2>
+* Copyright (C) 2017-2020 Carlos Campos, Richard Elvira, Juan J. Gómez Rodríguez, José M.M. Montiel and Juan D. Tardós, University of Zaragoza.
+* Copyright (C) 2014-2016 Raúl Mur-Artal, José M.M. Montiel and Juan D. Tardós, University of Zaragoza.
 *
-* ORB-SLAM2 is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
+* ORB-SLAM3 is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
+* License as published by the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
 *
-* ORB-SLAM2 is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* ORB-SLAM3 is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even
+* the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 * GNU General Public License for more details.
 *
-* You should have received a copy of the GNU General Public License
-* along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
+* You should have received a copy of the GNU General Public License along with ORB-SLAM3.
+* If not, see <http://www.gnu.org/licenses/>.
 */
+
 
 #ifndef MAPPOINT_H
 #define MAPPOINT_H
@@ -28,33 +27,46 @@
 #include<opencv2/core/core.hpp>
 #include<mutex>
 
-namespace ORB_SLAM2
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/array.hpp>
+#include <boost/serialization/map.hpp>
+
+namespace ORB_SLAM3
 {
 
 class KeyFrame;
 class Map;
 class Frame;
 
-
 class MapPoint
 {
+
 public:
+    MapPoint();
+
     MapPoint(const cv::Mat &Pos, KeyFrame* pRefKF, Map* pMap);
+    MapPoint(const double invDepth, cv::Point2f uv_init, KeyFrame* pRefKF, KeyFrame* pHostKF, Map* pMap);
     MapPoint(const cv::Mat &Pos,  Map* pMap, Frame* pFrame, const int &idxF);
 
     void SetWorldPos(const cv::Mat &Pos);
+
     cv::Mat GetWorldPos();
 
     cv::Mat GetNormal();
+
+    cv::Matx31f GetWorldPos2();
+
+    cv::Matx31f GetNormal2();
+
     KeyFrame* GetReferenceKeyFrame();
 
-    std::map<KeyFrame*,size_t> GetObservations();
+    std::map<KeyFrame*,std::tuple<int,int>> GetObservations();
     int Observations();
 
-    void AddObservation(KeyFrame* pKF,size_t idx);
+    void AddObservation(KeyFrame* pKF,int idx);
     void EraseObservation(KeyFrame* pKF);
 
-    int GetIndexInKeyFrame(KeyFrame* pKF);
+    std::tuple<int,int> GetIndexInKeyFrame(KeyFrame* pKF);
     bool IsInKeyFrame(KeyFrame* pKF);
 
     void SetBadFlag();
@@ -75,11 +87,15 @@ public:
     cv::Mat GetDescriptor();
 
     void UpdateNormalAndDepth();
+    void SetNormalVector(cv::Mat& normal);
 
     float GetMinDistanceInvariance();
     float GetMaxDistanceInvariance();
     int PredictScale(const float &currentDist, KeyFrame*pKF);
     int PredictScale(const float &currentDist, Frame* pF);
+
+    Map* GetMap();
+    void UpdateMap(Map* pMap);
 
 public:
     long unsigned int mnId;
@@ -91,10 +107,13 @@ public:
     // Variables used by the tracking
     float mTrackProjX;
     float mTrackProjY;
+    float mTrackDepth;
+    float mTrackDepthR;
     float mTrackProjXR;
-    bool mbTrackInView;
-    int mnTrackScaleLevel;
-    float mTrackViewCos;
+    float mTrackProjYR;
+    bool mbTrackInView, mbTrackInViewR;
+    int mnTrackScaleLevel, mnTrackScaleLevelR;
+    float mTrackViewCos, mTrackViewCosR;
     long unsigned int mnTrackReferenceForFrame;
     long unsigned int mnLastFrameSeen;
 
@@ -108,20 +127,35 @@ public:
     long unsigned int mnCorrectedReference;    
     cv::Mat mPosGBA;
     long unsigned int mnBAGlobalForKF;
+    long unsigned int mnBALocalForMerge;
 
+    // Variable used by merging
+    cv::Mat mPosMerge;
+    cv::Mat mNormalVectorMerge;
+
+
+    // Fopr inverse depth optimization
+    double mInvDepth;
+    double mInitU;
+    double mInitV;
+    KeyFrame* mpHostKF;
 
     static std::mutex mGlobalMutex;
+
+    unsigned int mnOriginMapId;
 
 protected:    
 
      // Position in absolute coordinates
      cv::Mat mWorldPos;
+     cv::Matx31f mWorldPosx;
 
      // Keyframes observing the point and associated index in keyframe
-     std::map<KeyFrame*,size_t> mObservations;
+     std::map<KeyFrame*,std::tuple<int,int> > mObservations;
 
      // Mean viewing direction
      cv::Mat mNormalVector;
+     cv::Matx31f mNormalVectorx;
 
      // Best descriptor to fast matching
      cv::Mat mDescriptor;
@@ -145,6 +179,7 @@ protected:
 
      std::mutex mMutexPos;
      std::mutex mMutexFeatures;
+     std::mutex mMutexMap;
 };
 
 } //namespace ORB_SLAM

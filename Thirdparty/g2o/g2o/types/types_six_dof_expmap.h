@@ -77,6 +77,40 @@ public:
 };
 
 
+/**
+* \brief 6D edge between two Vertex6
+*/
+class EdgeSE3 : public BaseBinaryEdge<6, SE3Quat, VertexSE3Expmap, VertexSE3Expmap>
+{
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  EdgeSE3();
+  virtual bool read(std::istream& is);
+  virtual bool write(std::ostream& os) const;
+
+  void computeError()
+  {
+    const VertexSE3Expmap* v1 = static_cast<const VertexSE3Expmap*>(_vertices[0]);
+    const VertexSE3Expmap* v2 = static_cast<const VertexSE3Expmap*>(_vertices[1]);
+
+    SE3Quat C(_measurement);
+    SE3Quat error_=C*v1->estimate()*v2->estimate().inverse();
+    _error = error_.log();
+  }
+
+  virtual double initialEstimatePossible(const OptimizableGraph::VertexSet& , OptimizableGraph::Vertex* ) { return 1.;}
+
+  virtual void initialEstimate(const OptimizableGraph::VertexSet& from, OptimizableGraph::Vertex* /*to*/)
+  {
+    VertexSE3Expmap* v1 = static_cast<VertexSE3Expmap*>(_vertices[0]);
+    VertexSE3Expmap* v2 = static_cast<VertexSE3Expmap*>(_vertices[1]);
+    if (from.count(v1) > 0)
+        v2->setEstimate(measurement()*v1->estimate());
+    else
+        v1->setEstimate(measurement().inverse()*v2->estimate());
+  }
+};
+
 class  EdgeSE3ProjectXYZ: public  BaseBinaryEdge<2, Vector2d, VertexSBAPointXYZ, VertexSE3Expmap>{
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
