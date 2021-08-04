@@ -28,7 +28,7 @@
 #include "Frame.h"
 
 #include "Thirdparty/g2o/g2o/types/types_seven_dof_expmap.h"
-
+#include "lineEdge.h"
 namespace ORB_SLAM2
 {
 
@@ -40,12 +40,22 @@ public:
     void static BundleAdjustment(const std::vector<KeyFrame*> &vpKF, const std::vector<MapPoint*> &vpMP,
                                  int nIterations = 5, bool *pbStopFlag=NULL, const unsigned long nLoopKF=0,
                                  const bool bRobust = true);
-    void static GlobalBundleAdjustemnt(Map* pMap, int nIterations=5, bool *pbStopFlag=NULL,
+
+    void static BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<MapPoint *> &vpMP, const vector<MapLine *> &vpML,
+                                 int nIterations = 5, bool* pbStopFlag=NULL, const unsigned long nLoopKF=0,
+                                 const bool bRobust = true);
+
+   void static GlobalBundleAdjustemnt(Map* pMap, int nIterations=5,const bool bWithLineFeature=false, bool *pbStopFlag=NULL,
                                        const unsigned long nLoopKF=0, const bool bRobust = true);
     void static LocalBundleAdjustment(KeyFrame* pKF, bool *pbStopFlag, Map *pMap);
-    int static PoseOptimization(Frame* pFrame);
 
-    // if bFixScale is true, 6DoF optimization (stereo,rgbd), 7DoF otherwise (mono)
+    // 局部BA，包括线特征的
+    void static LocalBundleAdjustmentWithLine(KeyFrame* pKF, bool *pbStopFlag, Map *pMap);
+
+    int static PoseOptimization(Frame* pFrame);
+    int static PoseOptimization(Frame* pFrame,bool isCorner);
+    float static TranslationOptimization(ORB_SLAM2::Frame *pFrame);
+//     if bFixScale is true, 6DoF optimization (stereo,rgbd), 7DoF otherwise (mono)
     void static OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* pCurKF,
                                        const LoopClosing::KeyFrameAndPose &NonCorrectedSim3,
                                        const LoopClosing::KeyFrameAndPose &CorrectedSim3,

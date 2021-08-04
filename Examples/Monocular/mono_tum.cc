@@ -27,8 +27,9 @@
 #include<opencv2/core/core.hpp>
 
 #include<System.h>
-
+#include<unistd.h>
 using namespace std;
+
 
 void LoadImages(const string &strFile, vector<string> &vstrImageFilenames,
                 vector<double> &vTimestamps);
@@ -46,7 +47,6 @@ int main(int argc, char **argv)
     vector<double> vTimestamps;
     string strFile = string(argv[3])+"/rgb.txt";
     LoadImages(strFile, vstrImageFilenames, vTimestamps);
-
     int nImages = vstrImageFilenames.size();
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 #endif
 
         // Pass the image to the SLAM system
-        SLAM.TrackMonocular(im,tframe);
+        SLAM.TrackMonocularWithLine(im, tframe);
 
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
@@ -125,12 +125,20 @@ int main(int argc, char **argv)
     return 0;
 }
 
+/**
+ * @brief 导入图片
+ * 
+ * @param[in] strFile                   读入的文件名称
+ * @param[in&out] vstrImageFilenames    彩色图片名称
+ * @param[in&out] vTimestamps           记录时间戳
+ */
 void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vector<double> &vTimestamps)
 {
     ifstream f;
     f.open(strFile.c_str());
 
     // skip first three lines
+    // 前三行是注释，跳过
     string s0;
     getline(f,s0);
     getline(f,s0);

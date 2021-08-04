@@ -32,181 +32,248 @@
 
 #include <opencv2/opencv.hpp>
 
+
+#include "ExtractLineSegment.h"
+#include "MapLine.h"
+#include "Lineextractor.h"
+#include "auxiliar.h"
+#include <fstream>
 namespace ORB_SLAM2
 {
 #define FRAME_GRID_ROWS 48
 #define FRAME_GRID_COLS 64
 
-class MapPoint;
-class KeyFrame;
+    class MapPoint;
+    class KeyFrame;
+    class MapLine;
+    class Frame
+    {
+    public:
 
-class Frame
-{
-public:
-    Frame();
+        //Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc,/*提取直线特征*/ cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+        void ExtractLSD(int flag,const cv::Mat &imGray,const cv::Mat &imDepth);
+        void isLineGood(const cv::Mat &imGray, const cv::Mat &imDepth);
+        void isLineGood(const cv::Mat &imGray,  const cv::Mat &imDepth,cv::Mat K);
+        vector<cv::Point3d> mv3DLineforMap;
+        //使用LSD提取的直线
+        //ntuple_list mDetectedLines;
+        /**
+         * 还需要哪些参数，
+         * 描述子，数量，
+         * */
 
-    // Copy constructor.
-    Frame(const Frame &frame);
+        vector<FrameLine> mvframeLine;//have the same size with 3D lines
+        vector<FrameLine> vAll2Dlines;//all the 2D lines in this Frame
+        vector<Vector6d > mvLines3D;
+        vector<FrameLine>	mVF3DLines;
+        cv::Mat mRcwL;
+        cv::Mat mtcwL;
+        cv::Mat mRwcL;
+        cv::Mat mOwL; //==mtwc
 
-    // Constructor for stereo cameras.
-    Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+    public:
+        Frame();
 
-    // Constructor for RGB-D cameras.
-    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+        // Copy constructor.
+        Frame(const Frame &frame);
 
-    // Constructor for Monocular cameras.
-    Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+        // Constructor for stereo cameras.
+        Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
 
-    // Extract ORB on the image. 0 for left image and 1 for right image.
-    void ExtractORB(int flag, const cv::Mat &im);
+        // Constructor for RGB-D cameras.
+        Frame(const cv::Mat &imGray,const double &timeStamp, const cv::Mat &imDepth,  ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
 
-    // Compute Bag of Words representation.
-    void ComputeBoW();
+        // Constructor for Monocular.
+        Frame(const cv::Mat &imGray,  const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
 
-    // Set the camera pose.
-    void SetPose(cv::Mat Tcw);
+        // Constructor for Monocular with normal cameras.
+        Frame(const cv::Mat &imGray, const cv::Mat &imNormal, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
 
-    // Computes rotation, translation and camera center matrices from the camera pose.
-    void UpdatePoseMatrices();
+        // Extract ORB on the image. 0 for left image and 1 for right image.
+        void ExtractORB(int flag, const cv::Mat &im);
 
-    // Returns the camera center.
-    inline cv::Mat GetCameraCenter(){
-        return mOw.clone();
-    }
+        // extract line feature, 自己添加的
+        void ExtractLSD(const cv::Mat &im);
 
-    // Returns inverse of rotation
-    inline cv::Mat GetRotationInverse(){
-        return mRwc.clone();
-    }
+        //点线特征选择
+        void featureSelect(const cv::Mat &im);
+        // 计算线特征端点的3D坐标，自己添加的
+        void ComputeLine3D(Frame &frame1, Frame &frame2);
 
-    // Check if a MapPoint is in the frustum of the camera
-    // and fill variables of the MapPoint to be used by the tracking
-    bool isInFrustum(MapPoint* pMP, float viewingCosLimit);
+        // 自己添加的，线特征描述子MAD
+        void lineDescriptorMAD( vector<vector<DMatch>> matches, double &nn_mad, double &nn12_mad) const;
 
-    // Compute the cell of a keypoint (return false if outside the grid)
-    bool PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY);
+        // Compute Bag of Words representation.
+        void ComputeBoW();
 
-    vector<size_t> GetFeaturesInArea(const float &x, const float  &y, const float  &r, const int minLevel=-1, const int maxLevel=-1) const;
+        // Set the camera pose.
+        void SetPose(cv::Mat Tcw);
 
-    // Search a match for each keypoint in the left image to a keypoint in the right image.
-    // If there is a match, depth is computed and the right coordinate associated to the left keypoint is stored.
-    void ComputeStereoMatches();
+        // Computes rotation, translation and camera center matrices from the camera pose.
+        void UpdatePoseMatrices();
 
-    // Associate a "right" coordinate to a keypoint if there is valid depth in the depthmap.
-    void ComputeStereoFromRGBD(const cv::Mat &imDepth);
+        // Returns the camera center.
+        inline cv::Mat GetCameraCenter(){
+            return mOw.clone();
+        }
 
-    // Backprojects a keypoint (if stereo/depth info available) into 3D world coordinates.
-    cv::Mat UnprojectStereo(const int &i);
+        // Returns inverse of rotation
+        inline cv::Mat GetRotationInverse(){
+            return mRwc.clone();
+        }
 
-public:
-    // Vocabulary used for relocalization.
-    ORBVocabulary* mpORBvocabulary;
+        // Check if a MapPoint is in the frustum of the camera
+        // and fill variables of the MapPoint to be used by the tracking
+        bool isInFrustum(MapPoint* pMP, float viewingCosLimit);
+        bool isInFrustum(MapLine* pML, float viewingCosLimit);
+        // Compute the cell of a keypoint (return false if outside the grid)
+        bool PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY);
 
-    // Feature extractor. The right is used only in the stereo case.
-    ORBextractor* mpORBextractorLeft, *mpORBextractorRight;
+        vector<size_t> GetFeaturesInArea(const float &x, const float  &y, const float  &r, const int minLevel=-1, const int maxLevel=-1) const;
+        vector<size_t> GetLinesInArea(const float &x1, const float &y1, const float &x2, const float &y2,
+                                      const float &r, const int minLevel=-1, const int maxLevel=-1) const;
 
-    // Frame timestamp.
-    double mTimeStamp;
+        // Search a match for each keypoint in the left image to a keypoint in the right image.
+        // If there is a match, depth is computed and the right coordinate associated to the left keypoint is stored.
+        void ComputeStereoMatches();
 
-    // Calibration matrix and OpenCV distortion parameters.
-    cv::Mat mK;
-    static float fx;
-    static float fy;
-    static float cx;
-    static float cy;
-    static float invfx;
-    static float invfy;
-    cv::Mat mDistCoef;
+        // Associate a "right" coordinate to a keypoint if there is valid depth in the depthmap.
+        void ComputeStereoFromRGBD(const cv::Mat &imDepth);
+        void AnalysisSurfaceNormalfromImage(const cv::Mat &imNormal, cv::Mat &K);
 
-    // Stereo baseline multiplied by fx.
-    float mbf;
+        // Backprojects a keypoint (if stereo/depth info available) into 3D world coordinates.
+        cv::Mat UnprojectStereo(const int &i);
+        Vector6d obtain3DLine(const int &i);
+    public:
+        // Vocabulary used for relocalization.
+        ORBVocabulary* mpORBvocabulary;
 
-    // Stereo baseline in meters.
-    float mb;
+        // Feature extractor. The right is used only in the stereo case.
+        ORBextractor* mpORBextractorLeft, *mpORBextractorRight;
+        // line feature extractor, 自己添加的
+        LineSegment* mpLineSegment;
+        // Frame timestamp.
+        double mTimeStamp;
 
-    // Threshold close/far points. Close points are inserted from 1 view.
-    // Far points are inserted as in the monocular case from 2 views.
-    float mThDepth;
+        // Calibration matrix and OpenCV distortion parameters.
+        cv::Mat mK;
+        static float fx;
+        static float fy;
+        static float cx;
+        static float cy;
+        static float invfx;
+        static float invfy;
+        cv::Mat mDistCoef;
 
-    // Number of KeyPoints.
-    int N;
+        // Stereo baseline multiplied by fx.
+        float mbf;
 
-    // Vector of keypoints (original for visualization) and undistorted (actually used by the system).
-    // In the stereo case, mvKeysUn is redundant as images must be rectified.
-    // In the RGB-D case, RGB images can be distorted.
-    std::vector<cv::KeyPoint> mvKeys, mvKeysRight;
-    std::vector<cv::KeyPoint> mvKeysUn;
+        // Stereo baseline in meters.
+        float mb;
 
-    // Corresponding stereo coordinate and depth for each keypoint.
-    // "Monocular" keypoints have a negative value.
-    std::vector<float> mvuRight;
-    std::vector<float> mvDepth;
+        // Threshold close/far points. Close points are inserted from 1 view.
+        // Far points are inserted as in the monocular case from 2 views.
+        float mThDepth;
 
-    // Bag of Words Vector structures.
-    DBoW2::BowVector mBowVec;
-    DBoW2::FeatureVector mFeatVec;
+        // Number of KeyPoints.
+        int N;
+        int NL; //特征线的个数
+        bool dealWithLine;
+        float blurNumber;
+        // Vector of keypoints (original for visualization) and undistorted (actually used by the system).
+        // In the stereo case, mvKeysUn is redundant as images must be rectified.
+        // In the RGB-D case, RGB images can be distorted.
+        std::vector<cv::KeyPoint> mvKeys, mvKeysRight;
+        std::vector<cv::KeyPoint> mvKeysUn;
 
-    // ORB descriptor, each row associated to a keypoint.
-    cv::Mat mDescriptors, mDescriptorsRight;
+        // Corresponding stereo coordinate and depth for each keypoint.
+        // "Monocular" keypoints have a negative value.
+        std::vector<float> mvuRight;
+        std::vector<float> mvDepth;
+        std::vector<float>  mvDepthLine;
+        // Bag of Words Vector structures.
+        DBoW2::BowVector mBowVec;
+        DBoW2::FeatureVector mFeatVec;
 
-    // MapPoints associated to keypoints, NULL pointer if no association.
-    std::vector<MapPoint*> mvpMapPoints;
+        // ORB descriptor, each row associated to a keypoint.
+        cv::Mat mDescriptors, mDescriptorsRight;
 
-    // Flag to identify outlier associations.
-    std::vector<bool> mvbOutlier;
+        // MapPoints associated to keypoints, NULL pointer if no association.
+        std::vector<MapPoint*> mvpMapPoints;
 
-    // Keypoints are assigned to cells in a grid to reduce matching complexity when projecting MapPoints.
-    static float mfGridElementWidthInv;
-    static float mfGridElementHeightInv;
-    std::vector<std::size_t> mGrid[FRAME_GRID_COLS][FRAME_GRID_ROWS];
+        // Flag to identify outlier associations.
+        std::vector<bool> mvbOutlier;
 
-    // Camera pose.
-    cv::Mat mTcw;
+        SurfaceNormal surfacenomal;
+        vector<SurfaceNormal> vSurfaceNormal;
+        std::vector<VanishingDirection> vVanishingDirection;
+        vector<cv::Point2i> vSurfaceNormalx;vector<cv::Point2i> vSurfaceNormaly;vector<cv::Point2i> vSurfaceNormalz;
 
-    // Current and Next Frame id.
-    static long unsigned int nNextId;
-    long unsigned int mnId;
+        vector<cv::Point3f> vSurfacePointx;vector<cv::Point3f> vSurfacePointy;vector<cv::Point3f> vSurfacePointz;
 
-    // Reference Keyframe.
-    KeyFrame* mpReferenceKF;
+        std::vector<vector<cv::Point2d>> vVanishingLinex;std::vector<vector<cv::Point2d>> vVanishingLiney;std::vector<vector<cv::Point2d>> vVanishingLinez;
+        //2D endpoints, 3D LinesPC
+        std::vector<RandomPoint3d> vVaishingLinePCx;vector<RandomPoint3d> vVaishingLinePCy;vector<RandomPoint3d> vVaishingLinePCz;
+        // 自己添加的，特征线vector，特征线的描述子
+        Mat mLdesc;
+        vector<KeyLine> mvKeylinesUn;
+        vector<Vector3d> mvKeyLineFunctions;    //特征线段所在直线的系数
+        // 和KeyPoint类似，自己添加，标识特征线段是否属于外点
+        vector<bool> mvbLineOutlier;
+        std::vector<MapLine*> mvpMapLines;  //mvpMapLines与keylines相关联
 
-    // Scale pyramid info.
-    int mnScaleLevels;
-    float mfScaleFactor;
-    float mfLogScaleFactor;
-    vector<float> mvScaleFactors;
-    vector<float> mvInvScaleFactors;
-    vector<float> mvLevelSigma2;
-    vector<float> mvInvLevelSigma2;
+        // Keypoints are assigned to cells in a grid to reduce matching complexity when projecting MapPoints.
+        static float mfGridElementWidthInv;
+        static float mfGridElementHeightInv;
+        std::vector<std::size_t> mGrid[FRAME_GRID_COLS][FRAME_GRID_ROWS];
 
-    // Undistorted Image Bounds (computed once).
-    static float mnMinX;
-    static float mnMaxX;
-    static float mnMinY;
-    static float mnMaxY;
+        // Camera pose.
+        cv::Mat mTcw;
 
-    static bool mbInitialComputations;
+        // Current and Next Frame id.
+        static long unsigned int nNextId;
+        long unsigned int mnId;
+
+        // Reference Keyframe.
+        KeyFrame* mpReferenceKF;
+
+        // Scale pyramid info.
+        int mnScaleLevels;
+        float mfScaleFactor;
+        float mfLogScaleFactor;
+        vector<float> mvScaleFactors;
+        vector<float> mvInvScaleFactors;
+        vector<float> mvLevelSigma2;
+        vector<float> mvInvLevelSigma2;
+
+        // Undistorted Image Bounds (computed once).
+        static float mnMinX;
+        static float mnMaxX;
+        static float mnMinY;
+        static float mnMaxY;
+
+        static bool mbInitialComputations;
 
 
-private:
+    private:
 
-    // Undistort keypoints given OpenCV distortion parameters.
-    // Only for the RGB-D case. Stereo must be already rectified!
-    // (called in the constructor).
-    void UndistortKeyPoints();
+        // Undistort keypoints given OpenCV distortion parameters.
+        // Only for the RGB-D case. Stereo must be already rectified!
+        // (called in the constructor).
+        void UndistortKeyPoints();
 
-    // Computes image bounds for the undistorted image (called in the constructor).
-    void ComputeImageBounds(const cv::Mat &imLeft);
+        // Computes image bounds for the undistorted image (called in the constructor).
+        void ComputeImageBounds(const cv::Mat &imLeft);
 
-    // Assign keypoints to the grid for speed up feature matching (called in the constructor).
-    void AssignFeaturesToGrid();
+        // Assign keypoints to the grid for speed up feature matching (called in the constructor).
+        void AssignFeaturesToGrid();
 
-    // Rotation, translation and camera center
-    cv::Mat mRcw;
-    cv::Mat mtcw;
-    cv::Mat mRwc;
-    cv::Mat mOw; //==mtwc
-};
+        // Rotation, translation and camera center
+        cv::Mat mRcw;
+        cv::Mat mtcw;
+        cv::Mat mRwc;
+        cv::Mat mOw; //==mtwc
+    };
 
 }// namespace ORB_SLAM
 

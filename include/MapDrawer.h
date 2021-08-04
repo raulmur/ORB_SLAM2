@@ -39,6 +39,7 @@ public:
     Map* mpMap;
 
     void DrawMapPoints();
+    void DrawMapLines();
     void DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph);
     void DrawCurrentCamera(pangolin::OpenGlMatrix &Twc);
     void SetCurrentCameraPose(const cv::Mat &Tcw);
@@ -46,7 +47,7 @@ public:
     void GetCurrentOpenGLCameraMatrix(pangolin::OpenGlMatrix &M);
 
 private:
-
+    float mLineWidth;    //线特征的尺寸
     float mKeyFrameSize;
     float mKeyFrameLineWidth;
     float mGraphLineWidth;

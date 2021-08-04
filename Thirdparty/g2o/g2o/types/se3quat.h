@@ -218,6 +218,10 @@ namespace g2o {
       {
         return _r*xyz + _t;
       }
+      Vector3d mapTrans(const Vector3d & xyz) const
+      {
+        return xyz + _t;
+      }
 
 
       static SE3Quat exp(const Vector6d & update)

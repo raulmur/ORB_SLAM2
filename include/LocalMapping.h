@@ -77,9 +77,14 @@ protected:
     bool CheckNewKeyFrames();
     void ProcessNewKeyFrame();
     void CreateNewMapPoints();
+    void CreateNewMapLines1();      //仿照点特征，采用线特征对应的端点三角化，误差会很大
+    void CreateNewMapLines2();      //采用两个平面相交至一条直线
 
     void MapPointCulling();
     void SearchInNeighbors();
+    void SearchLineInNeighbors();
+
+    void MapLineCulling();  //类似MapPoint，删除不好的MapLine
 
     void KeyFrameCulling();
 
@@ -108,7 +113,9 @@ protected:
 
     KeyFrame* mpCurrentKeyFrame;
 
-    std::list<MapPoint*> mlpRecentAddedMapPoints;
+    std::list<MapPoint*> mlpRecentAddedMapPoints;   //点特征
+
+    std::list<MapLine*> mlpRecentAddedMapLines; //线特征
 
     std::mutex mMutexNewKFs;
 

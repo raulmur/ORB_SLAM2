@@ -169,7 +169,36 @@ public:
   Vector3d Xw;
   double fx, fy, cx, cy;
 };
+//Manhattan world, compute translation only
+class  EdgeSE3ProjectXYZOnlyTranslation: public  BaseUnaryEdge<2, Vector2d, VertexSE3Expmap>{
+    public:
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
+        EdgeSE3ProjectXYZOnlyTranslation(){}
+
+        bool read(std::istream& is);
+
+        bool write(std::ostream& os) const;
+
+        void computeError()  {
+            const VertexSE3Expmap* v1 = static_cast<const VertexSE3Expmap*>(_vertices[0]);
+            Vector2d obs(_measurement);
+            _error = obs-cam_project(v1->estimate().mapTrans(Xc));
+        }
+
+        bool isDepthPositive() {
+            const VertexSE3Expmap* v1 = static_cast<const VertexSE3Expmap*>(_vertices[0]);
+            return (v1->estimate().mapTrans(Xc))(2)>0.0;
+        }
+
+
+        virtual void linearizeOplus();
+
+        Vector2d cam_project(const Vector3d & trans_xyz) const;
+
+        Vector3d Xc;
+        double fx, fy, cx, cy;
+    };
 
 class  EdgeStereoSE3ProjectXYZOnlyPose: public  BaseUnaryEdge<3, Vector3d, VertexSE3Expmap>{
 public:
@@ -201,6 +230,35 @@ public:
   double fx, fy, cx, cy, bf;
 };
 
+class  EdgeStereoSE3ProjectXYZOnlyTranslation: public  BaseUnaryEdge<3, Vector3d, VertexSE3Expmap>{
+    public:
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+        EdgeStereoSE3ProjectXYZOnlyTranslation(){}
+
+        bool read(std::istream& is);
+
+        bool write(std::ostream& os) const;
+
+        void computeError()  {
+            const VertexSE3Expmap* v1 = static_cast<const VertexSE3Expmap*>(_vertices[0]);
+            Vector3d obs(_measurement);
+            _error = obs - cam_project(v1->estimate().mapTrans(Xc));
+        }
+
+        bool isDepthPositive() {
+            const VertexSE3Expmap* v1 = static_cast<const VertexSE3Expmap*>(_vertices[0]);
+            return (v1->estimate().mapTrans(Xc))(2)>0.0;
+        }
+
+
+        virtual void linearizeOplus();
+
+        Vector3d cam_project(const Vector3d & trans_xyz) const;
+
+        Vector3d Xc;
+        double fx, fy, cx, cy, bf;
+    };
 
 
 } // end namespace

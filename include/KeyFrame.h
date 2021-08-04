@@ -28,10 +28,19 @@
 #include "ORBextractor.h"
 #include "Frame.h"
 #include "KeyFrameDatabase.h"
-
+#include "MapLine.h"
 #include <mutex>
+//#include <opencv2/line_descriptor/descriptor.hpp>
+#include "line_descriptor/descriptor_custom.hpp"
 
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+#include <Eigen/SVD>
 
+using namespace cv;
+//using namespace line_descriptor;
+using namespace cv::line_descriptor;
+using namespace Eigen;
 namespace ORB_SLAM2
 {
 
@@ -39,12 +48,12 @@ class Map;
 class MapPoint;
 class Frame;
 class KeyFrameDatabase;
-
+    class MapLine;
 class KeyFrame
 {
 public:
     KeyFrame(Frame &F, Map* pMap, KeyFrameDatabase* pKFDB);
-
+    KeyFrame(Frame &F, Map* pMap, KeyFrameDatabase* pKFDB,bool isCornerFrame);
     // Pose functions
     void SetPose(const cv::Mat &Tcw);
     cv::Mat GetPose();
@@ -117,11 +126,25 @@ public:
     }
 
 
+    // MapLine observation functions,自己添加的，仿照MapPoint
+    void AddMapLine(MapLine* pML, const size_t &idx);
+    void EraseMapLineMatch(const size_t &idx);
+    void EraseMapLineMatch(MapLine* pML);
+    void ReplaceMapLineMatch(const size_t &idx, MapLine* pML);
+    set<MapLine*> GetMapLines();
+    vector<MapLine*> GetMapLineMatches();
+    int TrackedMapLines(const int &minObs);
+    MapLine* GetMapLine(const size_t &idx);
+    void lineDescriptorMAD( vector<vector<DMatch>> line_matches, double &nn_mad, double &nn12_mad) const;
+
+
     // The following variables are accesed from only 1 thread or never change (no mutex needed).
 public:
 
     static long unsigned int nNextId;
+    static long unsigned int nNextCornerId;
     long unsigned int mnId;
+    long unsigned int mnCornerId;
     const long unsigned int mnFrameId;
 
     const double mTimeStamp;
@@ -156,15 +179,23 @@ public:
     // Calibration parameters
     const float fx, fy, cx, cy, invfx, invfy, mbf, mb, mThDepth;
 
+
     // Number of KeyPoints
     const int N;
-
+    // Number of KeyLines，仿照KeyPoints自己添加的
+    const int NL;
     // KeyPoints, stereo coordinate and descriptors (all associated by an index)
     const std::vector<cv::KeyPoint> mvKeys;
     const std::vector<cv::KeyPoint> mvKeysUn;
     const std::vector<float> mvuRight; // negative value for monocular points
     const std::vector<float> mvDepth; // negative value for monocular points
     const cv::Mat mDescriptors;
+    vector<cv::Point3d> mv3DLineforMap;
+    vector<Vector6d > mvLines3D;
+    // KeyLines，自己添加的，仿照KeyPoints
+    const vector<KeyLine> mvKeyLines;
+    const Mat mLineDescriptors;
+    vector<Vector3d> mvKeyLineFunctions;
 
     //BoW
     DBoW2::BowVector mBowVec;
@@ -201,7 +232,8 @@ protected:
 
     // MapPoints associated to keypoints
     std::vector<MapPoint*> mvpMapPoints;
-
+    // MapLines associated to keylines
+    std::vector<MapLine*> mvpMapLines;
     // BoW
     KeyFrameDatabase* mpKeyFrameDB;
     ORBVocabulary* mpORBvocabulary;

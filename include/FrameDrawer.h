@@ -34,39 +34,49 @@
 namespace ORB_SLAM2
 {
 
-class Tracking;
-class Viewer;
+    class Tracking;
+    class Viewer;
 
-class FrameDrawer
-{
-public:
-    FrameDrawer(Map* pMap);
+    class FrameDrawer
+    {
+    public:
+        FrameDrawer(Map* pMap);
 
-    // Update info from the last processed frame.
-    void Update(Tracking *pTracker);
+        // Update info from the last processed frame.
+        void Update(Tracking *pTracker);
 
-    // Draw last processed frame.
-    cv::Mat DrawFrame();
+        // Draw last processed frame.
+        cv::Mat DrawFrame();
 
-protected:
+    protected:
 
-    void DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText);
+        void DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText);
+        // Info of the frame to be drawn
+        cv::Mat mIm;
+        int N;
+        vector<cv::KeyPoint> mvCurrentKeys;     //当前帧的特征点
+        vector<bool> mvbMap, mvbVO;
+        bool mbOnlyTracking;
+        int mnTracked, mnTrackedVO;
+        vector<cv::KeyPoint> mvIniKeys; //初始化时的特征点
+        vector<int> mvIniMatches;   //跟踪初始化时，前两帧的特征点匹配
+        int mState; //跟踪状态
 
-    // Info of the frame to be drawn
-    cv::Mat mIm;
-    int N;
-    vector<cv::KeyPoint> mvCurrentKeys;
-    vector<bool> mvbMap, mvbVO;
-    bool mbOnlyTracking;
-    int mnTracked, mnTrackedVO;
-    vector<cv::KeyPoint> mvIniKeys;
-    vector<int> mvIniMatches;
-    int mState;
+        // 自己添加的
+        int NL;
+        vector<KeyLine> mvCurrentKeyLines;
+        vector<bool> mvbLineMap, mvbLineVO;
+        vector<KeyLine> mvIniKeyLines;  //初始化时的特征线
 
-    Map* mpMap;
+        int NSNx;int NSNz;int NSNy;
 
-    std::mutex mMutex;
-};
+        vector<cv::Point2i>mvSurfaceNormalx;vector<cv::Point2i>mvSurfaceNormaly;vector<cv::Point2i>mvSurfaceNormalz;
+
+
+        Map* mpMap;
+
+        std::mutex mMutex;
+    };
 
 } //namespace ORB_SLAM
 

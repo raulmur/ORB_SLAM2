@@ -70,6 +70,7 @@ void LoopClosing::Run()
                // In the stereo/RGBD case s=1
                if(ComputeSim3())
                {
+
                    // Perform loop fusion and pose graph optimization
                    CorrectLoop();
                }
@@ -231,18 +232,21 @@ bool LoopClosing::DetectLoop()
 bool LoopClosing::ComputeSim3()
 {
     // For each consistent loop candidate we try to compute a Sim3
-
+    cout<<"loop computeSim3"<<endl;
     const int nInitialCandidates = mvpEnoughConsistentCandidates.size();
 
     // We compute first ORB matches for each candidate
     // If enough matches are found, we setup a Sim3Solver
     ORBmatcher matcher(0.75,true);
-
+    LSDmatcher lmatcher;
     vector<Sim3Solver*> vpSim3Solvers;
     vpSim3Solvers.resize(nInitialCandidates);
 
     vector<vector<MapPoint*> > vvpMapPointMatches;
     vvpMapPointMatches.resize(nInitialCandidates);
+
+    vector<vector<MapLine*>> vvpMaoLineMatches;
+    vvpMaoLineMatches.resize(nInitialCandidates);
 
     vector<bool> vbDiscarded;
     vbDiscarded.resize(nInitialCandidates);
@@ -264,7 +268,8 @@ bool LoopClosing::ComputeSim3()
 
         int nmatches = matcher.SearchByBoW(mpCurrentKF,pKF,vvpMapPointMatches[i]);
 
-        if(nmatches<20)
+        int nlmatches=lmatcher.SearchByProjection(mpCurrentKF,pKF,vvpMaoLineMatches[i]);
+        if(nmatches<20&&nlmatches<6)
         {
             vbDiscarded[i] = true;
             continue;
@@ -647,7 +652,8 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
     cout << "Starting Global Bundle Adjustment" << endl;
 
     int idx =  mnFullBAIdx;
-    Optimizer::GlobalBundleAdjustemnt(mpMap,10,&mbStopGBA,nLoopKF,false);
+//    Optimizer::GlobalBundleAdjustemnt(mpMap,10,&mbStopGBA,nLoopKF,false);   //原本只要点特征的BA
+    Optimizer::GlobalBundleAdjustemnt(mpMap,10,false,&mbStopGBA,nLoopKF,false);  //包含线特征的BA
 
     // Update all MapPoints and KeyFrames
     // Local Mapping was active during BA, that means that there might be new keyframes

@@ -28,13 +28,14 @@
 #include <mutex>
 
 
+#include "MapLine.h"
 
 namespace ORB_SLAM2
 {
 
 class MapPoint;
 class KeyFrame;
-
+class MapLine;
 class Map
 {
 public:
@@ -45,12 +46,20 @@ public:
     void EraseMapPoint(MapPoint* pMP);
     void EraseKeyFrame(KeyFrame* pKF);
     void SetReferenceMapPoints(const std::vector<MapPoint*> &vpMPs);
+
     void InformNewBigChange();
     int GetLastBigChangeIdx();
+    void AddMapLine(MapLine* pML);
+    void EraseMapLine(MapLine* pML);
+    void SetReferenceMapLines(const std::vector<MapLine*> &vpMLs);
 
     std::vector<KeyFrame*> GetAllKeyFrames();
     std::vector<MapPoint*> GetAllMapPoints();
     std::vector<MapPoint*> GetReferenceMapPoints();
+
+    std::vector<MapLine*> GetAllMapLines();
+    std::vector<MapLine*> GetReferenceMapLines();
+    long unsigned int MapLinesInMap();
 
     long unsigned int MapPointsInMap();
     long unsigned  KeyFramesInMap();
@@ -66,17 +75,23 @@ public:
     // This avoid that two points are created simultaneously in separate threads (id conflict)
     std::mutex mMutexPointCreation;
 
+    // 类比MapPoint
+    std::mutex mMutexLineCreation;
+
 protected:
     std::set<MapPoint*> mspMapPoints;
+
+    //---MapLine---
+    std::set<MapLine*> mspMapLines;
+
     std::set<KeyFrame*> mspKeyFrames;
 
     std::vector<MapPoint*> mvpReferenceMapPoints;
-
+    std::vector<MapLine*> mvpReferenceMapLines;
     long unsigned int mnMaxKFid;
 
     // Index related to a big change in the map (loop closure, global BA)
     int mnBigChangeIdx;
-
     std::mutex mMutexMap;
 };
 

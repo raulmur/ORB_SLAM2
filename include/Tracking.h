@@ -38,7 +38,15 @@
 #include "MapDrawer.h"
 #include "System.h"
 
+#include "pointcloudmapping.h"
 #include <mutex>
+
+#include "auxiliar.h"
+#include "ExtractLineSegment.h"
+#include "MapLine.h"
+#include "LSDmatcher.h"
+#include "CornerFrameDatebase.h"
+class PointCloudMapping;
 
 namespace ORB_SLAM2
 {
@@ -54,6 +62,11 @@ class Tracking
 {  
 
 public:
+    // TO DO
+    Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,Map* pCornerMap,
+             KeyFrameDatabase* pKFDB, CornerFrameDatebase *pCFDB,KeyFrameDatabase* pCKFDB, const string &strSettingPath, const int sensor);
+
+    
     Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
              KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor);
 
@@ -61,7 +74,7 @@ public:
     cv::Mat GrabImageStereo(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp);
     cv::Mat GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const double &timestamp);
     cv::Mat GrabImageMonocular(const cv::Mat &im, const double &timestamp);
-
+    cv::Mat GrabImageMonocularWithLine(const cv::Mat &im, const double &timestamp);
     void SetLocalMapper(LocalMapping* pLocalMapper);
     void SetLoopClosing(LoopClosing* pLoopClosing);
     void SetViewer(Viewer* pViewer);
@@ -73,7 +86,7 @@ public:
 
     // Use this function if you have deactivated local mapping and you only want to localize the camera.
     void InformOnlyTracking(const bool &flag);
-
+    double computeCornerAngle();
 
 public:
 
@@ -94,7 +107,10 @@ public:
 
     // Current Frame
     Frame mCurrentFrame;
+    cv::Mat mImRGB;
     cv::Mat mImGray;
+    cv::Mat mNormal;
+    cv::Mat mImDepth;
 
     // Initialization Variables (Monocular)
     std::vector<int> mvIniLastMatches;
@@ -103,12 +119,20 @@ public:
     std::vector<cv::Point3f> mvIniP3D;
     Frame mInitialFrame;
 
+    vector<pair<int, int>> mvLineMatches;
+    vector<cv::Point3f> mvLineS3D;   //初始化时线段起始点的3D位置
+    vector<cv::Point3f> mvLineE3D;   //初始化时线段终止点的3D位置
+    vector<bool> mvbLineTriangulated;   //匹配的线特征是否能够三角化
     // Lists used to recover the full camera trajectory at the end of the execution.
     // Basically we store the reference keyframe for each frame and its relative transformation
     list<cv::Mat> mlRelativeFramePoses;
     list<KeyFrame*> mlpReferences;
     list<double> mlFrameTimes;
     list<bool> mlbLost;
+    cv::Mat Rotation_cm;
+    cv::Mat mRotation_wc;
+    cv::Mat mRotation_cw;
+    cv::Mat mLastRcm;
 
     // True if local mapping is deactivated and we are performing only localization
     bool mbOnlyTracking;
@@ -119,27 +143,47 @@ protected:
 
     // Main tracking function. It is independent of the input sensor.
     void Track();
-
+    void TrackWithLine();
     // Map initialization for stereo and RGB-D
     void StereoInitialization();
 
     // Map initialization for monocular
     void MonocularInitialization();
-    void CreateInitialMapMonocular();
+    void MonocularInitializationWithLine();
 
+    void CreateInitialMapMonocular();
+    void CreateInitialMapMonoWithLine();
+
+    cv::Mat SeekManhattanFrame(vector<SurfaceNormal> &vTempSurfaceNormal,vector<FrameLine> &vVanishingDirection);
+
+    cv::Mat ClusterMultiManhattanFrame(vector<cv::Mat> &vRotationCandidate,double &clusterRatio);
+    vector<vector<int>> EasyHist(vector<float> &vDistance,int &histStart,float &histStep,int&histEnd);
+    cv::Mat ProjectSN2MF(int a,const cv::Mat &R_cm,const vector<SurfaceNormal> &vTempSurfaceNormal,vector<FrameLine> &vVanishingDirection);
+    ResultOfMS ProjectSN2MF(int a,const cv::Mat &R_mc,const vector<SurfaceNormal> &vTempSurfaceNormal,vector<FrameLine> &vVanishingDirection,const int numOfSN);
+    axiSNV ProjectSN2Conic(int a,const cv::Mat &R_mc,const vector<SurfaceNormal> &vTempSurfaceNormal,vector<FrameLine> &vVanishingDirection);
+    cv::Mat TrackManhattanFrame(cv::Mat &mLastRcm,vector<SurfaceNormal> &vSurfaceNormal,vector<FrameLine> &vVanishingDirection);
+
+    sMS MeanShift(vector<cv::Point2d> & v2D);
     void CheckReplacedInLastFrame();
     bool TrackReferenceKeyFrame();
     void UpdateLastFrame();
+    bool TrackWithMotionModelWithLine();
+    bool TranslationWithMotionModel(cv::Mat &relatedPose);
     bool TrackWithMotionModel();
 
     bool Relocalization();
+    bool LocalizationforPL();//designed for tracking based on points and lines
 
     void UpdateLocalMap();
     void UpdateLocalPoints();
+    void UpdateLocalLines();
     void UpdateLocalKeyFrames();
 
     bool TrackLocalMap();
+    bool TrackLocalMapWithLines();
     void SearchLocalPoints();
+    void SearchLocalLines();
+
 
     bool NeedNewKeyFrame();
     void CreateNewKeyFrame();
@@ -158,6 +202,12 @@ protected:
     ORBextractor* mpORBextractorLeft, *mpORBextractorRight;
     ORBextractor* mpIniORBextractor;
 
+    std::vector<KeyFrame*> mvpCornerFrames;
+    std::vector<MapPoint*> mvpCornerMapPoints;
+
+    KeyFrameDatabase* mpCornerKeyFrameDB;
+    CornerFrameDatebase*mpCornerFrameDB;
+    std::queue<Frame*> mqCornerFrame;
     //BoW
     ORBVocabulary* mpORBVocabulary;
     KeyFrameDatabase* mpKeyFrameDB;
@@ -169,7 +219,8 @@ protected:
     KeyFrame* mpReferenceKF;
     std::vector<KeyFrame*> mvpLocalKeyFrames;
     std::vector<MapPoint*> mvpLocalMapPoints;
-    
+    std::vector<MapLine*> mvpLocalMapLines;
+
     // System
     System* mpSystem;
     
@@ -180,12 +231,14 @@ protected:
 
     //Map
     Map* mpMap;
-
+    Map * mpCornerMap;
     //Calibration matrix
     cv::Mat mK;
     cv::Mat mDistCoef;
     float mbf;
 
+    //自己添加的，两个用于纠正畸变的映射矩阵
+    Mat mUndistX, mUndistY;
     //New KeyFrame rules (according to fps)
     int mMinFrames;
     int mMaxFrames;
@@ -200,6 +253,7 @@ protected:
 
     //Current matches in frame
     int mnMatchesInliers;
+    int mnLineMatchesInliers;   //线特征
 
     //Last Frame, KeyFrame and Relocalisation Info
     KeyFrame* mpLastKeyFrame;
@@ -214,6 +268,9 @@ protected:
     bool mbRGB;
 
     list<MapPoint*> mlpTemporalPoints;
+    list<MapLine*>mlpTemporalLines;
+    
+    shared_ptr<PointCloudMapping>  mpPointCloudMapping;
 };
 
 } //namespace ORB_SLAM

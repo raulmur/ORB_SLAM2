@@ -66,18 +66,17 @@ void Map::SetReferenceMapPoints(const vector<MapPoint *> &vpMPs)
     unique_lock<mutex> lock(mMutexMap);
     mvpReferenceMapPoints = vpMPs;
 }
+    void Map::InformNewBigChange()
+    {
+        unique_lock<mutex> lock(mMutexMap);
+        mnBigChangeIdx++;
+    }
 
-void Map::InformNewBigChange()
-{
-    unique_lock<mutex> lock(mMutexMap);
-    mnBigChangeIdx++;
-}
-
-int Map::GetLastBigChangeIdx()
-{
-    unique_lock<mutex> lock(mMutexMap);
-    return mnBigChangeIdx;
-}
+    int Map::GetLastBigChangeIdx()
+    {
+        unique_lock<mutex> lock(mMutexMap);
+        return mnBigChangeIdx;
+    }
 
 vector<KeyFrame*> Map::GetAllKeyFrames()
 {
@@ -119,15 +118,60 @@ void Map::clear()
 {
     for(set<MapPoint*>::iterator sit=mspMapPoints.begin(), send=mspMapPoints.end(); sit!=send; sit++)
         delete *sit;
+    for(set<MapLine*>::iterator sit=mspMapLines.begin(),send=mspMapLines.end();sit!=send;sit++)
+        delete *sit;
 
     for(set<KeyFrame*>::iterator sit=mspKeyFrames.begin(), send=mspKeyFrames.end(); sit!=send; sit++)
         delete *sit;
 
     mspMapPoints.clear();
     mspKeyFrames.clear();
+    mspMapLines.clear();
     mnMaxKFid = 0;
     mvpReferenceMapPoints.clear();
+    mvpReferenceMapLines.clear();
     mvpKeyFrameOrigins.clear();
 }
+    //-----MapLine相关函数------
+    void Map::AddMapLine(MapLine *pML)
+    {
+        unique_lock<mutex> lock(mMutexMap);
+        mspMapLines.insert(pML);
+    }
+
+    void Map::EraseMapLine(MapLine *pML)
+    {
+        unique_lock<mutex> lock(mMutexMap);
+        mspMapLines.erase(pML);
+    }
+
+    /**
+     * @brief 设置参考MapLines，将用于DrawMapLines函数画图
+     * @param vpMLs Local MapLines
+     */
+    void Map::SetReferenceMapLines(const std::vector<MapLine *> &vpMLs)
+    {
+        unique_lock<mutex> lock(mMutexMap);
+        mvpReferenceMapLines = vpMLs;
+    }
+
+    vector<MapLine*> Map::GetAllMapLines()
+    {
+        unique_lock<mutex> lock(mMutexMap);
+        return vector<MapLine*>(mspMapLines.begin(), mspMapLines.end());
+    }
+
+    vector<MapLine*> Map::GetReferenceMapLines()
+    {
+        unique_lock<mutex> lock(mMutexMap);
+        return mvpReferenceMapLines;
+    }
+
+    long unsigned int Map::MapLinesInMap()
+    {
+        unique_lock<mutex> lock(mMutexMap);
+        return mspMapLines.size();
+    }
+
 
 } //namespace ORB_SLAM
