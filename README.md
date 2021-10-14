@@ -19,7 +19,7 @@ alt="ORB-SLAM2" width="240" height="180" border="10" /></a>
 
 [Monocular] Raúl Mur-Artal, J. M. M. Montiel and Juan D. Tardós. **ORB-SLAM: A Versatile and Accurate Monocular SLAM System**. *IEEE Transactions on Robotics,* vol. 31, no. 5, pp. 1147-1163, 2015. (**2015 IEEE Transactions on Robotics Best Paper Award**). **[PDF](http://webdiis.unizar.es/~raulmur/MurMontielTardosTRO15.pdf)**.
 
-[Stereo and RGB-D] Raúl Mur-Artal and Juan D. Tardós. **ORB-SLAM2: an Open-Source SLAM System for Monocular, Stereo and RGB-D Cameras**. *ArXiv preprint arXiv:1610.06475* **[PDF](https://128.84.21.199/pdf/1610.06475.pdf)**.
+[Stereo and RGB-D] Raúl Mur-Artal and Juan D. Tardós. **ORB-SLAM2: an Open-Source SLAM System for Monocular, Stereo and RGB-D Cameras**. *IEEE Transactions on Robotics,* vol. 33, no. 5, pp. 1255-1262, 2017. **[PDF](https://128.84.21.199/pdf/1610.06475.pdf)**.
 
 [DBoW2 Place Recognizer] Dorian Gálvez-López and Juan D. Tardós. **Bags of Binary Words for Fast Place Recognition in Image Sequences**. *IEEE Transactions on Robotics,* vol. 28, no. 5, pp.  1188-1197, 2012. **[PDF](http://doriangalvez.com/php/dl.php?dlp=GalvezTRO12.pdf)**
 
@@ -47,8 +47,12 @@ if you use ORB-SLAM2 (Stereo or RGB-D) in an academic work, please cite:
     @article{murORB2,
       title={{ORB-SLAM2}: an Open-Source {SLAM} System for Monocular, Stereo and {RGB-D} Cameras},
       author={Mur-Artal, Ra\'ul and Tard\'os, Juan D.},
-      journal={arXiv preprint arXiv:1610.06475},
-      year={2016}
+      journal={IEEE Transactions on Robotics},
+      volume={33},
+      number={5},
+      pages={1255--1262},
+      doi = {10.1109/TRO.2017.2705103},
+      year={2017}
      }
 
 # 2. Prerequisites
