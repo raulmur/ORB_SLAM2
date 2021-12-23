@@ -111,3 +111,9 @@ add_executable(mono_euroc
 Examples/Monocular/mono_euroc.cc)
 target_link_libraries(mono_euroc ${PROJECT_NAME})
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/myvideo)
+
+add_executable(myvideo 
+Examples/myvideo/myvideo.cpp)
+target_link_libraries(myvideo ${PROJECT_NAME})
+
