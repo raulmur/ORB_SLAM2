@@ -25,6 +25,7 @@
 #include<string>
 #include<thread>
 #include<opencv2/core/core.hpp>
+#include <unistd.h>
 
 #include "Tracking.h"
 #include "FrameDrawer.h"
@@ -55,6 +56,7 @@ public:
         STEREO=1,
         RGBD=2
     };
+    int frameid = -1;
 
 public:
 

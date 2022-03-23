@@ -79,6 +79,7 @@ int Map::GetLastBigChangeIdx()
     return mnBigChangeIdx;
 }
 
+// 获取与当前Map有关联的所有关键帧
 vector<KeyFrame*> Map::GetAllKeyFrames()
 {
     unique_lock<mutex> lock(mMutexMap);

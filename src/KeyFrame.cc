@@ -95,6 +95,7 @@ cv::Mat KeyFrame::GetPoseInverse()
     return Twc.clone();
 }
 
+// 获取关键帧的坐标矩阵（x,y,z）
 cv::Mat KeyFrame::GetCameraCenter()
 {
     unique_lock<mutex> lock(mMutexPose);
@@ -107,7 +108,7 @@ cv::Mat KeyFrame::GetStereoCenter()
     return Cw.clone();
 }
 
-
+// 获取camera到world的旋转矩阵；Tcw：camera到world的旋转矩阵
 cv::Mat KeyFrame::GetRotation()
 {
     unique_lock<mutex> lock(mMutexPose);

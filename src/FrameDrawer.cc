@@ -142,6 +142,7 @@ void FrameDrawer::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
         int nKFs = mpMap->KeyFramesInMap();
         int nMPs = mpMap->MapPointsInMap();
         s << "KFs: " << nKFs << ", MPs: " << nMPs << ", Matches: " << mnTracked;
+        cout << "KFs: " << nKFs << ", MPs: " << nMPs << ", Matches: " << mnTracked << endl;
         if(mnTrackedVO>0)
             s << ", + VO matches: " << mnTrackedVO;
     }

@@ -381,7 +381,7 @@ bool LoopClosing::ComputeSim3()
         if(mvpCurrentMatchedPoints[i])
             nTotalMatches++;
     }
-
+    cout << "nTotalMatches " << nTotalMatches << endl;
     if(nTotalMatches>=40)
     {
         for(int i=0; i<nInitialCandidates; i++)
