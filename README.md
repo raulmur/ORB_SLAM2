@@ -1,11 +1,5 @@
-# Add Notes and fix some bugs
+# Add Notes for ORB-SLAM2 and fix some bugs
 > Reference:
-> - https://github.com/raulmur/ORB_SLAM2
-> - https://github.com/zhangzjjjjjj/ORB-Code-Notes
-
-# ORB-SLAM2
-Add notes for ORB_SLAM2/src and ORB_SLAM2/include
-
 > - https://github.com/raulmur/ORB_SLAM2
 > - https://github.com/zhangzjjjjjj/ORB-Code-Notes
 
