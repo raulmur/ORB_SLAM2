@@ -1,3 +1,16 @@
+
+# cmake output file
+build/
+Thirdparty/g2o/build
+Thirdparty/DBoW2/build
+lib/
+Vocabulary/*.txt
+
+
+# image
+*.jpg
+*.png
+
 CMakeLists.txt.user
 Examples/Monocular/mono_euroc
 Examples/Monocular/mono_kitti
