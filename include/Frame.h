@@ -152,9 +152,11 @@ namespace ORB_SLAM2
         DBoW2::FeatureVector mFeatVec;  // 特征向量
 
         // ORB descriptor, each row associated to a keypoint.
+        // ORB描述子，每一行关联到一个关键点
         cv::Mat mDescriptors, mDescriptorsRight;
 
         // MapPoints associated to keypoints, NULL pointer if no association.
+        // MapPoints关联到关键点，如果没有关联，则为NULL指针
         std::vector<MapPoint *> mvpMapPoints;
 
         // Flag to identify outlier associations.   判断是否是外点的flag
@@ -176,6 +178,7 @@ namespace ORB_SLAM2
         KeyFrame *mpReferenceKF;
 
         // Scale pyramid info.
+        // 尺度金字塔信息
         int mnScaleLevels;
         float mfScaleFactor;
         float mfLogScaleFactor;
@@ -185,6 +188,7 @@ namespace ORB_SLAM2
         vector<float> mvInvLevelSigma2;
 
         // Undistorted Image Bounds (computed once).
+        // 不失真的图像边界（仅计算一次）
         static float mnMinX;
         static float mnMaxX;
         static float mnMinY;
@@ -196,19 +200,22 @@ namespace ORB_SLAM2
         // Undistort keypoints given OpenCV distortion parameters.
         // Only for the RGB-D case. Stereo must be already rectified!
         // (called in the constructor).
+        // 在给定OpenCV失真参数的情况下不失真的关键点。仅适用于RGB-D情况，双目必须已经校正，在构造函数中使用
         void UndistortKeyPoints();
 
         // Computes image bounds for the undistorted image (called in the constructor).
+        // 计算未失真图像的的图像边界（在构造函数中使用）
         void ComputeImageBounds(const cv::Mat &imLeft);
 
         // Assign keypoints to the grid for speed up feature matching (called in the constructor).
+        // 将关键点分配给网格以加快特征匹配（在构造函数中调用）
         void AssignFeaturesToGrid();
 
         // Rotation, translation and camera center
-        cv::Mat mRcw;   // The rotation of the world to the camera or the camera to the world?
-        cv::Mat mtcw;   // The translation of the world to the camera or the camera to the world?
-        cv::Mat mRwc;   // The rotation of the world to the camera or the camera to the world?
-        cv::Mat mOw; //==mtwc
+        cv::Mat mRcw;   // 相机坐标系到世界坐标系的旋转矩阵
+        cv::Mat mtcw;   // 相机坐标系到世界坐标系的平移向量
+        cv::Mat mRwc;   // 世界坐标系到相机坐标系的旋转矩阵
+        cv::Mat mOw; //==mtwc，世界坐标系到相机坐标系的平移向量
     };
 
 } // namespace ORB_SLAM
