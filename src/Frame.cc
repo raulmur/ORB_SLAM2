@@ -63,6 +63,7 @@ namespace ORB_SLAM2
           mpReferenceKF(static_cast<KeyFrame *>(NULL))
     {
         // Frame ID
+        // nNextID是一个从0开始的变量，每次调用这个函数都会加1，赋值给mnID
         mnId = nNextId++;
 
         // Scale Level Info
@@ -85,6 +86,7 @@ namespace ORB_SLAM2
         if (mvKeys.empty())
             return;
 
+        // 将关键点消除畸变
         UndistortKeyPoints();
 
         ComputeStereoMatches();
@@ -139,6 +141,7 @@ namespace ORB_SLAM2
         if (mvKeys.empty())
             return;
 
+        // 将关键点消除畸变
         UndistortKeyPoints();
 
         ComputeStereoFromRGBD(imDepth);
@@ -169,15 +172,35 @@ namespace ORB_SLAM2
         AssignFeaturesToGrid();
     }
 
-    // New Frame for monocular sensor
+    // 单目模式下构造Frame对象
     Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor *extractor, ORBVocabulary *voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
         : mpORBvocabulary(voc), mpORBextractorLeft(extractor), mpORBextractorRight(static_cast<ORBextractor *>(NULL)),
           mTimeStamp(timeStamp), mK(K.clone()), mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
     {
+        // 这里简单整理一下参数的由来
+        // imGray、timeStamp
+        // 首先在主函数的for循环中依次读取每一帧图像，每读取一次，调用System类的成员函数TrackMoncular，将图像传给它
+        // 然后在TrackMoncular函数中调用Tracking类的对象tracker（它是System类的成员变量）的GrabImageMoncular函数
+        // 在GrabImageMoncular函数中将图像作为参数传给Frame类的构造函数，并将Frame对象返回给成员变量mCurrentFrame
+
+        // K,distCoef,bf,thDepth,extractor
+        // 这几个变量其实都是从参数文件里读出来的，都是在构造函数中通过读取参数文件初始化的
+        // 具体来说，在主函数中将参数文件路径作为参数传入System类的构造函数，在构造函数中新建了Tracking对象
+        // 将我们传入的文件路径传给Tracking的构造函数
+        // 在Tracking的构造函数中一次对这些参数进行了读取并赋给相应成员变量。
+        // 最后在Tracking类中的GrabImageMonocular函数中将这些成员变量传入Frame类的构造函数，就得到了现在看到的
+
+        // voc
+        // 首先我们输入了字典文件路径，然后在主函数中ORB_SLAM2::System SLAM对象构造时读取了这个路径，而在System类的构造函数中
+        // 根据路径读取了数据并赋给成员变量mpVocabulary并且将这个成员变量mpORBVocabulary，
+        // 然后再Tracking的成员函数GrabImageMonocular中作为参数被传入Frame的构造函数，也就到了这里。
+        //
         // Frame ID
+        // nNextId是一个初值为0的累加变量，每次调用Frame，首先将nNextId的值赋给mnId，然后自增1
         mnId = nNextId++;
 
         // Scale Level Info
+        // 获取传入的ORB参数给Frame成员变量
         mnScaleLevels = mpORBextractorLeft->GetLevels();
         mfScaleFactor = mpORBextractorLeft->GetScaleFactor();
         mfLogScaleFactor = log(mfScaleFactor);
@@ -187,18 +210,21 @@ namespace ORB_SLAM2
         mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
 
         // ORB extraction
-        // 提取ORB特征点
+        // 对传入的图像提取ORB特征，提取结果返回给了Frame成员变量mvKeys，mDescriptors
         ExtractORB(0, imGray);
 
-        // 
+        // 获取提取到的特征点的个数
         N = mvKeys.size();
 
         if (mvKeys.empty())
             return;
 
+        // 对提取到的特征点坐标按照畸变参数校正
         UndistortKeyPoints();
 
         // Set no stereo information
+        // 注意，这两个变量支队双目立体的情形有用，对于单目没用，所有的值全部为-1
+        // 这个很重要，在后面会用到
         mvuRight = vector<float>(N, -1);
         mvDepth = vector<float>(N, -1);
 
@@ -230,6 +256,7 @@ namespace ORB_SLAM2
 
     void Frame::AssignFeaturesToGrid()
     {
+        // 将根据畸变参数校正后的特征点按网格进行划分
         int nReserve = 0.5f * N / (FRAME_GRID_COLS * FRAME_GRID_ROWS);
         for (unsigned int i = 0; i < FRAME_GRID_COLS; i++)
             for (unsigned int j = 0; j < FRAME_GRID_ROWS; j++)
@@ -250,24 +277,29 @@ namespace ORB_SLAM2
         // 提取ORB特征点：计算图像金字塔、网格化每层金字塔、
         // 按预定比例在每层金字塔上提取特征点、计算特征点的描述子
         // mvKeys: 提取到的关键点
-        if (flag == 0)  // 0 for left; other for right
+        // 注意下面的用法，在ORBExtractor中重载了括号运算符
+        if (flag == 0) // 0：单目；
             (*mpORBextractorLeft)(im, cv::Mat(), mvKeys, mDescriptors);
-        else
+        else    // 除单目外的其它情况
             (*mpORBextractorRight)(im, cv::Mat(), mvKeysRight, mDescriptorsRight);
     }
 
     void Frame::SetPose(cv::Mat Tcw)
     {
+        // 将参数传入的变换矩阵T赋给成员变量mTcw
         mTcw = Tcw.clone();
+        // 更新一下成员变量，因为这里是对变量矩阵赋值了，并没有修改R、t
         UpdatePoseMatrices();
     }
 
     void Frame::UpdatePoseMatrices()
     {
-        mRcw = mTcw.rowRange(0, 3).colRange(0, 3);
-        mRwc = mRcw.t();
-        mtcw = mTcw.rowRange(0, 3).col(3);
-        mOw = -mRcw.t() * mtcw;
+        // 和SetPose函数配合使用，用于基于传入的变换矩阵T更新对应的成员变量R、t
+        // 矩阵的块操作，取变换矩阵的前3*3作为旋转矩阵赋给成员变量mRcw
+        mRcw = mTcw.rowRange(0, 3).colRange(0, 3); // Rotation matrix of the camera to the world
+        mRwc = mRcw.t();                           // Rotation matrix of the world to the camera 正定矩阵的转置等于它的逆
+        mtcw = mTcw.rowRange(0, 3).col(3);         // Transform vector of the camera to world
+        mOw = -mRcw.t() * mtcw;                    // 逆平移，还需要乘以-mRcw.t()
     }
 
     bool Frame::isInFrustum(MapPoint *pMP, float viewingCosLimit)
@@ -397,15 +429,21 @@ namespace ORB_SLAM2
 
     void Frame::ComputeBoW()
     {
+        // 如果词袋向量为空开始计算
         if (mBowVec.empty())
         {
+            // 将一个大的Mat描述矩阵按行拆分成一个个的描述子，以vector的形式返回
             vector<cv::Mat> vCurrentDesc = Converter::toDescriptorVector(mDescriptors);
+            // 将vector形式的特征向量转换成ORB字典，这里的transform是DBoW的API，无需进一步深究
+            // 返回值是mBowVec和mFeatVec
             mpORBvocabulary->transform(vCurrentDesc, mBowVec, mFeatVec, 4);
         }
     }
 
+    // 将当前帧的关键点消除畸变
     void Frame::UndistortKeyPoints()
     {
+        // 如果说k1都为0，认为没有畸变，直接复制
         if (mDistCoef.at<float>(0) == 0.0)
         {
             mvKeysUn = mvKeys;
@@ -413,6 +451,7 @@ namespace ORB_SLAM2
         }
 
         // Fill matrix with points
+        // 构造一个N*2的矩阵，每一行是一个特征点的(x,y)坐标
         cv::Mat mat(N, 2, CV_32F);
         for (int i = 0; i < N; i++)
         {
@@ -420,8 +459,10 @@ namespace ORB_SLAM2
             mat.at<float>(i, 1) = mvKeys[i].pt.y;
         }
 
-        // Undistort points
+        // Undistort points 不失真点
+        // mat由N*2*1(1个通道)变成N*1*2
         mat = mat.reshape(2);
+        // 构造好格式后调用OpenCV的函数消除畸变
         cv::undistortPoints(mat, mat, mK, mDistCoef, cv::Mat(), mK);
         mat = mat.reshape(1);
 

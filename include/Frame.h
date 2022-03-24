@@ -124,6 +124,7 @@ namespace ORB_SLAM2
         float mbf;
 
         // Stereo baseline in meters.
+        // 注意了，这里说的基线的长度单位是m
         float mb;
 
         // Threshold close/far points. Close points are inserted from 1 view.
@@ -141,12 +142,14 @@ namespace ORB_SLAM2
 
         // Corresponding stereo coordinate and depth for each keypoint.
         // "Monocular" keypoints have a negative value.
+        // 这两个vector是用于单目情形的，表示每个点双目坐标系和深度
+        // 对于单目的特征点，值为负
         std::vector<float> mvuRight;
         std::vector<float> mvDepth;
 
         // Bag of Words Vector structures.
-        DBoW2::BowVector mBowVec;
-        DBoW2::FeatureVector mFeatVec;
+        DBoW2::BowVector mBowVec;       // 词袋向量
+        DBoW2::FeatureVector mFeatVec;  // 特征向量
 
         // ORB descriptor, each row associated to a keypoint.
         cv::Mat mDescriptors, mDescriptorsRight;
@@ -154,7 +157,7 @@ namespace ORB_SLAM2
         // MapPoints associated to keypoints, NULL pointer if no association.
         std::vector<MapPoint *> mvpMapPoints;
 
-        // Flag to identify outlier associations.
+        // Flag to identify outlier associations.   判断是否是外点的flag
         std::vector<bool> mvbOutlier;
 
         // Keypoints are assigned to cells in a grid to reduce matching complexity when projecting MapPoints.
