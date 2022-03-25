@@ -109,6 +109,7 @@ namespace ORB_SLAM2
         list<bool> mlbLost;
 
         // True if local mapping is deactivated and we are performing only localization
+        // 这个flag的用途是决定系统是不是只tracking不mapping，如果只需要tracking的话，设置为true，否则设置为false
         bool mbOnlyTracking;
 
         void Reset();
@@ -152,8 +153,8 @@ namespace ORB_SLAM2
         LoopClosing *mpLoopClosing;
 
         // ORB
-        ORBextractor *mpORBextractorLeft, *mpORBextractorRight;
-        ORBextractor *mpIniORBextractor;
+        ORBextractor *mpORBextractorLeft, *mpORBextractorRight; // left对应单目中非初始帧的后续图像
+        ORBextractor *mpIniORBextractor;    // 用于在未初始或者第一帧图像的ORB提取对象，它在Tracking类的构造函数中被初始化
 
         // BoW
         ORBVocabulary *mpORBVocabulary;
@@ -170,12 +171,12 @@ namespace ORB_SLAM2
         // System
         System *mpSystem;
 
-        // Drawers
+        // Drawers  // 可视化相关变量
         Viewer *mpViewer;
         FrameDrawer *mpFrameDrawer;
         MapDrawer *mpMapDrawer;
 
-        // Map
+        // Map  // 地图
         Map *mpMap;
 
         // Calibration matrix
