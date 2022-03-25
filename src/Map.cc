@@ -32,7 +32,11 @@ Map::Map():mnMaxKFid(0),mnBigChangeIdx(0)
 void Map::AddKeyFrame(KeyFrame *pKF)
 {
     unique_lock<mutex> lock(mMutexMap);
+    // 将参数输入的关键帧插入到Map类的成员变量mspKeyFrames中，这是一个set
     mspKeyFrames.insert(pKF);
+    // 进行了数值比较，并把较大的赋给mnMaxKFid
+    // KeyFrame的mnId是来自于在构造函数中的赋值，是直接由Frame的mnId赋值过来的
+    // 而Frame的mnId是在Frame的构造函数中累加得到的
     if(pKF->mnId>mnMaxKFid)
         mnMaxKFid=pKF->mnId;
 }
@@ -40,7 +44,7 @@ void Map::AddKeyFrame(KeyFrame *pKF)
 void Map::AddMapPoint(MapPoint *pMP)
 {
     unique_lock<mutex> lock(mMutexMap);
-    mspMapPoints.insert(pMP);
+    mspMapPoints.insert(pMP);   // 插入地图点
 }
 
 void Map::EraseMapPoint(MapPoint *pMP)
@@ -83,19 +87,21 @@ int Map::GetLastBigChangeIdx()
 vector<KeyFrame*> Map::GetAllKeyFrames()
 {
     unique_lock<mutex> lock(mMutexMap);
+    // 把set类型的成员变量mspKeyFrame变成vector的形式返回
     return vector<KeyFrame*>(mspKeyFrames.begin(),mspKeyFrames.end());
 }
 
 vector<MapPoint*> Map::GetAllMapPoints()
 {
     unique_lock<mutex> lock(mMutexMap);
+    // 把set类型的成员变量mspMapPoint变成vector的形式返回
     return vector<MapPoint*>(mspMapPoints.begin(),mspMapPoints.end());
 }
 
 long unsigned int Map::MapPointsInMap()
 {
-    unique_lock<mutex> lock(mMutexMap);
-    return mspMapPoints.size();
+    unique_lock<mutex> lock(mMutexMap); // 线程锁
+    return mspMapPoints.size(); // 返回当前Map中的地图点个数
 }
 
 long unsigned int Map::KeyFramesInMap()
@@ -118,12 +124,15 @@ long unsigned int Map::GetMaxKFid()
 
 void Map::clear()
 {
+    // 删除所有地图点
     for(set<MapPoint*>::iterator sit=mspMapPoints.begin(), send=mspMapPoints.end(); sit!=send; sit++)
         delete *sit;
-
+    
+    // 删除所有关键帧
     for(set<KeyFrame*>::iterator sit=mspKeyFrames.begin(), send=mspKeyFrames.end(); sit!=send; sit++)
         delete *sit;
 
+    // 调用set和vector类型的成员函数clear清空内容
     mspMapPoints.clear();
     mspKeyFrames.clear();
     mnMaxKFid = 0;

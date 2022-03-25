@@ -1655,6 +1655,7 @@ namespace ORB_SLAM2
             mpViewer->Release();
     }
 
+    // 重新读取配置文件（相机内参、畸变参数、基线？）
     void Tracking::ChangeCalibration(const string &strSettingPath)
     {
         cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);

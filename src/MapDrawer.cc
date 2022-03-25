@@ -221,7 +221,9 @@ void MapDrawer::DrawCurrentCamera(pangolin::OpenGlMatrix &Twc)
 
 void MapDrawer::SetCurrentCameraPose(const cv::Mat &Tcw)
 {
+    // 线程独占锁
     unique_lock<mutex> lock(mMutexCamera);
+    // 将传入的相机位姿直接赋给成员变量mCameraPose
     mCameraPose = Tcw.clone();
 }
 
