@@ -148,7 +148,7 @@ public:
     int mnRelocWords;
     float mRelocScore;
 
-    // Variables used by loop closing
+    // Variables used by loop closing   回环检测使用的变量
     cv::Mat mTcwGBA;
     cv::Mat mTcwBefGBA;
     long unsigned int mnBAGlobalForKF;
@@ -193,9 +193,9 @@ public:
 protected:
 
     // SE3 Pose and camera center
-    cv::Mat Tcw;
-    cv::Mat Twc;
-    cv::Mat Ow;
+    cv::Mat Tcw;    // camera到world的4*4的变换矩阵（SE3特殊欧式群）
+    cv::Mat Twc;    // world到camera的4*4的变换矩阵
+    cv::Mat Ow;     // 相机中心在世界坐标系下的坐标
 
     cv::Mat Cw; // Stereo middel point. Only for visualization
 
