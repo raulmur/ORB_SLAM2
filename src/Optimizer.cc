@@ -166,42 +166,72 @@ namespace ORB_SLAM2
                 // 这里针对不同情况进行了一个判断，即mvuRight中对应位置的元素值是否小于0
                 // 它最一开始是在Frame.cc的228行赋值的，关键帧KeyFrame中的mvuRight是在构造函数中直接拷贝的对应Frame的mvuRight(KeyFrame.cc,41行)
                 // 它主要是针对双目情况，对于单目情况，它的所有的元素都为-1(Frame.cc,228行)
-                
+                // 所以明白了这点以后，这里其实也是根据mvuRight的值，对单目和双目两种情况进行了判断
+                // 因为在MapPoint.cc的127行也说了，双目的话相当于有两个关键帧观测，单目只有一个
                 if (pKF->mvuRight[mit->second] < 0)
                 {
+                    // 单目情况
+                    // 获取关键帧中的像素坐标
                     Eigen::Matrix<double, 2, 1> obs;
                     obs << kpUn.pt.x, kpUn.pt.y;
 
+                    // 新建一个边，这个边的类型是EdgeSE3ProjectXYZ
                     g2o::EdgeSE3ProjectXYZ *e = new g2o::EdgeSE3ProjectXYZ();
 
+                    // 既然是边，就需要连接两个节点，所以这里分别设置边的两个端点，这里边的指向是从地图点到关键帧
+                    // 上面在添加节点的时候都是调用optimizer的成员函数addVertex，所以获取节点还是使用optimizer
+                    // 这里id就是上面128行计算得到的ID，地图点
                     e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex *>(optimizer.vertex(id)));
+                    // 对于每一个与当前地图点相关联的关键帧，获取它的ID，以此为索引确定边的另一端
                     e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex *>(optimizer.vertex(pKF->mnId)));
+                    // obs是我们获取的当前地图点在关键帧上投影得到的像素坐标，作为观测添加到边中
                     e->setMeasurement(obs);
+                    // 这里获取了关键帧中该点所在金字塔层数对应的InvLevelSigma2的值
+                    // 关键帧中的mvInvLevelSigma是由Frame直接拷贝过来的(KeyFrame.cc，line 44)
+                    // 而Frame中的mvInvLevelSigma又是由Frame的ORBextractor指针类型的成员变量mpORBextractorLeft的成员函数GetInverseScaleSigmaSquare获得的(Frame.cc 76)
+                    // mpORBextractorLeft是由Frame的构造函数的传入参数extractorLeft获得的(Frame.cc,line 62)
+                    // 进一步，成员函数GetInverseScaleSigmaSquares返回的值是ORBextractor的成员变量mvInvLevelSigma2(ORBextractor.h,line,84)
+                    // 进一步，每一层的mvInvLevelSigma2等于每一层mvLevelSigma2的倒数(ORBextractor.cc,line 445)
+                    // 每一层mvLevelSigma2等于每一层mvScaleFactor的平方(ORBextractor.cc，line 434)
+                    // 而每一层的mvScaleFactor等于上一层的mvScaleFactor乘以配置文件里指定的scaleFactor(ORBextractor.cc，line 433)
                     const float &invSigma2 = pKF->mvInvLevelSigma2[kpUn.octave];
+                    // 设置边的信息矩阵，等于协方差矩阵之逆
                     e->setInformation(Eigen::Matrix2d::Identity() * invSigma2);
 
+                    // 是否需要鲁棒，这是函数传入的参数之一，默认为true，如果不需要鲁棒就不会执行下面的代码
                     if (bRobust)
                     {
                         g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
                         e->setRobustKernel(rk);
+                        // 将刚刚上面107行设置的数值传进来
                         rk->setDelta(thHuber2D);
                     }
 
+                    // 再将关键帧所应的相机内参传给边，以便于计算
+                    // 和上面的参数传递路径类似，关键帧KeyFrame的fx参数拷贝于Frame的fx(KeyFrame.cc,line 39)，而Frame的fx由构造函数传入的参数指定(Frame.cc,line 241)
                     e->fx = pKF->fx;
                     e->fy = pKF->fy;
                     e->cx = pKF->cx;
                     e->cy = pKF->cy;
 
+                    // 最后，终于到了这一步，将构造好的边添加到优化器中，太辛苦了
                     optimizer.addEdge(e);
                 }
                 else
                 {
+                    // 双目情况，在看完了单目的添加边后，双目基本上是一样的
                     Eigen::Matrix<double, 3, 1> obs;
+                    // 上面说了，在单目时mvuRight所有元素都为-1，但双目就不是了，而是算出来的一个值
+                    // 具体计算在Frame.cc的631行、615行
+                    // 由于现在主要学习的是单目，所以双目的内容暂时就不看了，以后有时间再看
                     const float kp_ur = pKF->mvuRight[mit->second];
+                    // 所以双目的观测除了关键帧上的x、y坐标，还有个ur
                     obs << kpUn.pt.x, kpUn.pt.y, kp_ur;
 
+                    // 注意这里的边的类型是EdgeStereoSE3ProjectXYZ
                     g2o::EdgeStereoSE3ProjectXYZ *e = new g2o::EdgeStereoSE3ProjectXYZ();
 
+                    // 这里设置两个顶点、观测、信息矩阵的步骤和单目是一样的
                     e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex *>(optimizer.vertex(id)));
                     e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex *>(optimizer.vertex(pKF->mnId)));
                     e->setMeasurement(obs);
@@ -209,13 +239,16 @@ namespace ORB_SLAM2
                     Eigen::Matrix3d Info = Eigen::Matrix3d::Identity() * invSigma2;
                     e->setInformation(Info);
 
+                    // 边是否需要鲁棒，默认是true
                     if (bRobust)
                     {
                         g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
                         e->setRobustKernel(rk);
+                        // 这里就用到了上面设置的第二个参数
                         rk->setDelta(thHuber3D);
                     }
 
+                    // 将关键帧的一些内参传给边
                     e->fx = pKF->fx;
                     e->fy = pKF->fy;
                     e->cx = pKF->cx;
@@ -263,26 +296,37 @@ namespace ORB_SLAM2
             }
         }
 
-        // Points
+        // Points 遍历每个地图点，更新为优化后的数据
         for (size_t i = 0; i < vpMP.size(); i++)
         {
+            // 如果说它没算在优化变量里，直接跳过，也就是说和原来一样，没有改变
             if (vbNotIncludedMP[i])
                 continue;
 
+            // 获取地图点
             MapPoint *pMP = vpMP[i];
 
+            // 如果这个地图点是坏的，也是直接跳过
             if (pMP->isBad())
                 continue;
+
+            // 与前面类似，根据地图点的ID获取到更新优化后的节点
             g2o::VertexSBAPointXYZ *vPoint = static_cast<g2o::VertexSBAPointXYZ *>(optimizer.vertex(pMP->mnId + maxKFid + 1));
 
+            // 如果nLoopKF==0执行下面代码，nLoopKF默认为0
             if (nLoopKF == 0)
             {
+                // 从更新后的节点中利用estimate函数读取数据，并将其转换成Mat格式
+                // 然后调用MapPoint的成员函数SetWorldPos将更新后的结果重新赋值
                 pMP->SetWorldPos(Converter::toCvMat(vPoint->estimate()));
+                // 对地图点坐标进行重新赋值后更新一下深度
                 pMP->UpdateNormalAndDepth();
             }
             else
             {
+                // 如果nLoopKF不为0，执行下面代码
                 pMP->mPosGBA.create(3, 1, CV_32F);
+                // 调用Mat的成员函数直接将内容拷贝给mPoseGBA
                 Converter::toCvMat(vPoint->estimate()).copyTo(pMP->mPosGBA);
                 pMP->mnBAGlobalForKF = nLoopKF;
             }
@@ -291,86 +335,112 @@ namespace ORB_SLAM2
 
     int Optimizer::PoseOptimization(Frame *pFrame)
     {
+        // 首先要明白这个函数的作用，它是专门用来优化帧的位姿的
+        // 换句话说就是对于地图点和帧，认为地图点是准确的，不动，不断调整帧的位姿来实现优化
+        // 这一点就和上面的全局BA不一样了，全局BA是同时优化地图点和帧的位姿
+
+        // 构造优化器
         g2o::SparseOptimizer optimizer;
         g2o::BlockSolver_6_3::LinearSolverType *linearSolver;
 
         linearSolver = new g2o::LinearSolverDense<g2o::BlockSolver_6_3::PoseMatrixType>();
 
         g2o::BlockSolver_6_3 *solver_ptr = new g2o::BlockSolver_6_3(linearSolver);
-
+        // 设置优化方法
         g2o::OptimizationAlgorithmLevenberg *solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
         optimizer.setAlgorithm(solver);
 
         int nInitialCorrespondences = 0;
 
         // Set Frame vertex
+        // 节点类型为VertexSE3Expmap，这和上面BundleAdjustment函数中关键帧节点类型是一样的
         g2o::VertexSE3Expmap *vSE3 = new g2o::VertexSE3Expmap();
+        // 整体步骤和上面相同，还是获取到帧中的4*4变换矩阵，然后再将其转换成g2o的SE3Quat形式
         vSE3->setEstimate(Converter::toSE3Quat(pFrame->mTcw));
-        vSE3->setId(0);
-        vSE3->setFixed(false);
-        optimizer.addVertex(vSE3);
+        vSE3->setId(0); // 设置帧节点的ID为0，后面会用到
+        vSE3->setFixed(false);  // 设置节点不固定
+        optimizer.addVertex(vSE3);  // 添加节点
 
-        // Set MapPoint vertices
+        // Set MapPoint vertices 设置一堆地图节点和边
         const int N = pFrame->N;
 
+        // 针对单目，注意边的类型是EdgeSE3ProjectXYZOnlyPose
         vector<g2o::EdgeSE3ProjectXYZOnlyPose *> vpEdgesMono;
         vector<size_t> vnIndexEdgeMono;
+        // 长度设置为帧中特征点个数
         vpEdgesMono.reserve(N);
         vnIndexEdgeMono.reserve(N);
 
+        // 针对双目，注意边的类型是EdgeStereoSE3ProjectXYZPose
         vector<g2o::EdgeStereoSE3ProjectXYZOnlyPose *> vpEdgesStereo;
         vector<size_t> vnIndexEdgeStereo;
+        // 长度设置为帧中特征点个数
         vpEdgesStereo.reserve(N);
         vnIndexEdgeStereo.reserve(N);
 
+        // 针对单目、双目有不同阈值
         const float deltaMono = sqrt(5.991);
         const float deltaStereo = sqrt(7.815);
 
         {
+            // 调用了MapPoint类中的全局线程独占锁
             unique_lock<mutex> lock(MapPoint::mGlobalMutex);
 
+            // 开始迭代帧中的特征点所对应的地图点
             for (int i = 0; i < N; i++)
             {
+                // 获取具体的地图点
                 MapPoint *pMP = pFrame->mvpMapPoints[i];
+                // 如果这个点OK的话继续，否则什么都不做了
                 if (pMP)
                 {
                     // Monocular observation
+                    // 这个和之前全局BA函数中是一样的，对于单目而言mvuRight的每个元素都为-1
                     if (pFrame->mvuRight[i] < 0)
                     {
                         nInitialCorrespondences++;
                         pFrame->mvbOutlier[i] = false;
 
+                        // 新建一个Matrix类型的2*1的观测，其实就是这个地图点对应特征点的像素坐标
                         Eigen::Matrix<double, 2, 1> obs;
-                        const cv::KeyPoint &kpUn = pFrame->mvKeysUn[i];
-                        obs << kpUn.pt.x, kpUn.pt.y;
+                        const cv::KeyPoint &kpUn = pFrame->mvKeysUn[i]; // 获取对应特征点像素坐标
+                        obs << kpUn.pt.x, kpUn.pt.y;    // 赋值
 
+                        // 新建一个边，这个边比较特殊，是一个一元边，只有一个连接点，连接到它自身
                         g2o::EdgeSE3ProjectXYZOnlyPose *e = new g2o::EdgeSE3ProjectXYZOnlyPose();
 
+                        // 首先设置边的一端是我们刚刚添加好的帧节点
                         e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex *>(optimizer.vertex(0)));
-                        e->setMeasurement(obs);
+                        e->setMeasurement(obs); // 添加观测
+                        // 设置信息矩阵，在上面已经说过了这里就不再详细说了
                         const float invSigma2 = pFrame->mvInvLevelSigma2[kpUn.octave];
                         e->setInformation(Eigen::Matrix2d::Identity() * invSigma2);
 
+                        // 为边设置鲁棒Huber核
                         g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
                         e->setRobustKernel(rk);
                         rk->setDelta(deltaMono);
 
+                        // 为边设置相机内参相关参数
                         e->fx = pFrame->fx;
                         e->fy = pFrame->fy;
                         e->cx = pFrame->cx;
                         e->cy = pFrame->cy;
+                        // 获取地图点在世界坐标系下的坐标，分别赋给边的相应变量
                         cv::Mat Xw = pMP->GetWorldPos();
                         e->Xw[0] = Xw.at<float>(0);
                         e->Xw[1] = Xw.at<float>(1);
                         e->Xw[2] = Xw.at<float>(2);
 
+                        // 最后一步，向优化器中添加边
                         optimizer.addEdge(e);
-
+                        // 将边在vpEdgesMono中另存一份
                         vpEdgesMono.push_back(e);
-                        vnIndexEdgeMono.push_back(i);
+                        vnIndexEdgeMono.push_back(i);   // 索引
                     }
-                    else // Stereo observation
+                    else // Stereo observation 否则就是双目情况
                     {
+                        // 双目的情况其实和单目基本没有差别，只是在边的类型上有所区别
                         nInitialCorrespondences++;
                         pFrame->mvbOutlier[i] = false;
 
@@ -378,30 +448,36 @@ namespace ORB_SLAM2
                         Eigen::Matrix<double, 3, 1> obs;
                         const cv::KeyPoint &kpUn = pFrame->mvKeysUn[i];
                         const float &kp_ur = pFrame->mvuRight[i];
-                        obs << kpUn.pt.x, kpUn.pt.y, kp_ur;
+                        obs << kpUn.pt.x, kpUn.pt.y, kp_ur; // 注意这里的观测适合单目不同的
 
+                        // 还是建立一个只有一个顶点的一元边
                         g2o::EdgeStereoSE3ProjectXYZOnlyPose *e = new g2o::EdgeStereoSE3ProjectXYZOnlyPose();
-
+                        // 设置顶点
                         e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex *>(optimizer.vertex(0)));
                         e->setMeasurement(obs);
+                        // 设置信息矩阵
                         const float invSigma2 = pFrame->mvInvLevelSigma2[kpUn.octave];
                         Eigen::Matrix3d Info = Eigen::Matrix3d::Identity() * invSigma2;
                         e->setInformation(Info);
 
+                        // 设置RobustKernelHuber
                         g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
                         e->setRobustKernel(rk);
                         rk->setDelta(deltaStereo);
 
+                        // 设置相机内参
                         e->fx = pFrame->fx;
                         e->fy = pFrame->fy;
                         e->cx = pFrame->cx;
                         e->cy = pFrame->cy;
                         e->bf = pFrame->mbf;
+                        // 设置地图点的世界坐标
                         cv::Mat Xw = pMP->GetWorldPos();
                         e->Xw[0] = Xw.at<float>(0);
                         e->Xw[1] = Xw.at<float>(1);
                         e->Xw[2] = Xw.at<float>(2);
 
+                        // 添加边
                         optimizer.addEdge(e);
 
                         vpEdgesStereo.push_back(e);
@@ -411,11 +487,14 @@ namespace ORB_SLAM2
             }
         }
 
+        // 如果说经过上面的循环获得的关联还小于3各，直接返回，没法做了
         if (nInitialCorrespondences < 3)
             return 0;
 
         // We perform 4 optimizations, after each optimization we classify observation as inlier/outlier
         // At the next optimization, outliers are not included, but at the end they can be classified as inliers again.
+        // 作者说这里他们做了4次优化
+        // 其实和上面的阈值是一样的，这里因为要迭代4次，所以写成了数组
         const float chi2Mono[4] = {5.991, 5.991, 5.991, 5.991};
         const float chi2Stereo[4] = {7.815, 7.815, 7.815, 7.815};
         const int its[4] = {10, 10, 10, 10};
@@ -423,16 +502,18 @@ namespace ORB_SLAM2
         int nBad = 0;
         for (size_t it = 0; it < 4; it++)
         {
-
+            // 和上面362行是一样的，但这里之所以又写了一遍的原因是需要迭代4次，每次迭代都重置一下
             vSE3->setEstimate(Converter::toSE3Quat(pFrame->mTcw));
-            optimizer.initializeOptimization(0);
-            optimizer.optimize(its[it]);
+            optimizer.initializeOptimization(0);    // 这里的参数0可以不写，默认就是0
+            optimizer.optimize(its[it]);            // 开始优化！！优化的迭代次数，每次优化都是迭代10次
 
             nBad = 0;
+            // 对于单目
             for (size_t i = 0, iend = vpEdgesMono.size(); i < iend; i++)
             {
                 g2o::EdgeSE3ProjectXYZOnlyPose *e = vpEdgesMono[i];
 
+                // 对于每个边计算误差
                 const size_t idx = vnIndexEdgeMono[i];
 
                 if (pFrame->mvbOutlier[idx])
@@ -440,13 +521,15 @@ namespace ORB_SLAM2
                     e->computeError();
                 }
 
+                // 获取误差的具体数值
                 const float chi2 = e->chi2();
 
+                // 如果误差大于阈值，就认为这个边所对应的观测是外点，flag设置为true
                 if (chi2 > chi2Mono[it])
                 {
                     pFrame->mvbOutlier[idx] = true;
-                    e->setLevel(1);
-                    nBad++;
+                    e->setLevel(1); // 并且设置等级为1
+                    nBad++;         // 累加
                 }
                 else
                 {
@@ -454,16 +537,20 @@ namespace ORB_SLAM2
                     e->setLevel(0);
                 }
 
+                // 如果迭代次数索引等于2执行下面代码
                 if (it == 2)
                     e->setRobustKernel(0);
             }
 
+            // 这里之所以没有再做单双目的判断是因为如果没有执行某一种情况的话，其vector的长度为0，所以for循环就不会执行
+            // 对于双目，和单目是一模一样的，只是边的类型不同
             for (size_t i = 0, iend = vpEdgesStereo.size(); i < iend; i++)
             {
                 g2o::EdgeStereoSE3ProjectXYZOnlyPose *e = vpEdgesStereo[i];
 
                 const size_t idx = vnIndexEdgeStereo[i];
 
+                // 计算误差
                 if (pFrame->mvbOutlier[idx])
                 {
                     e->computeError();
@@ -471,6 +558,7 @@ namespace ORB_SLAM2
 
                 const float chi2 = e->chi2();
 
+                // 根据误差和阈值判断是否是外点
                 if (chi2 > chi2Stereo[it])
                 {
                     pFrame->mvbOutlier[idx] = true;
@@ -487,16 +575,24 @@ namespace ORB_SLAM2
                     e->setRobustKernel(0);
             }
 
+            // 如果说边的个数小于10，终止循环
             if (optimizer.edges().size() < 10)
                 break;
         }
 
-        // Recover optimized pose and return number of inliers
+        // Recover optimized pose and return number of inliers 将优化更新后的帧的位姿利用索引取出来，并重新赋值给Frame
+        // 上面提到的，帧的节点不是固定的原因就在这里，因为这里只是对位姿进行了优化，或者说优化的就是位姿，再把它固定了就没得玩了
         g2o::VertexSE3Expmap *vSE3_recov = static_cast<g2o::VertexSE3Expmap *>(optimizer.vertex(0));
         g2o::SE3Quat SE3quat_recov = vSE3_recov->estimate();
         cv::Mat pose = Converter::toCvMat(SE3quat_recov);
+        // 不要一维没有return优化后的位姿，最后通过参数的引用，将优化后的帧的位姿赋给了传入的参数
+        // 不仅如此，还在函数里修改了帧的mvbOutlier成员变量，标出了哪些点是外点
+        // 这也就是ORB代码错综复杂的原因之一，很多变量的修改不是显式表现出来的，没有返回值，而是不知不觉就被修改掉了
+        // 然后修改后的值在另一个地方又被调用了
+        // 这得益于C++的引用传递，实现了变量的高效率共享，但某种程度上来说也增加了代码阅读的难度
         pFrame->SetPose(pose);
 
+        // 好的关联个数等于总的减去坏的
         return nInitialCorrespondences - nBad;
     }
 

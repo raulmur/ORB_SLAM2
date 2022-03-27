@@ -67,15 +67,17 @@ using namespace std;
 
 namespace ORB_SLAM2
 {
-
+    // 预先定义好的一些参数常量
     const int PATCH_SIZE = 31;
     const int HALF_PATCH_SIZE = 15;
-    const int EDGE_THRESHOLD = 19;
+    const int EDGE_THRESHOLD = 19; // 图像扩边的时候用到
 
     static float IC_Angle(const Mat &image, Point2f pt, const vector<int> &u_max)
     {
-        int m_01 = 0, m_10 = 0;
+        int m_01 = 0, m_10 = 0; // 它们对应公式中的常量
 
+        // 先对传入的特征点坐标四舍五入取整，基于这个坐标再去获取一个指向该像素的指针，注意不是对应的灰度值
+        // 把image前面的取地址符&去掉才是灰度值，这里center是一个uchar类型的指针，所以后面才能对它进行索引取值
         const uchar *center = &image.at<uchar>(cvRound(pt.y), cvRound(pt.x));
 
         // Treat the center line differently, v=0
@@ -101,29 +103,52 @@ namespace ORB_SLAM2
         return fastAtan2((float)m_01, (float)m_10);
     }
 
-    const float factorPI = (float)(CV_PI / 180.f);
+    const float factorPI = (float)(CV_PI / 180.f); // 角度转成弧度制的系数
     static void computeOrbDescriptor(const KeyPoint &kpt,
                                      const Mat &img, const Point *pattern,
                                      uchar *desc)
+    // 传入的参数中带const的都是不会修改，只读的
+    // 另外这里看起来传入的是一个Point指针类型的pattern，但其实是一个数组，可以根据索引获取其它元素
     {
-        float angle = (float)kpt.angle * factorPI;
-        float a = (float)cos(angle), b = (float)sin(angle);
+        // 在特征提取后，会在computerOrientation函数中计算特征点的角度
+        float angle = (float)kpt.angle * factorPI;          // 将角度转换成弧度
+        float a = (float)cos(angle), b = (float)sin(angle); // 相关变量计算
 
+        // 和之前一样，这里获取的是一个指向特征点的uchar类型的指针，并非是特征点所对应像素的灰度值，需要注意
+        // 如果img前面的取地址符&去掉，获取的就是该位置对应的灰度值了
+        // 换句话说是可以对center进行索引操作获取其它元素的值的，这在下面定义的宏中就有体现
         const uchar *center = &img.at<uchar>(cvRound(kpt.pt.y), cvRound(kpt.pt.x));
+        // 这里的step是Mat的属性之一，表示一个数据所占字节长度，方便后面迭代时候跳过指定步长
+        // 例如一个单通道灰度图像一个像素值在我这里字节长度是700，而RGB图像一个像素的长度是2100
         const int step = (int)img.step;
 
+// 则合理定义了一个宏，用于后续计算的方便
+// 这里的center就是上面获取的uchar的指针，而pattern就是传入的参数
+// 这里面一长串其实都是在计算索引，而对center取索引获取到的就是该索引（位置）所对应的灰度值
 #define GET_VALUE(idx)                                               \
     center[cvRound(pattern[idx].x * b + pattern[idx].y * a) * step + \
            cvRound(pattern[idx].x * a - pattern[idx].y * b)]
 
+        // 前面定义的描述子有32列，对应这里的32次循环
+        // 注意这里的pattern指向的地址随着迭代也在变化，每次增加16
+        // 这16其实就是对应一次迭代读取pattern的步长，在一次迭代中，一共会获取16个元素，所以下一次迭代从16开始
+        // 另外，根据这个算法，可以计算出一共要有32*16个点用于迭代，而在代码一开始的pattern中就是512个点，在类的构造函数初始化pattern的时候也有体现
         for (int i = 0; i < 32; ++i, pattern += 16)
         {
-            int t0, t1, val;
+            int t0, t1, val;    // 临时变量
+            // 获取0，1索引对应的像素的灰度值，然后进行比较，比较结果放到val里
             t0 = GET_VALUE(0);
             t1 = GET_VALUE(1);
-            val = t0 < t1;
-            t0 = GET_VALUE(2);
+            val = t0 < t1;      // true为1，false为0
+            t0 = GET_VALUE(2);  // 和上面一样
             t1 = GET_VALUE(3);
+            // |表示两个相应的二进制位中只要有一个为1，该位的结果值为1，否则为0
+            // 而这里又多了一个等号，就类似于+=这种操作，表示按位或赋值
+            // 将val于t0 < t1进行按位或运算，并将结果再赋给val
+            // << 用来将一个数的各二进制位全部左移N位，高位舍弃，低位补0
+            // 另外还需要主义的是这里的运算顺序
+            // 这里认为添加了括号，所以先运算括号里面的内容，然后运算 <<，最后运算后的结果再按位或赋值
+            // 这里之所以要左移1位是因为上面第一位已经有了内容，如果不左移的话，数据就被覆盖了
             val |= (t0 < t1) << 1;
             t0 = GET_VALUE(4);
             t1 = GET_VALUE(5);
@@ -144,12 +169,23 @@ namespace ORB_SLAM2
             t1 = GET_VALUE(15);
             val |= (t0 < t1) << 7;
 
+            // 每次比较都有一个0或1的结果，上面比较了8次，因此到这里val是8位的0、1二进制串
+            // 而且根据desc数据类型的定义，是8U，最大值为255，所以将8位的二进制串转成char类型不会有任何数据丢失问题
+            // 另外前面说了，desc可以看成是有32个元素的数组，因此直接基于索引就可以进行赋值
+            // 将二进制串转换成uchar类型的数值后就可以直接赋值给desc[1]，就完成了一个描述子的一个数的计算
+            // 迭代32次就可以把整个描述子计算出来
             desc[i] = (uchar)val;
         }
 
+// 结束定义的宏
 #undef GET_VALUE
     }
 
+    // 对应论文中提供好的pattern，直接用即可
+    // 注意一下存放的数据结构，一共1024个数，对应512个点
+    // bit_pattern_31_本身是一个长度位1024的一维数组
+    // 但经过构造函数中的指针类型转换，就使得pattern对应的是一个512长度的Point类型的数组了
+    // 最后将这个长度位512的Point类型的数组拷贝给vector成员变量pattern
     static int bit_pattern_31_[256 * 4] =
         {
             8, -3, 9, 5 /*mean (0), correlation (0)*/,
@@ -414,10 +450,17 @@ namespace ORB_SLAM2
                                int _iniThFAST, int _minThFAST) : nfeatures(_nfeatures), scaleFactor(_scaleFactor), nlevels(_nlevels),
                                                                  iniThFAST(_iniThFAST), minThFAST(_minThFAST)
     {
+        // 所以ORB参数再构造函数中就对应赋给了各个成员变量，所以后续就可以直接用了
+        // mvScaleFactor和mvLevelSigma2是ORBextractor的成员变量vector，根据传入的层数设置了他的长度
         mvScaleFactor.resize(nlevels);
         mvLevelSigma2.resize(nlevels);
+        // 它们的初值都是1
         mvScaleFactor[0] = 1.0f;
         mvLevelSigma2[0] = 1.0f;
+
+        // 尺度按照ScaleFactor不断放大
+        // 逆尺度按照ScaleFactor不断缩小
+
         // 初始化比例金字塔每一层的比例
         for (int i = 1; i < nlevels; i++)
         {
@@ -473,7 +516,7 @@ namespace ORB_SLAM2
         // pre-compute the end of a row in a circular patch
         // 这是用于方向。预先计算圆形补丁中的行尾
         umax.resize(HALF_PATCH_SIZE + 1);
-        
+
         // cvFloor只会返回一个值给vmax，v, v0并没有赋初值
         int v, v0, vmax = cvFloor(HALF_PATCH_SIZE * sqrt(2.f) / 2 + 1);
         int vmin = cvCeil(HALF_PATCH_SIZE * sqrt(2.f) / 2);
@@ -494,26 +537,40 @@ namespace ORB_SLAM2
 
     static void computeOrientation(const Mat &image, vector<KeyPoint> &keypoints, const vector<int> &umax)
     {
+        // 其实核心是IC_Angle函数，这里是用了这个函数
         for (vector<KeyPoint>::iterator keypoint = keypoints.begin(),
                                         keypointEnd = keypoints.end();
              keypoint != keypointEnd; ++keypoint)
         {
+            // OpenCV的KeyPoint有个angle属性(float)，当就算好方向后就直接赋值给它
+            // angle属性用角度表示，范围是[0,360)，顺时针
             keypoint->angle = IC_Angle(image, keypoint->pt, umax);
         }
     }
 
     void ExtractorNode::DivideNode(ExtractorNode &n1, ExtractorNode &n2, ExtractorNode &n3, ExtractorNode &n4)
     {
+        // (右下-左下)/2，向上取整，得到该节点的一半宽度
+        // 同理再求得节点的一半高度
+        // 至于static_cast可以简单理解为强制类型转换，这里就是将结果转换为float类型
         const int halfX = ceil(static_cast<float>(UR.x - UL.x) / 2);
         const int halfY = ceil(static_cast<float>(BR.y - UL.y) / 2);
 
         // Define boundaries of childs
+        // 依次定义四个节点
+        // 一堆节点边界相关的内容可以不用深究
+        // 需要注意一下的是4个节点的顺序问题，是按行排列的
+        // 1 2
+        // 3 4
         n1.UL = UL;
         n1.UR = cv::Point2i(UL.x + halfX, UL.y);
         n1.BL = cv::Point2i(UL.x, UL.y + halfY);
         n1.BR = cv::Point2i(UL.x + halfX, UL.y + halfY);
         n1.vKeys.reserve(vKeys.size());
 
+        // 这里意思就是说给新的子节点用于存放特征点的vector成员变量保留了父节点特征点数量的长度
+        // 这里需要注意的是父节点的vKeys虽然没有显式传入，但因为是类的成员函数，所以可以直接调用
+        // 另外，由于传入的四个节点是引用传递，因此在这里修改也就一改全改了，所以整个函数也没有显式的返回值
         n2.UL = n1.UR;
         n2.UR = UR;
         n2.BL = n1.BR;
@@ -533,9 +590,12 @@ namespace ORB_SLAM2
         n4.vKeys.reserve(vKeys.size());
 
         // Associate points to childs
+        // 这一步也非常好理解，上面将父节点拆分成了4个子节点，还设置了子节点特征的vector的长度
+        // 这里就是依次遍历父节点的特征点vector，根据特征点坐标将它们分配到不同节点
         for (size_t i = 0; i < vKeys.size(); i++)
         {
             const cv::KeyPoint &kp = vKeys[i];
+            // 根据特征点坐标判断属于哪个子节点，这里先判断了x，再判断y
             if (kp.pt.x < n1.UR.x)
             {
                 if (kp.pt.y < n1.BR.y)
@@ -549,6 +609,9 @@ namespace ORB_SLAM2
                 n4.vKeys.push_back(kp);
         }
 
+        // 各个子节点，如果只包含了一个特征点，bNoMore成员变量就设为true
+        // 换句话说就是当前节点只包含了一个特征点了，就不要再往下继续分了
+        // bNoMore的作用就是指明当前节点是否还可以继续分割
         if (n1.vKeys.size() == 1)
             n1.bNoMore = true;
         if (n2.vKeys.size() == 1)
@@ -563,94 +626,157 @@ namespace ORB_SLAM2
                                                          const int &maxX, const int &minY, const int &maxY, const int &N, const int &level)
     {
         // Compute how many initial nodes
+        // 前面说过了，static_cast理解为强制类型转换就好
+        // 求解X方向上初始节点的个数，至于为什么用dx/dy再四舍五入取整这样比较奇怪的方式计算X方向初始节点个数暂时不知道
         const int nIni = round(static_cast<float>(maxX - minX) / (maxY - minY));
-
+        // 根据上面获得的X方向上的节点个数求解初始节点的水平宽度
         const float hX = static_cast<float>(maxX - minX) / nIni;
 
+        // 新建一个ExtractorNode类型的list用于存放节点
+        // 这个list后面会频繁用到
         list<ExtractorNode> lNodes;
 
+        // 新建一个Extractor指针类型的vector
+        // 它里面存放的是每次循环向lNodes添加元素后其最后一个元素的地址
         vector<ExtractorNode *> vpIniNodes;
-        vpIniNodes.resize(nIni);
+        vpIniNodes.resize(nIni);    // 长度就设置为刚刚计算出来的个数
 
+        // 依次循环，构造节点放入vector中
+        // 执行完这个循环其实只是将图像进行了X方向上的节点划分
+        // 因为在循环中所有节点的四角点的Y坐标值都是对应相同的
         for (int i = 0; i < nIni; i++)
         {
+            // 每次循环都新建一个临时变量ni，四角点坐标的计算比较简单，一看就懂
             ExtractorNode ni;
+            // 上面两个坐标，所以y方向都为0
             ni.UL = cv::Point2i(hX * static_cast<float>(i), 0);
             ni.UR = cv::Point2i(hX * static_cast<float>(i + 1), 0);
+            // 下面两个坐标，所以y方向都为dy，也就是maxY-minY
             ni.BL = cv::Point2i(ni.UL.x, maxY - minY);
             ni.BR = cv::Point2i(ni.UR.x, maxY - minY);
+            // 设置节点的特征点vector长度为传入的vector的长度
+            // 不要忘记了这个传入的vToDistributeKeys是哪里来的
+            // 它里面是金字塔每一层提取的未经处理的原始特征点
             ni.vKeys.reserve(vToDistributeKeys.size());
 
-            lNodes.push_back(ni);
+            lNodes.push_back(ni);   // 将节点放入lNodes中
+            // back()返回lNodes的最后一个元素的可读写的引用，换句话说你可以直接利用lNodes.back()修改最后一个元素的值
+            // 但这里需要注意的是vpIniNodes是ExtractorNode指针型的vector，因此要在前面加个取地址符才可以
             vpIniNodes[i] = &lNodes.back();
         }
 
         // Associate points to childs
+        // 遍历所有特征点，按照X方向上的位置安放到对应的节点中去
         for (size_t i = 0; i < vToDistributeKeys.size(); i++)
         {
+            // 获取特征点
             const cv::KeyPoint &kp = vToDistributeKeys[i];
+            // 根据特征点x坐标和节点宽度计算得到其所对应的节点索引
+            // 再根据节点索引获得对应节点，利用 -> 操作符获取节点对象内的public的vector成员变量
+            // 最后将该特征点push到这个vector中
             vpIniNodes[kp.pt.x / hX]->vKeys.push_back(kp);
         }
 
+        // 构造一个迭代器，指向lNodes的第一个元素 ，后面就不新建一直用这个了
         list<ExtractorNode>::iterator lit = lNodes.begin();
 
+        // 循环遍历节点，对于只含一个特征点和不含特征点的节点单独进行处理
         while (lit != lNodes.end())
         {
+            // 如果当前节点只含一个特征点，那么就把当前节点的bNoMore设置为true
+            // 也就是说指定当前节点不可以再继续分割了
             if (lit->vKeys.size() == 1)
             {
                 lit->bNoMore = true;
-                lit++;
+                lit++;  // 迭代器迭代到下一个
             }
+            // 如果说当前节点不含特征点，那么就直接把当前节点从lNodes中抹去
             else if (lit->vKeys.empty())
+                // erase()函数的用法需要注意一下
+                // 它的输入参数是指向需要抹去元素的迭代器
+                // 而它相比于remove()函数无返回值，它是由返回值的
+                // 它的返回值就是指向下一个元素的迭代器
+                // 因此，在这个分支里就不再需要lit++了
                 lit = lNodes.erase(lit);
+            // 如果当前节点既不为空也不仅包含一个特征点，那么就什么都不做，直接跳过
             else
                 lit++;
         }
 
-        bool bFinish = false;
+        bool bFinish = false;   // 一个flag变量，用于指示分割是否完成，是否停止迭代
 
-        int iteration = 0;
+        int iteration = 0;  // 迭代次数
 
+        // 一个vector用于存放尺寸与指向该节点的指针，长度设置为当前节点总数的4倍
         vector<pair<int, ExtractorNode *>> vSizeAndPointerToNode;
         vSizeAndPointerToNode.reserve(lNodes.size() * 4);
 
+        // 开始迭代
         while (!bFinish)
         {
-            iteration++;
+            iteration++;    // 迭代次数累加1
 
-            int prevSize = lNodes.size();
+            int prevSize = lNodes.size();   // 当前节点总数，其是否变换会作为迭代终止的判断条件之一
 
-            lit = lNodes.begin();
+            lit = lNodes.begin();   // 把迭代器指向当前lNodes的第一个元素
 
-            int nToExpand = 0;
+            int nToExpand = 0;      // 累加变量，包含特征个数大于1的节点个数
 
-            vSizeAndPointerToNode.clear();
+            vSizeAndPointerToNode.clear();  // 清空
 
+            // 开始正式迭代、遍历lNodes中的节点
             while (lit != lNodes.end())
             {
+                // 前面说过了，如果节点的bNoMore为true也就是说不可再分，那么直接跳过
+                // 但别忘了把迭代器加一下
                 if (lit->bNoMore)
                 {
                     // If node only contains one point do not subdivide and continue
                     lit++;
                     continue;
                 }
+                // 如果当前节点的bNoMore为false，也就说明还可以继续分割，则进行下面的操作
                 else
                 {
                     // If more than one point, subdivide
+                    // 新建四个临时节点变量，对应拆分的4个子节点
                     ExtractorNode n1, n2, n3, n4;
+                    // 根据迭代器利用->操作符调用当前节点的成员函数DivideNode
+                    // 由于函数参数是引用传递，因此它的输出值就是这四个子节点
+                    // 这个函数做了哪些事情需要清楚，简单来说是三件事
+                    // 1.根据父节点，对4个子节点的坐标范围进行了计算，4个子节点按照行优先顺序排列1 2;3 4
+                    // 2.根据父节点特征点的x、y坐标，将各个特征点放到所属的子节点中
+                    // 3.判断子节点是否为叶子节点(不可再分)，如果是，bNoMore设为True
+                    // 最后需要说明的是这个函数并没有对父节点做任何操作，只是新建了4个覆盖父节点的子节点
+                    // 因此需要在后续的操作中删除它们的父节点
                     lit->DivideNode(n1, n2, n3, n4);
 
                     // Add childs if they contain points
+                    // 这里分别对拆分好的4个子节点依次进行了操作
+
+                    // 如果子节点1中的特征点个数不为空，则执行下列操作
                     if (n1.vKeys.size() > 0)
                     {
+                        // 将当前n1子节点添加到lNodes中
+                        // 注意push_front是将元素添加到序列的最前面，而push_back则是添加到末尾
+                        // 另外需要注意的是只有当节点包含的特征不为空时才会添加到lNodes
+                        // 换句话说就是lNodes中的每个节点都至少包含一个或以上的特征点
+                        // 若lNodes的长度等于期望特征数N，则实际提取到的特征点个数应该是大于等于N的
                         lNodes.push_front(n1);
+                        // 进一步判断，如果当前节点包含的特征点多于1的话，也就说非叶子节点，bNoMore为false，则执行下面操作
                         if (n1.vKeys.size() > 1)
                         {
-                            nToExpand++;
+                            nToExpand++;    // 累加变量+1，只有当前节点包含特征点个数大于1才累加
+                            // 这里利用make_pair函数构造了一个pair放到了vSizeAndPointerToNode中
+                            // size就是当前节点的特征点个数，
+                            // 由于上面将当前节点放到了lNodes的最前面，所以当前节点就是lNodes的第一个元素
+                            // 由于定义的类型是ExtractorNode的指针，因此前面要加个取地址符
                             vSizeAndPointerToNode.push_back(make_pair(n1.vKeys.size(), &lNodes.front()));
+                            // 这里的操作是把指向lNodes的第一个元素(也就是当前节点)的迭代器赋给lNodes中第一个元素(当前节点)的lit成员变量(别忘了节点中是有个迭代器成员变量的)
                             lNodes.front().lit = lNodes.begin();
                         }
                     }
+                    // 下面的n2,n3,n4都和上面的n1一样，这里就不再赘述了
                     if (n2.vKeys.size() > 0)
                     {
                         lNodes.push_front(n2);
@@ -682,31 +808,53 @@ namespace ORB_SLAM2
                         }
                     }
 
+                    // 如果还记得在前面lit->DivideNode那行注释说的话的话，这里就是把父节点删掉的操作
+                    // erase函数在前面也介绍过了，不仅会删除当前元素，还会返回指向下一个元素的迭代器
+                    // 所以这里也就不再需要手动累加了
                     lit = lNodes.erase(lit);
                     continue;
                 }
             }
 
+            // 经过上面的操作，lNodes中的所有节点就都被遍历被迭代拆分了
+            // 但别忘了这是在另一个更大的while循环里，
+            // 直到目前为止我们并没有更改终止条件bFinish
+            // 下面就是是否终止迭代的一系列判断与操作
+
             // Finish if there are more nodes than required features
             // or all nodes contain just one point
+            // 如果lNodes中节点的个数大于期望提取的特征数量N(别忘了，这是函数传入的参数之一)
+            // 或者lNodes中节点的个数和上次迭代一样，也就是说拆分不动了
+            // 以上两种情况就停止迭代，bFinish设为true
             if ((int)lNodes.size() >= N || (int)lNodes.size() == prevSize)
             {
                 bFinish = true;
             }
+            // 而如果当前节点总数加上3倍nToExpand大于N，则执行下面操作
+            // 这里体现的就是nToExpand的作用，上面说了nToExpand表示的是经过迭代后包含特征点数量大于1的节点的个数
+            // 如果说当前节点总数加上3倍nToExpand大于N，则说明当前分割结果不够“干净”、“均匀”，还包含了大量特征多余1的节点
+            // 至于说为什么是3，暂时还不太清楚
             else if (((int)lNodes.size() + nToExpand * 3) > N)
             {
-
+                // 如果进入到这里，目前bFinish还为false所以会继续执行下面的代码，这其实和上面的是类似的
                 while (!bFinish)
                 {
 
-                    prevSize = lNodes.size();
+                    prevSize = lNodes.size();   // 将当前的lNodes个数赋给prevSize
 
+                    // 将当前的vSizeAndPointerToNode赋给vPrevSizeAndPointerToNode做个记录
                     vector<pair<int, ExtractorNode *>> vPrevSizeAndPointerToNode = vSizeAndPointerToNode;
-                    vSizeAndPointerToNode.clear();
+                    vSizeAndPointerToNode.clear();  // 然后清空当前vector
 
+                    // 对vPrevSizeAndPointerToNode做了个排序，默认为升序
+                    // 另外排序默认是按照pair的第一个元素进行，且排序直接修改原始数据，没有另外的返回值
+                    // 这样排完以后vPrevSizeAndPointerToNode中的元素是按照节点所包含的特征点个数按照从小到大的顺序排序
+                    // 越往后节点包含的特征点个数越多，换句话说就是越可以继续拆分，直到一个节点包含一个特征点
                     sort(vPrevSizeAndPointerToNode.begin(), vPrevSizeAndPointerToNode.end());
+                    // for循环遍历其中的每个元素，从后往前，原因在上一行已经说了
                     for (int j = vPrevSizeAndPointerToNode.size() - 1; j >= 0; j--)
                     {
+                        // 循环里的操作其实和前面是一样的
                         ExtractorNode n1, n2, n3, n4;
                         vPrevSizeAndPointerToNode[j].second->DivideNode(n1, n2, n3, n4);
 
@@ -748,12 +896,15 @@ namespace ORB_SLAM2
                             }
                         }
 
+                        // 添加完子节点以后还是别忘了把父节点删掉
                         lNodes.erase(vPrevSizeAndPointerToNode[j].second->lit);
 
+                        // 如果当前节点个数大于期望值N，就直接结束for循环
                         if ((int)lNodes.size() >= N)
                             break;
                     }
 
+                    // 判断条件和前面一样，满足的话bFinish设为true
                     if ((int)lNodes.size() >= N || (int)lNodes.size() == prevSize)
                         bFinish = true;
                 }
@@ -761,16 +912,27 @@ namespace ORB_SLAM2
         }
 
         // Retain the best point in each node
+        // 建立vector用于保存结果
         vector<cv::KeyPoint> vResultKeys;
         vResultKeys.reserve(nfeatures);
+        // 循环遍历每个节点
         for (list<ExtractorNode>::iterator lit = lNodes.begin(); lit != lNodes.end(); lit++)
         {
+            // 获取到节点所包含的所有特征点
             vector<cv::KeyPoint> &vNodeKeys = lit->vKeys;
+            // 获取到vector的第一个元素
+            // 这里并不需要担心获取为空的问题，因为前面说了，能够加到lNodes的节点至少都包含了一个特征点
             cv::KeyPoint *pKP = &vNodeKeys[0];
+            // 先将这个特征点的相应值作为最大值
+            // 这里简单说一下response是OpenCV中KeyPoint的属性之一，
+            // 可以理解为这个值越高说明特征点的质量越好
             float maxResponse = pKP->response;
 
+            // 如果说当前节点包含多个特征点，
+            // 那就遍历所有特征点，找到最大响应值以及其对应的特征点
             for (size_t k = 1; k < vNodeKeys.size(); k++)
             {
+                // 响应值比较，比较好懂
                 if (vNodeKeys[k].response > maxResponse)
                 {
                     pKP = &vNodeKeys[k];
@@ -778,26 +940,38 @@ namespace ORB_SLAM2
                 }
             }
 
+            // 最后将这个有最大响应值的特征点添加到vResultKeys中
             vResultKeys.push_back(*pKP);
         }
 
+        // 终于返回了
+        // 通过上面这个循环也可以看出，最后每个节点只选取一个特征点
+        // 所以提取的特征点数量和节点数量是相等的
         return vResultKeys;
     }
 
     void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint>> &allKeypoints)
     {
+        // allKeypoints每一个元素是一个vector，存放的是这一层提取到的特征点
         allKeypoints.resize(nlevels);
 
+        // 每一个小格网的大小，这里宽高都是30个像素
         const float W = 30;
 
+        // 对每一层循环进行特征点提取
         for (int level = 0; level < nlevels; ++level)
         {
-            const int minBorderX = EDGE_THRESHOLD - 3;  // 16
-            const int minBorderY = minBorderX;          // 16
+            // 对于提取范围边界的一些计算
+            const int minBorderX = EDGE_THRESHOLD - 3;                              // 16
+            const int minBorderY = minBorderX;                                      // 16
             const int maxBorderX = mvImagePyramid[level].cols - EDGE_THRESHOLD + 3; // -16
             const int maxBorderY = mvImagePyramid[level].rows - EDGE_THRESHOLD + 3; // -16
 
+            // 每一层都临时新建个vector变量用于存放特征点
             vector<cv::KeyPoint> vToDistributeKeys;
+            // reserve函数用于申请内存
+            // 在需要对大量数据进行处理的时候就要使用reserve主动分配内存以提升程序执行效率
+            // 这里保留的是用户指定总特征个数的10倍的内存
             vToDistributeKeys.reserve(nfeatures * 10);
 
             // Compute the size of the image area for feature point extraction
@@ -805,16 +979,17 @@ namespace ORB_SLAM2
             const float height = (maxBorderY - minBorderY);
 
             // Grid each level of the pyramid
-            const int nCols = width / W;
-            const int nRows = height / W;
+            const int nCols = width / W;    // 网格列数
+            const int nRows = height / W;   // 网格行数
             // Compute the width and the heigth of every grid
-            const int wCell = ceil(width / nCols);  // ceil: 返回大于或等于指定表达式的最小整数
+            const int wCell = ceil(width / nCols); // ceil: 返回大于或等于指定表达式的最小整数
             const int hCell = ceil(height / nRows);
 
             for (int i = 0; i < nRows; i++)
             {
+                // 一系列格网坐标相关的判断与处理，不用过于深究
                 const float iniY = minBorderY + i * hCell;
-                float maxY = iniY + hCell + 6;  // ??
+                float maxY = iniY + hCell + 6; // ??
 
                 if (iniY >= maxBorderY - 3) // Does not meet the condition FAST-16-9(the edge=3)
                     continue;
@@ -824,6 +999,7 @@ namespace ORB_SLAM2
                 // 为了保证中心像素周围的像素存在，所以设置了边界
                 for (int j = 0; j < nCols; j++)
                 {
+                    // 一系列格网坐标相关的判断与处理，不用过于深究
                     const float iniX = minBorderX + j * wCell;
                     float maxX = iniX + wCell + 6;
                     if (iniX >= maxBorderX - 6) // ??
@@ -843,7 +1019,7 @@ namespace ORB_SLAM2
                         FAST(mvImagePyramid[level].rowRange(iniY, maxY).colRange(iniX, maxX),
                              vKeysCell, minThFAST, true);
                     }
-                    
+
                     // vKeysCell: The vector of keypoints
                     if (!vKeysCell.empty())
                     {
@@ -1059,9 +1235,14 @@ namespace ORB_SLAM2
     static void computeDescriptors(const Mat &image, vector<KeyPoint> &keypoints, Mat &descriptors,
                                    const vector<Point> &pattern)
     {
+        // 这里其实也是一层包装，核心函数是computeOrbDescriptor
+        // 这里相当于对传入的descriptors重新赋值，元素全部为0，
+        // 行数为特征点个数，列数为32(描述子长度)，元素数据类型为8位无符号整型(最大为255)
         descriptors = Mat::zeros((int)keypoints.size(), 32, CV_8UC1);
 
         for (size_t i = 0; i < keypoints.size(); i++)
+            // 第一个参数是特征点，第二个参数是影像，第三个参数是Point对象，第四个参数就是待填充的描述子
+            // 注意一下传入的描述子的类型与大小，它其实是一个uchar类型的指针，可以根据索引获取到第i行的所有元素，因此可以说大小为1x32
             computeOrbDescriptor(keypoints[i], image, &pattern[0], descriptors.ptr((int)i));
     }
 
@@ -1091,7 +1272,7 @@ namespace ORB_SLAM2
         Mat descriptors;
 
         // 统计各层提取到的特征点的总和
-        
+
         int nkeypoints = 0;
         for (int level = 0; level < nlevels; ++level)
         {
@@ -1099,7 +1280,6 @@ namespace ORB_SLAM2
             cout << "pyramid level " << level << "'s keypoints: " << allKeypoints[level].size() << endl;
         }
         cout << "nkeypoints: " << nkeypoints << endl;
-            
 
         // 如果一个特征点都没有提取到
         if (nkeypoints == 0)
@@ -1126,7 +1306,7 @@ namespace ORB_SLAM2
         {
             // 根据索引获取每一层特征点的vector
             vector<KeyPoint> &keypoints = allKeypoints[level];
-            int nkeypointsLevel = (int)keypoints.size();    // 当前层特征点的数量
+            int nkeypointsLevel = (int)keypoints.size(); // 当前层特征点的数量
 
             // 如果当前层特征点数为0则跳过循环
             if (nkeypointsLevel == 0)
@@ -1156,7 +1336,7 @@ namespace ORB_SLAM2
                 for (vector<KeyPoint>::iterator keypoint = keypoints.begin(),
                                                 keypointEnd = keypoints.end();
                      keypoint != keypointEnd; ++keypoint)
-                    keypoint->pt *= scale;  // scale: 逆尺度；乘完得到在原始大小图像中的坐标
+                    keypoint->pt *= scale; // scale: 逆尺度；乘完得到在原始大小图像中的坐标
             }
             // And add the keypoints to the output
             // 最后，将提取的特征点插入传入参数_keypoints的尾部
