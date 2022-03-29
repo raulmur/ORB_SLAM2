@@ -168,8 +168,8 @@ namespace ORB_SLAM2
     void FrameDrawer::Update(Tracking *pTracker)
     {
         unique_lock<mutex> lock(mMutex);
-        pTracker->mImGray.copyTo(mIm);
-        mvCurrentKeys = pTracker->mCurrentFrame.mvKeys;
+        pTracker->mImGray.copyTo(mIm);  // 当前帧的灰度图
+        mvCurrentKeys = pTracker->mCurrentFrame.mvKeys; // 当前帧的特征点
         N = mvCurrentKeys.size();
         mvbVO = vector<bool>(N, false);
         mvbMap = vector<bool>(N, false);
@@ -177,19 +177,19 @@ namespace ORB_SLAM2
 
         if (pTracker->mLastProcessedState == Tracking::NOT_INITIALIZED)
         {
-            mvIniKeys = pTracker->mInitialFrame.mvKeys;
-            mvIniMatches = pTracker->mvIniMatches;
+            mvIniKeys = pTracker->mInitialFrame.mvKeys; // 初始化帧的特征点
+            mvIniMatches = pTracker->mvIniMatches;      // 初始化帧的匹配
         }
         else if (pTracker->mLastProcessedState == Tracking::OK)
         {
             for (int i = 0; i < N; i++)
             {
-                MapPoint *pMP = pTracker->mCurrentFrame.mvpMapPoints[i];
+                MapPoint *pMP = pTracker->mCurrentFrame.mvpMapPoints[i];    // 获取当前帧的地图点 ? 地图点的个数 <= 特征点的个数
                 if (pMP)
                 {
-                    if (!pTracker->mCurrentFrame.mvbOutlier[i])
+                    if (!pTracker->mCurrentFrame.mvbOutlier[i]) // 如果不是外点 -> 外点是RANSAC中的概念，即不符合RANSAC模型的点
                     {
-                        if (pMP->Observations() > 0)
+                        if (pMP->Observations() > 0)    // 如果当前地图点的观测 > 0, 设置该地图点为 true
                             mvbMap[i] = true;
                         else
                             mvbVO[i] = true;

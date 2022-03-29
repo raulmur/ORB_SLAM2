@@ -1,22 +1,22 @@
 /**
-* This file is part of ORB-SLAM2.
-*
-* Copyright (C) 2014-2016 Raúl Mur-Artal <raulmur at unizar dot es> (University of Zaragoza)
-* For more information see <https://github.com/raulmur/ORB_SLAM2>
-*
-* ORB-SLAM2 is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* ORB-SLAM2 is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
-*/
+ * This file is part of ORB-SLAM2.
+ *
+ * Copyright (C) 2014-2016 Raúl Mur-Artal <raulmur at unizar dot es> (University of Zaragoza)
+ * For more information see <https://github.com/raulmur/ORB_SLAM2>
+ *
+ * ORB-SLAM2 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ORB-SLAM2 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include <iostream>
 #include <algorithm>
@@ -70,13 +70,21 @@ int main(int argc, char **argv)
     // Main loop
     cv::Mat im;
     // cv::Mat before_im;
+    
+    // 倒序读取
+    // sort(vTimestamps.begin(), vTimestamps.end(), [](double a, double b)
+    //      { return a > b; });
+    
     for (int ni = 0; ni < nImages; ni++)
     {
         // Read image from file
-        im = cv::imread(vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
+        // cout << "vstrImageFilenames[ni]: " << vstrImageFilenames[ni] << endl;
+        im = cv::imread(vstrImageFilenames[ni], CV_LOAD_IMAGE_UNCHANGED);
         // before_im = cv::imread(vstrImageFilenames[ni], CV_LOAD_IMAGE_GRAYSCALE);
         // cv::equalizeHist(before_im, im); // 直方图均衡化，效果较差
+
         double tframe = vTimestamps[ni];
+        // cout << "vTimestamps[ni]" << vTimestamps[ni] << endl;
 
         if (im.empty())
         {
@@ -105,15 +113,26 @@ int main(int argc, char **argv)
 
         vTimesTrack[ni] = ttrack;
 
+        // // Wait to load the next frame
+        // double T = 0;
+        // if (ni < nImages - 1)
+        //     T = vTimestamps[ni + 1] - tframe;
+        // else if (ni > 0)
+        //     T = tframe - vTimestamps[ni - 1];
+
+        // if (ttrack < T)
+        //     usleep((T - ttrack) * 1e6);
+
         // Wait to load the next frame
         double T = 0;
         if (ni < nImages - 1)
-            T = vTimestamps[ni + 1] - tframe;
+            T = tframe - vTimestamps[ni + 1];
         else if (ni > 0)
-            T = tframe - vTimestamps[ni - 1];
+            T = vTimestamps[ni - 1] - tframe;
 
         if (ttrack < T)
             usleep((T - ttrack) * 1e6);
+
     }
 
     // Stop all threads
@@ -196,4 +215,12 @@ void LoadImages(const string &strPathToSequence, vector<string> &vstrImageFilena
         ss << setfill('0') << setw(6) << i + min;
         vstrImageFilenames[i] = strPrefixLeft + ss.str() + ".png";
     }
+
+    // 倒序读取
+    // for (int i = 0; i < nTimes; i++)
+    // {
+    //     stringstream ss;
+    //     ss << setfill('0') << setw(6) << i + min;
+    //     vstrImageFilenames[nTimes - i - 1] = strPrefixLeft + ss.str() + ".png";
+    // }
 }

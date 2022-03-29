@@ -3,6 +3,106 @@
 > - https://github.com/raulmur/ORB_SLAM2
 > - https://github.com/zhangzjjjjjj/ORB-Code-Notes
 
+
+依赖库|说明|作用
+:-:|:-:|-
+OpenCV3|图像处理库|图像灰度转换、FAST特征点提取
+DBoW2|词袋库|特征描述向量
+g2o|优化库|位姿优化、BA优化
+Eigen3|矩阵运算库|为g2o提供支持
+Pangolin|可视化库|...
+
+
+### 单目情况处理流程(Monocular case processing flow)
+```latex
+1. 读取图像和时间戳 -> Mono_kitti::LoadImages(), System::TrackMonocular
+2. 将图像转换为灰度图 -> Tracking::GrabImageMonocular()
+3. 用灰度图初始化Frame: -> Frame::Frame()
+    3.1 提取特征点 -> Frame::ExtractORB()
+        3.1.1 重载括号操作符，提取左目(右目)特征点 -> ORBextractor::operator() 
+            3.1.1.1 计算图像金字塔每层的图像的大小 -> ORBextractor::ComputePyramid()
+            3.1.1.2 网格化金字塔的每层图像，并利用FAST方法提取每个网格中的图像 -> ORBextractor::ComputeKeyPointsOctTree()
+            3.1.1.3 计算特征点的描述子 -> ORBextractor::computeDescriptors()
+    3.2 根据畸变参数对特征点坐标进行校正 -> Frame::UndistortKeyPoints()
+    3.3 将校正后的特征点分配到网格 -> Frame::AssignFeaturesToGrid()
+4. 跟踪 -> Tracking::Track()
+    4.1 单目初始化 -> Tracking::MonocularInitialization()
+        4.1.1 初始化(相机内参、关键点、尺度因子、RANSAC最大迭代次数) -> Initializer::Initialize()
+        4.1.2 第一帧与第二帧特征点匹配 -> ORBmatcher::ORBmatcher()
+        4.1.3 第一帧与第二帧初始化 -> Initializer::Initializer()
+            4.1.3.1 寻找单应矩阵 -> Initializer::FindHomography()
+                4.1.3.1.1 特征点坐标归一化 -> Initializer::Normalize()
+                4.1.3.1.2 计算单应矩阵 -> Initializer::ComputeH21()
+                4.1.3.1.3 计算单应矩阵得分 -> Initializer::CheckHomography()
+            4.1.3.2 寻找本质矩阵 -> Initializer::FindFundamental()
+                4.1.3.2.1 特征点坐标归一化 -> Initializer::Normalize()
+                4.1.3.2.2 计算本质矩阵 -> Initializer::ComputeF21()
+                4.1.3.2.3 计算本质矩阵得分 -> Initializer::CheckFundamental()
+            4.1.3.3 分解单应矩阵 -> Initializer::ReconstructH()
+				4.1.3.3.1 SVD分解 -> cv::SVD::compute()
+				4.1.3.3.2 检验R, t -> Initializer::CheckRT()
+					4.1.3.3.2.1 ? 计算深度 -> Initializer::Triangulate()
+            4.1.3.4 分解本质矩阵 -> Initializer::ReconstructF()
+				4.1.3.4.1 恢复四个运动假设 -> Initializer::DecomposeE()
+                4.1.3.4.2 检验R, t -> Initializer::CheckRT()
+					4.1.3.4.2.1 ? 计算深度 -> Initializer::Triangulate()
+        4.1.4 创建单目初始化地图 -> Tracking::CreateInitialMapMonocular()
+			4.1.4.1 初始化两帧为关键帧 -> KeyFrame::KeyFrame()
+				4.1.4.1.1 设置位姿 -> KeyFrame::SetPose()
+			4.1.4.2 计算初始化两帧描述子的BoW -> KeyFrame::ComputeBoW()
+				4.1.4.2.1 将描述子由Mat转换为vector -> Converter::toDescriptorVector()
+				4.1.4.2.2 调用DBoW2的API计算特征点描述子对应的BoW向量 -> mpORBvocabulary->transform()
+			4.1.4.3 向地图中添加关键帧 -> Map::AddKeyFrame()
+			4.1.4.4 初始化地图点 -> MapPoint::MapPoint()
+			4.1.4.5 向两个关键帧中添加地图点 -> KeyFrame::AddMapPoint()
+			4.1.4.6 向地图中添加两个关键帧和对应地图点的观测 -> MapPoint::AddObservation()
+			4.1.4.7 同一个地图点存在于多个关键帧中，计算最具代表性的描述子 -> MapPoint::ComputeDistinctiveDescription()
+			4.1.4.8 更新深度信息 -> MapPoint::UpdateNormalAndDepth()
+			4.1.4.9 将地图点添加到地图中 -> Map::AddMapPoint()
+			4.1.4.10 更新初始化两帧之间的连接 -> KeyFrame::UpdateConnections()
+			4.1.4.11 对地图点、关联的关键帧以及观测进行全局BA优化 -> Optimizer::GlobalBundleAdjustment()
+			4.1.4.12 计算初始化两帧的平均深度 -> ComputeSceneMedianDepth()
+			4.1.4.13 初始基线尺度调整 -> KeyFrame::GetPose(), KeyFrame::SetPose()
+			4.1.4.14 根据调整后的初始化第二帧的位姿，缩放地图点 -> KeyFrame::GetMapPointMatches(), MapPoint::GetWorldPos(), MapPoint::SetWorldPos()
+			4.1.4.15 将初始化的两个关键帧插入mpLocalMapper -> LocalMapping::InsertKeyFrame()
+			4.1.4.16 
+	4.2 更新地图点在当前帧中是否可以被观测到 -> FrameDrawer::update()
+		4.2.1 检查地图点是否在当前帧中可以被观测到 -> MapPoint::Ovservations()
+    4.3 检查上一帧中跟踪的某些mappoints是否被更新 -> Tracking::CheckReplacedInLastFrame()
+		4.3.1 获取当前地图点是否被替换 -> MapPoint::GetReplaced()
+    4.4 根据参考关键帧跟踪 -> Tracking::TrackReferenceKeyFrame()
+		4.4.1 计算当前帧的词袋向量 -> Frame::ComputeBoW()
+			4.4.1.1 将当前帧的描述子由Mat按行拆分转换为vector -> Converter::toDescriptorVector()
+			4.4.1.2 将当前帧的描述子由vector转换为BoW2::BowVector和BoW2::FeatureVector -> ORB::ORBVocabulary::transform()(type: DBoW2, template)
+		4.4.2 初始化matcher -> ORBmatcher::ORBmatcher()
+		4.4.3 根据词袋方法，寻找参考关键帧(KeyFrame)和当前帧(Frame)的匹配点 -> ORBmatcher::SearchByBoW()
+			4.4.3.1 获取参考关键帧对应的地图点 -> KeyFrame::GetMapPointMatches()
+			4.4.3.2 获取参考关键帧的特征描述向量 -> KeyFrame::mFeatVec(type: DBoW2::FeatureVector)
+			4.4.3.3 对属于同一词汇节点的的ORB执行匹配 -> ...
+				4.4.3.3.1 将参考关键帧和当前帧的ORB词袋对齐到同一层
+				4.4.3.3.2 以参考关键帧中的地图点为基准
+				4.4.3.3.3 遍历参考关键帧中的地图点，计算该点的描述子与当前帧中所有地图点的描述子两两之间的距离 -> ORBmatcher::DescriptorDistance()
+				4.4.3.3.4 保留最佳匹配(描述子之间的距离最小，且距离小于TH_LOW)，计算该匹配的方向梯度直方图
+			4.4.3.4 找到方向梯度直方图中数量最多的三个bin，保留这些bin对应的的特征点匹配对 -> ORBmatcher::ComputeThreeMaxima()
+		4.4.4 (设置当前帧的地图点)，设置当前帧的位姿 -> Frame::SetPose()
+			4.4.4.1 更新变换矩阵mTcw
+			4.4.4.2 根据mTcw更新mRcw, mRwc, mtcw, mOw -> Frame::UpdatePoseMatrices()
+		4.4.5 优化当前帧的位姿 -> Optimizer::PoseOptimization()
+			4.4.5.1 构造g2o优化器
+		4.4.6 检查所有地图点，删除外点，查询观测>0的点 -> MapPoint::Observation()
+	4.5 根据运动模型跟踪 -> Tracking::TrackWithMotionModel()
+		4.5.1 初始化matcher -> ORBmatcher::ORBmatcher()
+		4.5.2 根据参考关键帧更新上一帧的位姿 -> Tracking::UpdateLastFrame()
+		4.5.3 根据运动量和上一帧的变换矩阵设置当前帧的位姿 -> Frame::SetPose()
+		4.5.4 根据投影方法，寻找上一帧(Frame)与当前帧(Frame)的匹配点 -> ORBmatcher::SearchByProject()
+		4.5.5 使用全部的匹配优化当前帧的位姿 -> Optimizer::PoseOptimizer()
+		4.5.6 检查所有地图点，删除外点，查询观测>0的点 -> MapPoint::Observation()
+
+    4.6 重定位 -> Tracking::Relocalization()
+```
+
+
+
 # ORB-SLAM2
 **Authors:** [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
 

@@ -159,13 +159,13 @@ namespace ORB_SLAM2
 
     int ORBmatcher::SearchByBoW(KeyFrame *pKF, Frame &F, vector<MapPoint *> &vpMapPointMatches)
     {
-        // 首先获得pKF（参考帧）对应的地图点，以此为基准去看F（当前帧）中有没有合适的点
+        // 首先获得pKF（参考关键帧）对应的地图点，以此为基准去看F（当前帧）中有没有合适的点
         const vector<MapPoint *> vpMapPointsKF = pKF->GetMapPointMatches();
 
         // 新建一个vector，大小为当前帧中特征点的个数，元素均为空指针
         vpMapPointMatches = vector<MapPoint *>(F.N, static_cast<MapPoint *>(NULL));
 
-        // 获取参考帧的特征描述向量
+        // 获取参考关键帧的特征描述向量
         const DBoW2::FeatureVector &vFeatVecKF = pKF->mFeatVec;
 
         int nmatches = 0;
@@ -176,6 +176,7 @@ namespace ORB_SLAM2
         const float factor = 1.0f / HISTO_LENGTH;
 
         // We perform the matching over ORB that belong to the same vocabulary node (at a certain level)
+        // 我们对属于同一词汇节点（在某个级别）的ORB执行匹配
         DBoW2::FeatureVector::const_iterator KFit = vFeatVecKF.begin();
         DBoW2::FeatureVector::const_iterator Fit = F.mFeatVec.begin();
         DBoW2::FeatureVector::const_iterator KFend = vFeatVecKF.end();
@@ -188,7 +189,7 @@ namespace ORB_SLAM2
                 const vector<unsigned int> vIndicesKF = KFit->second;
                 const vector<unsigned int> vIndicesF = Fit->second;
 
-                // 以参考帧中对应的点为基准进行匹配
+                // 以参考关键帧中对应的点为基准进行匹配
                 for (size_t iKF = 0; iKF < vIndicesKF.size(); iKF++)
                 {
                     // 先获取特征点在vpMapPointsKF中的索引
@@ -266,7 +267,7 @@ namespace ORB_SLAM2
             }
             else if (KFit->first < Fit->first)
             {
-                KFit = vFeatVecKF.lower_bound(Fit->first);
+                KFit = vFeatVecKF.lower_bound(Fit->first);  // low_bound: 在指定区域内查找不小于目标值的第一个元素
             }
             else
             {
@@ -274,7 +275,7 @@ namespace ORB_SLAM2
             }
         }
 
-        // 方向检查开关，如果打开了就执行下面代码进行过滤
+        // 方向检查开关，保留旋转直方图中数量最多的前三个bin对应的特征点匹配对
         if (mbCheckOrientation)
         {
             int ind1 = -1;
@@ -1638,7 +1639,7 @@ namespace ORB_SLAM2
         int max3 = 0;
 
         for (int i = 0; i < L; i++)
-        {
+        {   
             const int s = histo[i].size();
             if (s > max1)
             {

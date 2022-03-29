@@ -375,8 +375,8 @@ namespace ORB_SLAM2
         // 当然个人觉得也可以用其它评价标准，如均值、方差等等
         // 例如依次求取每个描述子到各描述子距离的方差，同样可以反映变化情况
         // 方差越小说明该描述子到其它描述子的距离波动不大，比较均衡、稳定，能够反映整体的趋势和情况
-        int BestMedian = INT_MAX;   // 最好的中位数距离
-        int BestIdx = 0;            // 最好的描述子所对应的索引
+        int BestMedian = INT_MAX; // 最好的中位数距离
+        int BestIdx = 0;          // 最好的描述子所对应的索引
         for (size_t i = 0; i < N; i++)
         {
             // 这里Distances[i]代表DiStance的第i行
@@ -388,7 +388,7 @@ namespace ORB_SLAM2
             sort(vDists.begin(), vDists.end());
             // 然后直接取排完序后的序列中的中位数对应的值（其实就是第i个描述子到其它各描述子之间的距离）作为median
             int median = vDists[0.5 * (N - 1)];
-            
+
             // 这里我们的原则是取到其它描述子中位数距离最小的作为结果，所以进行以下判断
             if (median < BestMedian)
             {
@@ -447,7 +447,7 @@ namespace ORB_SLAM2
         // 如果观测为空，该地图点在这些观测中一次都没有出现，则直接返回
         if (observations.empty())
             return;
-        
+
         // normal是一个3*1的全为0的向量
         cv::Mat normal = cv::Mat::zeros(3, 1, CV_32F);
         int n = 0;

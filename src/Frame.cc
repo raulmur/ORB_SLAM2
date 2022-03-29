@@ -172,14 +172,12 @@ namespace ORB_SLAM2
         AssignFeaturesToGrid();
     }
 
-    // 单目模式下构造Frame对象
+    // Monocular case: initialize Frame object
     Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor *extractor, ORBVocabulary *voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
         : mpORBvocabulary(voc), mpORBextractorLeft(extractor), mpORBextractorRight(static_cast<ORBextractor *>(NULL)),
           mTimeStamp(timeStamp), mK(K.clone()), mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
     {
-        // 这里简单整理一下参数的由来
-        // imGray、timeStamp
-        // 首先在主函数的for循环中依次读取每一帧图像，每读取一次，调用System类的成员函数TrackMoncular，将图像传给它
+        // 首先在主函数的for循环中依次读取每一帧图像，每读取一帧，调用System类的成员函数TrackMoncular，将灰度图传入
         // 然后在TrackMoncular函数中调用Tracking类的对象tracker（它是System类的成员变量）的GrabImageMoncular函数
         // 在GrabImageMoncular函数中将图像作为参数传给Frame类的构造函数，并将Frame对象返回给成员变量mCurrentFrame
 
@@ -187,14 +185,14 @@ namespace ORB_SLAM2
         // 这几个变量其实都是从参数文件里读出来的，都是在构造函数中通过读取参数文件初始化的
         // 具体来说，在主函数中将参数文件路径作为参数传入System类的构造函数，在构造函数中新建了Tracking对象
         // 将我们传入的文件路径传给Tracking的构造函数
-        // 在Tracking的构造函数中一次对这些参数进行了读取并赋给相应成员变量。
+        // 在Tracking的构造函数中对这些参数进行了读取并赋给相应成员变量(仅需读取一次)。
         // 最后在Tracking类中的GrabImageMonocular函数中将这些成员变量传入Frame类的构造函数，就得到了现在看到的
 
         // voc
         // 首先我们输入了字典文件路径，然后在主函数中ORB_SLAM2::System SLAM对象构造时读取了这个路径，而在System类的构造函数中
         // 根据路径读取了数据并赋给成员变量mpVocabulary并且将这个成员变量mpORBVocabulary，
         // 然后再Tracking的成员函数GrabImageMonocular中作为参数被传入Frame的构造函数，也就到了这里。
-        //
+
         // Frame ID
         // nNextId是一个初值为0的累加变量，每次调用Frame，首先将nNextId的值赋给mnId，然后自增1
         mnId = nNextId++;
@@ -215,6 +213,8 @@ namespace ORB_SLAM2
 
         // 获取提取到的特征点的个数
         N = mvKeys.size();
+        
+        cout << "Current Frame keys, mvKeys.size(): " << N << endl;
 
         if (mvKeys.empty())
             return;
@@ -232,6 +232,7 @@ namespace ORB_SLAM2
         mvbOutlier = vector<bool>(N, false);
 
         // This is done only for the first Frame (or after a change in the calibration)
+        // 仅在第一帧时计算
         if (mbInitialComputations)
         {
             ComputeImageBounds(imGray);
@@ -274,7 +275,7 @@ namespace ORB_SLAM2
 
     void Frame::ExtractORB(int flag, const cv::Mat &im)
     {
-        // 提取ORB特征点：计算图像金字塔、网格化每层金字塔、
+        // 提取ORB特征点：计算图像金字塔、网格化每层金字塔
         // 按预定比例在每层金字塔上提取特征点、计算特征点的描述子
         // mvKeys: 提取到的关键点
         // 注意下面的用法，在ORBExtractor中重载了括号运算符

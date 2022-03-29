@@ -107,7 +107,7 @@ namespace ORB_SLAM2
     static void computeOrbDescriptor(const KeyPoint &kpt,
                                      const Mat &img, const Point *pattern,
                                      uchar *desc)
-    // 传入的参数中带const的都是不会修改，只读的
+    // const声明的变量是只读的，不可修改的
     // 另外这里看起来传入的是一个Point指针类型的pattern，但其实是一个数组，可以根据索引获取其它元素
     {
         // 在特征提取后，会在computerOrientation函数中计算特征点的角度
@@ -135,12 +135,12 @@ namespace ORB_SLAM2
         // 另外，根据这个算法，可以计算出一共要有32*16个点用于迭代，而在代码一开始的pattern中就是512个点，在类的构造函数初始化pattern的时候也有体现
         for (int i = 0; i < 32; ++i, pattern += 16)
         {
-            int t0, t1, val;    // 临时变量
+            int t0, t1, val; // 临时变量
             // 获取0，1索引对应的像素的灰度值，然后进行比较，比较结果放到val里
             t0 = GET_VALUE(0);
             t1 = GET_VALUE(1);
-            val = t0 < t1;      // true为1，false为0
-            t0 = GET_VALUE(2);  // 和上面一样
+            val = t0 < t1;     // true为1，false为0
+            t0 = GET_VALUE(2); // 和上面一样
             t1 = GET_VALUE(3);
             // |表示两个相应的二进制位中只要有一个为1，该位的结果值为1，否则为0
             // 而这里又多了一个等号，就类似于+=这种操作，表示按位或赋值
@@ -445,6 +445,7 @@ namespace ORB_SLAM2
             7, 0, 12, -2 /*mean (0.127002), correlation (0.537452)*/,
             -1, -6, 0, -11 /*mean (0.127148), correlation (0.547401)*/
     };
+
     // 特征点的个数，比例金字塔中每层之间的比例因子，比例金字塔的层数，
     ORBextractor::ORBextractor(int _nfeatures, float _scaleFactor, int _nlevels,
                                int _iniThFAST, int _minThFAST) : nfeatures(_nfeatures), scaleFactor(_scaleFactor), nlevels(_nlevels),
@@ -639,7 +640,7 @@ namespace ORB_SLAM2
         // 新建一个Extractor指针类型的vector
         // 它里面存放的是每次循环向lNodes添加元素后其最后一个元素的地址
         vector<ExtractorNode *> vpIniNodes;
-        vpIniNodes.resize(nIni);    // 长度就设置为刚刚计算出来的个数
+        vpIniNodes.resize(nIni); // 长度就设置为刚刚计算出来的个数
 
         // 依次循环，构造节点放入vector中
         // 执行完这个循环其实只是将图像进行了X方向上的节点划分
@@ -659,7 +660,7 @@ namespace ORB_SLAM2
             // 它里面是金字塔每一层提取的未经处理的原始特征点
             ni.vKeys.reserve(vToDistributeKeys.size());
 
-            lNodes.push_back(ni);   // 将节点放入lNodes中
+            lNodes.push_back(ni); // 将节点放入lNodes中
             // back()返回lNodes的最后一个元素的可读写的引用，换句话说你可以直接利用lNodes.back()修改最后一个元素的值
             // 但这里需要注意的是vpIniNodes是ExtractorNode指针型的vector，因此要在前面加个取地址符才可以
             vpIniNodes[i] = &lNodes.back();
@@ -688,7 +689,7 @@ namespace ORB_SLAM2
             if (lit->vKeys.size() == 1)
             {
                 lit->bNoMore = true;
-                lit++;  // 迭代器迭代到下一个
+                lit++; // 迭代器迭代到下一个
             }
             // 如果说当前节点不含特征点，那么就直接把当前节点从lNodes中抹去
             else if (lit->vKeys.empty())
@@ -703,9 +704,9 @@ namespace ORB_SLAM2
                 lit++;
         }
 
-        bool bFinish = false;   // 一个flag变量，用于指示分割是否完成，是否停止迭代
+        bool bFinish = false; // 一个flag变量，用于指示分割是否完成，是否停止迭代
 
-        int iteration = 0;  // 迭代次数
+        int iteration = 0; // 迭代次数
 
         // 一个vector用于存放尺寸与指向该节点的指针，长度设置为当前节点总数的4倍
         vector<pair<int, ExtractorNode *>> vSizeAndPointerToNode;
@@ -714,15 +715,15 @@ namespace ORB_SLAM2
         // 开始迭代
         while (!bFinish)
         {
-            iteration++;    // 迭代次数累加1
+            iteration++; // 迭代次数累加1
 
-            int prevSize = lNodes.size();   // 当前节点总数，其是否变换会作为迭代终止的判断条件之一
+            int prevSize = lNodes.size(); // 当前节点总数，其是否变换会作为迭代终止的判断条件之一
 
-            lit = lNodes.begin();   // 把迭代器指向当前lNodes的第一个元素
+            lit = lNodes.begin(); // 把迭代器指向当前lNodes的第一个元素
 
-            int nToExpand = 0;      // 累加变量，包含特征个数大于1的节点个数
+            int nToExpand = 0; // 累加变量，包含特征个数大于1的节点个数
 
-            vSizeAndPointerToNode.clear();  // 清空
+            vSizeAndPointerToNode.clear(); // 清空
 
             // 开始正式迭代、遍历lNodes中的节点
             while (lit != lNodes.end())
@@ -766,7 +767,7 @@ namespace ORB_SLAM2
                         // 进一步判断，如果当前节点包含的特征点多于1的话，也就说非叶子节点，bNoMore为false，则执行下面操作
                         if (n1.vKeys.size() > 1)
                         {
-                            nToExpand++;    // 累加变量+1，只有当前节点包含特征点个数大于1才累加
+                            nToExpand++; // 累加变量+1，只有当前节点包含特征点个数大于1才累加
                             // 这里利用make_pair函数构造了一个pair放到了vSizeAndPointerToNode中
                             // size就是当前节点的特征点个数，
                             // 由于上面将当前节点放到了lNodes的最前面，所以当前节点就是lNodes的第一个元素
@@ -840,11 +841,11 @@ namespace ORB_SLAM2
                 while (!bFinish)
                 {
 
-                    prevSize = lNodes.size();   // 将当前的lNodes个数赋给prevSize
+                    prevSize = lNodes.size(); // 将当前的lNodes个数赋给prevSize
 
                     // 将当前的vSizeAndPointerToNode赋给vPrevSizeAndPointerToNode做个记录
                     vector<pair<int, ExtractorNode *>> vPrevSizeAndPointerToNode = vSizeAndPointerToNode;
-                    vSizeAndPointerToNode.clear();  // 然后清空当前vector
+                    vSizeAndPointerToNode.clear(); // 然后清空当前vector
 
                     // 对vPrevSizeAndPointerToNode做了个排序，默认为升序
                     // 另外排序默认是按照pair的第一个元素进行，且排序直接修改原始数据，没有另外的返回值
@@ -979,8 +980,8 @@ namespace ORB_SLAM2
             const float height = (maxBorderY - minBorderY);
 
             // Grid each level of the pyramid
-            const int nCols = width / W;    // 网格列数
-            const int nRows = height / W;   // 网格行数
+            const int nCols = width / W;  // 网格列数
+            const int nRows = height / W; // 网格行数
             // Compute the width and the heigth of every grid
             const int wCell = ceil(width / nCols); // ceil: 返回大于或等于指定表达式的最小整数
             const int hCell = ceil(height / nRows);
@@ -1008,7 +1009,7 @@ namespace ORB_SLAM2
                         maxX = maxBorderX;
 
                     vector<cv::KeyPoint> vKeysCell;
-                    // Use FAST method to extract keypoints
+                    // 使用FAST算法提取关键点
                     FAST(mvImagePyramid[level].rowRange(iniY, maxY).colRange(iniX, maxX),
                          vKeysCell, iniThFAST, true);
 
@@ -1246,8 +1247,7 @@ namespace ORB_SLAM2
             computeOrbDescriptor(keypoints[i], image, &pattern[0], descriptors.ptr((int)i));
     }
 
-    // Extractor keypoints for new frame
-    // mask: 掩膜，这里没有用到
+    // Extractor keypoints for image on every levels of the pyramid; mask: 掩膜，这里没有用到
     void ORBextractor::operator()(InputArray _image, InputArray _mask, vector<KeyPoint> &_keypoints,
                                   OutputArray _descriptors)
     {
@@ -1255,7 +1255,7 @@ namespace ORB_SLAM2
             return;
 
         Mat image = _image.getMat();
-        // 如果输入的图像不是灰度，中断程序
+        // 如果图像不是单通道的灰度图像，则中断程序
         assert(image.type() == CV_8UC1);
 
         // Pre-compute the scale pyramid
@@ -1353,14 +1353,17 @@ namespace ORB_SLAM2
             // 这里获取的是逆尺度，也就是说里面的尺度因子是小于1并且慢慢变小的
             // 用户指定的尺度因子大于1的情况下
             float scale = mvInvScaleFactor[level];
+
             // 根据尺度因子计算当前层的长宽尺寸
             Size sz(cvRound((float)image.cols * scale), cvRound((float)image.rows * scale));
+
             // 由于还涉及到扩边的问题，所以对图像长宽都加上一定数值
             Size wholeSize(sz.width + EDGE_THRESHOLD * 2, sz.height + EDGE_THRESHOLD * 2);
+
             // 新建两个Mat，temp类型和输入的image一致
             Mat temp(wholeSize, image.type()), masktemp;
-            // 取temp的一定范围内的图像内容放到vector里
-            // 对temp的修改也会影响到mvImagePyramid
+
+            // 取temp的一定范围内的图像内容放到vector里，对temp的修改也会影响到mvImagePyramid
             // 此操作不复制矩阵的数据，是O(1)操作
             mvImagePyramid[level] = temp(Rect(EDGE_THRESHOLD, EDGE_THRESHOLD, sz.width, sz.height));
 
@@ -1370,19 +1373,17 @@ namespace ORB_SLAM2
                 // 根据上一层金字塔图像的大小调整当前层的图像
                 resize(mvImagePyramid[level - 1], mvImagePyramid[level], sz, 0, 0, INTER_LINEAR);
 
-                // BORDER_REFLECT_101是以镜面对称的方式扩边，BORDER_ISOLATED是以0灰度填充
-                // 它们两个混合使用的效果和单独使用reflect_101效果一样
-                // 函数第一个参数是输入图像，第二个参数是输出图像，后面四个参数是上下左右方向扩展的距离，这里都是一样的
-                // 每一层金字塔图像的大小是不一样的；
+                // mvImagePyramid[level]: 输入图像
+                // temp: 输出图像，
+                // EDGE_THRESHOLD: 上下左右方向扩展的距离(上下左右，四个参数)
+                // Note: 每一层金字塔图像的大小是不一样的
                 // 图像金字塔从底层（原图像）到顶层是缩放的，即镜头拉远。这似乎违背SLAM的直觉
-                // 但在Dual-SLAM中提到了，SLAM正序和倒序的结果没有太大的差别
-                copyMakeBorder(mvImagePyramid[level], temp, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
-                               BORDER_REFLECT_101 + BORDER_ISOLATED);
+                // 但在Dual-SLAM中提到了，SLAM正序和倒序的结果没有太大的差别(前进似乎是把远处的图像逐渐放大，后退是把近处的图像逐渐减小)
+                copyMakeBorder(mvImagePyramid[level], temp, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, BORDER_REFLECT_101 + BORDER_ISOLATED);  // BORDER_REFLECT_101是以镜面对称的方式扩边，BORDER_ISOLATED是以0灰度填充，它们两个混合使用的效果和单独使用reflect_101效果一样
             }
             else
             {
-                // 将image扩边，返回给temp，四个方向大小相同都为EDGE_THRESHOLD，
-                // 将原图通过插值(BORDER_REFLECT_101)的方式放大
+                // 将image通过插值(BORDER_REFLECT_101)的方式向上下左右扩展EDGE_THRESHOLD
                 copyMakeBorder(image, temp, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
                                BORDER_REFLECT_101);
             }

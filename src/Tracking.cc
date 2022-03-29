@@ -253,7 +253,7 @@ namespace ORB_SLAM2
         mImGray = im;
 
         // 不管你有几个通道，都转化为单通道的灰度图
-        // 彩色图转换为灰度图
+        // 三通道的彩色图像转换为灰度图
         if (mImGray.channels() == 3)
         {
             if (mbRGB)
@@ -261,7 +261,7 @@ namespace ORB_SLAM2
             else
                 cvtColor(mImGray, mImGray, CV_BGR2GRAY);
         }
-        // 带透明度的图像转换为灰度图
+        // 四通道的彩色图像（带透明度）转换为灰度图
         else if (mImGray.channels() == 4)
         {
             if (mbRGB)
@@ -270,12 +270,10 @@ namespace ORB_SLAM2
                 cvtColor(mImGray, mImGray, CV_BGRA2GRAY);
         }
 
-        // 2 times keypoints
-        // 未初始化的的状态的特征点数是正常值的两倍
+        // Not Initialized: 2 times keypoints
         if (mState == NOT_INITIALIZED || mState == NO_IMAGES_YET)
             mCurrentFrame = Frame(mImGray, timestamp, mpIniORBextractor, mpORBVocabulary, mK, mDistCoef, mbf, mThDepth);
-        // 1 times keypoints
-        // 初始化成功的特征点数是正常值
+        // Initialized: 1 times keypoints
         else
             mCurrentFrame = Frame(mImGray, timestamp, mpORBextractorLeft, mpORBVocabulary, mK, mDistCoef, mbf, mThDepth);
 
@@ -306,7 +304,7 @@ namespace ORB_SLAM2
             else
                 MonocularInitialization();
 
-            // 更新FrameDrawer
+            // 更新地图点是否可以在当前帧中被观测到
             mpFrameDrawer->Update(this);
 
             // 如果状态不OK，退出
@@ -595,10 +593,10 @@ namespace ORB_SLAM2
         }
     }
 
-    // 单目初始化核心操作
     void Tracking::MonocularInitialization()
     {
-        // 成员变量mpInitializer再之前都没有进行初始化，所以为NULL，第一次运行会进入到这个if中
+        // 单目初始化核心操作
+        // Tracking的成员变量mpInitializer在之前都没有进行初始化，所以为NULL，第一次运行会进入到这个if语句中
         if (!mpInitializer)
         {
             // Set Reference Frame
@@ -806,7 +804,7 @@ namespace ORB_SLAM2
         mpLocalMapper->InsertKeyFrame(pKFini);
         mpLocalMapper->InsertKeyFrame(pKFcur);
 
-        // pKFcur实在函数中建立的临时变量，还需要将其位姿、ID赋给Tracking的成员变量mCurrentFrame
+        // pKFcur是在函数中建立的临时变量，还需要将其位姿、ID赋给Tracking的成员变量mCurrentFrame
         mCurrentFrame.SetPose(pKFcur->GetPose());
         mnLastKeyFrameId = mCurrentFrame.mnId;
         mpLastKeyFrame = pKFcur;
@@ -868,7 +866,7 @@ namespace ORB_SLAM2
 
         // 设置当前帧的地图点为刚刚匹配得到的点
         mCurrentFrame.mvpMapPoints = vpMapPointMatches;
-        // 设置位姿
+        // 设置当前帧位姿
         mCurrentFrame.SetPose(mLastFrame.mTcw);
 
         // 优化位姿，传入的参数只有Frame类型的当前帧
@@ -877,7 +875,7 @@ namespace ORB_SLAM2
         // 同时Frame的mvOutlier也已经被修改了，所以后面才会直接用
         Optimizer::PoseOptimization(&mCurrentFrame);
 
-        // Discard outliers
+        // Discard outliers 丢弃外点，即不符合RANSAC模型的点
         int nmatchesMap = 0;
         // 对于当前帧中的所有特征点进行遍历
         for (int i = 0; i < mCurrentFrame.N; i++)
@@ -978,16 +976,17 @@ namespace ORB_SLAM2
 
         // Update last frame pose according to its reference keyframe
         // Create "visual odometry" points if in Localization Mode
+        // 根据参考关键帧更新上一帧的位姿，如果处于定位模式，则创建视觉里程计点
         UpdateLastFrame();
 
         mCurrentFrame.SetPose(mVelocity * mLastFrame.mTcw);
 
         fill(mCurrentFrame.mvpMapPoints.begin(), mCurrentFrame.mvpMapPoints.end(), static_cast<MapPoint *>(NULL));
 
-        // Project points seen in previous frame
+        // Project points seen in previous frame 上一帧中看到的投影点
         int th;
         if (mSensor != System::STEREO)
-            th = 15;
+            th = 15;    // 搜寻的窗口
         else
             th = 7;
         int nmatches = matcher.SearchByProjection(mCurrentFrame, mLastFrame, th, mSensor == System::MONOCULAR);
@@ -1005,7 +1004,7 @@ namespace ORB_SLAM2
         // Optimize frame pose with all matches
         Optimizer::PoseOptimization(&mCurrentFrame);
 
-        // Discard outliers
+        // Discard outliers 删除外点(不符合RANSAC模型的点)
         int nmatchesMap = 0;
         for (int i = 0; i < mCurrentFrame.N; i++)
         {
@@ -1655,9 +1654,9 @@ namespace ORB_SLAM2
             mpViewer->Release();
     }
 
-    // 重新读取配置文件（相机内参、畸变参数、基线？）
     void Tracking::ChangeCalibration(const string &strSettingPath)
     {
+        // 重新读取配置文件（相机内参、畸变参数、基线？）
         cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
         float fx = fSettings["Camera.fx"];
         float fy = fSettings["Camera.fy"];
