@@ -487,7 +487,7 @@ namespace ORB_SLAM2
             }
         }
 
-        // 如果说经过上面的循环获得的关联还小于3各，直接返回，没法做了
+        // 如果说经过上面的循环获得的关联还小于3个，直接返回，没法做了
         if (nInitialCorrespondences < 3)
             return 0;
 
