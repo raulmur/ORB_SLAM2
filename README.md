@@ -4,17 +4,17 @@
 > - https://github.com/zhangzjjjjjj/ORB-Code-Notes
 
 
-依赖库|说明|作用
-:-:|:-:|-
-OpenCV3|图像处理库|图像灰度转换、FAST特征点提取
-DBoW2|词袋库|特征描述向量
-g2o|优化库|位姿优化、BA优化
-Eigen3|矩阵运算库|为g2o提供支持
-Pangolin|可视化库|...
+|  依赖库  |    说明    | 作用                         |
+| :------: | :--------: | ---------------------------- |
+| OpenCV3  | 图像处理库 | 图像灰度转换、FAST特征点提取 |
+|  DBoW2   |   词袋库   | 特征描述向量                 |
+|   g2o    |   优化库   | 位姿优化、BA优化             |
+|  Eigen3  | 矩阵运算库 | 为g2o提供支持                |
+| Pangolin |  可视化库  | ...                          |
 
 
 ### 单目情况处理流程(Monocular case processing flow)
-```latex
+```
 1. 读取图像和时间戳 -> Mono_kitti::LoadImages(), System::TrackMonocular
 2. 将图像转换为灰度图 -> Tracking::GrabImageMonocular()
 3. 用灰度图初始化Frame: -> Frame::Frame()
@@ -41,11 +41,11 @@ Pangolin|可视化库|...
             4.1.3.3 分解单应矩阵 -> Initializer::ReconstructH()
 				4.1.3.3.1 SVD分解 -> cv::SVD::compute()
 				4.1.3.3.2 检验R, t -> Initializer::CheckRT()
-					4.1.3.3.2.1 ? 计算深度 -> Initializer::Triangulate()
+					4.1.3.3.2.1 计算深度 -> Initializer::Triangulate()
             4.1.3.4 分解本质矩阵 -> Initializer::ReconstructF()
 				4.1.3.4.1 恢复四个运动假设 -> Initializer::DecomposeE()
                 4.1.3.4.2 检验R, t -> Initializer::CheckRT()
-					4.1.3.4.2.1 ? 计算深度 -> Initializer::Triangulate()
+					4.1.3.4.2.1 计算深度 -> Initializer::Triangulate()
         4.1.4 创建单目初始化地图 -> Tracking::CreateInitialMapMonocular()
 			4.1.4.1 初始化两帧为关键帧 -> KeyFrame::KeyFrame()
 				4.1.4.1.1 设置位姿 -> KeyFrame::SetPose()
@@ -65,7 +65,7 @@ Pangolin|可视化库|...
 			4.1.4.13 初始基线尺度调整 -> KeyFrame::GetPose(), KeyFrame::SetPose()
 			4.1.4.14 根据调整后的初始化第二帧的位姿，缩放地图点 -> KeyFrame::GetMapPointMatches(), MapPoint::GetWorldPos(), MapPoint::SetWorldPos()
 			4.1.4.15 将初始化的两个关键帧插入mpLocalMapper -> LocalMapping::InsertKeyFrame()
-			4.1.4.16 
+			4.1.4.16 ...
 	4.2 更新地图点在当前帧中是否可以被观测到 -> FrameDrawer::update()
 		4.2.1 检查地图点是否在当前帧中可以被观测到 -> MapPoint::Ovservations()
     4.3 检查上一帧中跟踪的某些mappoints是否被更新 -> Tracking::CheckReplacedInLastFrame()
@@ -89,6 +89,7 @@ Pangolin|可视化库|...
 			4.4.4.2 根据mTcw更新mRcw, mRwc, mtcw, mOw -> Frame::UpdatePoseMatrices()
 		4.4.5 优化当前帧的位姿 -> Optimizer::PoseOptimization()
 			4.4.5.1 构造g2o优化器
+			4.4.5.2 ...
 		4.4.6 检查所有地图点，删除外点，查询观测>0的点 -> MapPoint::Observation()
 	4.5 根据运动模型跟踪 -> Tracking::TrackWithMotionModel()
 		4.5.1 初始化matcher -> ORBmatcher::ORBmatcher()
@@ -97,7 +98,6 @@ Pangolin|可视化库|...
 		4.5.4 根据投影方法，寻找上一帧(Frame)与当前帧(Frame)的匹配点 -> ORBmatcher::SearchByProject()
 		4.5.5 使用全部的匹配优化当前帧的位姿 -> Optimizer::PoseOptimizer()
 		4.5.6 检查所有地图点，删除外点，查询观测>0的点 -> MapPoint::Observation()
-
     4.6 重定位 -> Tracking::Relocalization()
 ```
 

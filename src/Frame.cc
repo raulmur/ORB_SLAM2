@@ -213,8 +213,8 @@ namespace ORB_SLAM2
 
         // 获取提取到的特征点的个数
         N = mvKeys.size();
-        
-        cout << "Current Frame keys, mvKeys.size(): " << N << endl;
+
+        cout << "Frame::Frame(), mvKeys.size():" << N << endl;
 
         if (mvKeys.empty())
             return;
