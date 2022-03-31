@@ -1379,7 +1379,7 @@ namespace ORB_SLAM2
                 // Note: 每一层金字塔图像的大小是不一样的
                 // 图像金字塔从底层（原图像）到顶层是缩放的，即镜头拉远。这似乎违背SLAM的直觉
                 // 但在Dual-SLAM中提到了，SLAM正序和倒序的结果没有太大的差别(前进似乎是把远处的图像逐渐放大，后退是把近处的图像逐渐减小)
-                copyMakeBorder(mvImagePyramid[level], temp, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, BORDER_REFLECT_101 + BORDER_ISOLATED);  // BORDER_REFLECT_101是以镜面对称的方式扩边，BORDER_ISOLATED是以0灰度填充，它们两个混合使用的效果和单独使用reflect_101效果一样
+                copyMakeBorder(mvImagePyramid[level], temp, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, BORDER_REFLECT_101 + BORDER_ISOLATED); // BORDER_REFLECT_101是以镜面对称的方式扩边，BORDER_ISOLATED是以0灰度填充，它们两个混合使用的效果和单独使用reflect_101效果一样
             }
             else
             {

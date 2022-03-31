@@ -296,6 +296,7 @@ namespace ORB_SLAM2
             }
         }
         
+        cout << "ORBmatcher::SearchByBoW, KeyFrame and Frame, nmatches: " << nmatches << endl;
         // 返回匹配点的个数
         return nmatches;
     }
@@ -551,7 +552,7 @@ namespace ORB_SLAM2
         for (size_t i1 = 0, iend1 = vnMatches12.size(); i1 < iend1; i1++)
             if (vnMatches12[i1] >= 0)
                 vbPrevMatched[i1] = F2.mvKeysUn[vnMatches12[i1]].pt;
-
+        cout << "ORBmatcher::SearchForInitialization(), nmatches" << nmatches << endl;
         return nmatches;
     }
 
