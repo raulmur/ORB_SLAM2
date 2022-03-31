@@ -1,7 +1,7 @@
 # Add Notes for ORB-SLAM2 and fix some bugs
 > Reference:
 > - https://github.com/raulmur/ORB_SLAM2
-> - https://github.com/zhangzjjjjjj/ORB-Code-Notes
+> - https://github.com/zhaoxuhui/ORB-Code-Notes
 
 
 |  依赖库  |    说明    | 作用                         |
