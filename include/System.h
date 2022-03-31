@@ -56,6 +56,8 @@ public:
         STEREO=1,
         RGBD=2
     };
+
+    // Record Frame ID
     int frameid = -1;
 
 public:

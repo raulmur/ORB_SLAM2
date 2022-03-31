@@ -244,7 +244,9 @@ namespace ORB_SLAM2
             exit(-1);
         }
 
-        frameid++;
+        frameid++;  // Record id of frame
+        cout << "System::TrackMonocular(), frmaeid: " << frameid << endl;
+        cout << "System::TrackMonocular(), timestamp: " << timestamp << endl;
 
         // Check mode change
         {
@@ -280,11 +282,19 @@ namespace ORB_SLAM2
             }
         }
 
-        // 这个函数是是单目Tracking的核心，它的返回值是一个变换矩阵
+        // 这个函数是是单目Tracking的核心，它的返回值是一个变换矩阵(4*4)
         cv::Mat Tcw = mpTracker->GrabImageMonocular(im, timestamp);
 
         // 线程独占锁；在unique_lock对象的声明周期内，它所管理的锁对象会一直保持上锁状态；
         // 而unique_lock的声明周期结束后，它所管理的锁对象会被解锁
+        // 假设现在有两个线程中，这两个线程中的函数分别定义了
+        // thread1::function1: unique_lock<mMutex> lock1(mMutexState)
+        // thread2::function2: unique_lock<mMutex> lock2(mMutexState)
+        // 假设这两个线程并行执行，两个线程对应的函数同时处理（但第一个比第二个略快）
+        // 在不定义unique_lock<mMutex>的情况下，两个线程会交替执行
+        // 不存在一个线程等待另一个线程结束的情况，定义unique_lock<mMutex>后
+        // 先处理的线程就会独占，后处理的线程会开始等待，直到先处理的线程中
+        // 含有unique_lock<mMutex> lock2(mMutexState)的函数执行完毕，释放锁后才会执行
         unique_lock<mutex> lock2(mMutexState);
         // 将Tracking的一些成员变量付给System
         mTrackingState = mpTracker->mState;

@@ -15,7 +15,7 @@
 
 ### 单目情况处理流程(Monocular case processing flow)
 ```
-1. 读取图像和时间戳 -> Mono_kitti::LoadImages(), System::TrackMonocular
+1. 读取图像和时间戳 -> Mono_kitti::LoadImages(), System::TrackMonocular()
 2. 将图像转换为灰度图 -> Tracking::GrabImageMonocular()
 3. 用灰度图初始化Frame: -> Frame::Frame()
     3.1 提取特征点 -> Frame::ExtractORB()
