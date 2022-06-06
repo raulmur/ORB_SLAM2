@@ -66,8 +66,8 @@ int main(int argc, char **argv)
     for(int ni=0; ni<nImages; ni++)
     {
         // Read left and right images from file
-        imLeft = cv::imread(vstrImageLeft[ni],CV_LOAD_IMAGE_UNCHANGED);
-        imRight = cv::imread(vstrImageRight[ni],CV_LOAD_IMAGE_UNCHANGED);
+        imLeft = cv::imread(vstrImageLeft[ni],cv::IMREAD_UNCHANGED);
+        imRight = cv::imread(vstrImageRight[ni],cv::IMREAD_UNCHANGED);
         double tframe = vTimestamps[ni];
 
         if(imLeft.empty())
@@ -104,7 +104,8 @@ int main(int argc, char **argv)
             T = tframe-vTimestamps[ni-1];
 
         if(ttrack<T)
-            usleep((T-ttrack)*1e6);
+            this_thread::sleep_for(std::chrono::microseconds(static_cast<uint64_t>((T-ttrack)*1e6)));
+
     }
 
     // Stop all threads
