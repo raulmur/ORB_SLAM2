@@ -23,9 +23,8 @@
 #include<algorithm>
 #include<fstream>
 #include<chrono>
-
 #include<opencv2/core/core.hpp>
-
+#include <segmentation/mask_rcnn_dnn_mt.h>
 #include<System.h>
 
 using namespace std;
@@ -74,6 +73,9 @@ int main(int argc, char **argv)
 
     // Main loop
     cv::Mat imRGB, imD;
+
+    MaskRcnnDnnMT mask_rcnn_dnn(cv::dnn::Backend::DNN_BACKEND_DEFAULT, cv::dnn::DNN_TARGET_CPU,
+                                {MaskRcnnClass::Person});
     for(int ni=0; ni<nImages; ni++)
     {
         // Read image and depthmap from file
@@ -93,9 +95,11 @@ int main(int argc, char **argv)
 #else
         std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
 #endif
+        cv::Mat mask;
+        mask_rcnn_dnn.segment(imRGB,mask, 0.7);
 
         // Pass the image to the SLAM system
-        SLAM.TrackRGBD(imRGB,imD,tframe);
+        SLAM.TrackRGBD(imRGB,imD,mask,tframe);
 
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();

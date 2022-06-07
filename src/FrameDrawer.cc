@@ -125,6 +125,25 @@ cv::Mat FrameDrawer::DrawFrame()
     return imWithInfo;
 }
 
+cv::Mat FrameDrawer::DrawMask()
+{
+  cv::Mat mask;
+  int state; // Tracking state
+
+  //Copy variables within scoped mutex
+  {
+    unique_lock<mutex> lock(mMutex);
+    state=mState;
+    if(mState==Tracking::SYSTEM_NOT_READY)
+      mState=Tracking::NO_IMAGES_YET;
+
+    mMask.copyTo(mask);
+
+  } // destroy scoped mutex -> release mutex
+
+  return mask;
+}
+
 
 void FrameDrawer::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
 {
@@ -168,6 +187,7 @@ void FrameDrawer::Update(Tracking *pTracker)
 {
     unique_lock<mutex> lock(mMutex);
     pTracker->mImGray.copyTo(mIm);
+    pTracker->mMask.copyTo(mMask);
     mvCurrentKeys=pTracker->mCurrentFrame.mvKeys;
     N = mvCurrentKeys.size();
     mvbVO = vector<bool>(N,false);

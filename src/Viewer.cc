@@ -130,7 +130,10 @@ void Viewer::Run() {
     pangolin::FinishFrame();
 
     cv::Mat im = mpFrameDrawer->DrawFrame();
+    cv::Mat mask = mpFrameDrawer->DrawMask();
     cv::imshow("ORB-SLAM2: Current Frame", im);
+    if(!mask.empty())
+      cv::imshow("ORB-SLAM2: Current mask", mask);
     cv::waitKey(mT);
 
     if (menuReset) {
