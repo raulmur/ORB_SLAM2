@@ -81,7 +81,6 @@ public:
     int PredictScale(const float &currentDist, KeyFrame*pKF);
     int PredictScale(const float &currentDist, Frame* pF);
 
-public:
     long unsigned int mnId;
     static long unsigned int nNextId;
     long int mnFirstKFid;
