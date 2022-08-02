@@ -36,8 +36,8 @@ using namespace std;
 using namespace cv;
 using namespace cv::dnn;
 
-const string mask_rcnn_model_path = "/home/lcorreia/Personal/Projects/DYNAMIC-ORB_SLAM2/models/mask_rcnn_inception_v2_coco_2018_01_28/frozen_inference_graph.pb";
-const string mask_rcnn_pbtxt_path = "/home/lcorreia/Personal/Projects/DYNAMIC-ORB_SLAM2/models/mask_rcnn_inception_v2_coco_2018_01_28/mask_rcnn_inception_v2_coco_2018_01_28.pbtxt";
+const string mask_rcnn_model_path = "/home/y9luiz/Projects/Pesquisa/DYNAMIC-ORB_SLAM2/models/mask_rcnn_inception_v2_coco_2018_01_28/frozen_inference_graph.pb";
+const string mask_rcnn_pbtxt_path = "/home/y9luiz/Projects/Pesquisa/DYNAMIC-ORB_SLAM2/models/mask_rcnn_inception_v2_coco_2018_01_28/mask_rcnn_inception_v2_coco_2018_01_28.pbtxt";
 
 MaskRcnnDnnMT::MaskRcnnDnnMT(Backend backend_id,
                             Target target_id,
