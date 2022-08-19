@@ -1,4 +1,14 @@
-# ORB-SLAM2
+# ORB_SLAM2_Relocalization
+**Authors:** thomas(thomas[At]graphopti.com)
+
+This repostory is forked from [ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2). We add two features to ORBSLAM2:
+- Map save and load: saving ORB_SLAM2 map in bin format, loading a map into ORB_SLAM2 system.
+- relocate an image: find similar frames in map, computing its pose.
+
+We will release this repo before October 2022.
+
+
+
 **Authors:** [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
 
 **13 Jan 2017**: OpenCV 3 and Eigen 3.3 are now supported.
