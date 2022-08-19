@@ -2,8 +2,8 @@
 **Authors:** thomas(thomas[At]graphopti.com)
 
 This repostory is forked from [ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2). We add two features to ORBSLAM2:
-- Map save and load: saving ORB_SLAM2 map in bin format, loading a map into ORB_SLAM2 system.
-- relocate an image: find similar frames in map, computing its pose.
+- Map save and load: saving ORB_SLAM2 map in bin format, loading offline map into ORB_SLAM2 system.
+- relocate an image: find similar frames in map, relocate it, output its pose.
 
 We will release this repo before October 2022.
 
