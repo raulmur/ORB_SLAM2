@@ -1,4 +1,4 @@
-# muse_gr/ORB-SLAM2
+# muse-gr/ORB-SLAM2
 *これはpublicレポジトリです。秘密情報を入れないように！*  
 *This is a public repository. Do not push any confidential information!!*
 
