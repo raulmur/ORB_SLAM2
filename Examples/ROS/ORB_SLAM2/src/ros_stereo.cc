@@ -25,6 +25,9 @@
 #include<chrono>
 
 #include<ros/ros.h>
+#include <tf/tf.h>
+#include <tf/transform_broadcaster.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <cv_bridge/cv_bridge.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
@@ -36,6 +39,10 @@
 
 using namespace std;
 
+ofstream g_ofs;
+int g_seq;
+ros::Publisher g_pubPose;
+
 class ImageGrabber
 {
 public:
@@ -46,10 +53,14 @@ public:
     ORB_SLAM2::System* mpSLAM;
     bool do_rectify;
     cv::Mat M1l,M2l,M1r,M2r;
+    tf::TransformBroadcaster _transformBroadcaster;
 };
 
 int main(int argc, char **argv)
 {
+    g_ofs.open("log.csv");
+    g_seq = 0;
+
     ros::init(argc, argv, "RGBD");
     ros::start();
 
@@ -58,10 +69,10 @@ int main(int argc, char **argv)
         cerr << endl << "Usage: rosrun ORB_SLAM2 Stereo path_to_vocabulary path_to_settings do_rectify" << endl;
         ros::shutdown();
         return 1;
-    }    
+    }
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,false);
 
     ImageGrabber igb(&SLAM);
 
@@ -69,7 +80,7 @@ int main(int argc, char **argv)
 	ss >> boolalpha >> igb.do_rectify;
 
     if(igb.do_rectify)
-    {      
+    {
         // Load settings related to stereo calibration
         cv::FileStorage fsSettings(argv[2], cv::FileStorage::READ);
         if(!fsSettings.isOpened())
@@ -108,6 +119,8 @@ int main(int argc, char **argv)
     }
 
     ros::NodeHandle nh;
+
+    g_pubPose = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("/cube/data/vslam_localization/pose", 1);
 
     message_filters::Subscriber<sensor_msgs::Image> left_sub(nh, "/camera/left/image_raw", 1);
     message_filters::Subscriber<sensor_msgs::Image> right_sub(nh, "camera/right/image_raw", 1);
@@ -155,18 +168,99 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
         return;
     }
 
+    cv::Mat trackingResult;
     if(do_rectify)
     {
         cv::Mat imLeft, imRight;
         cv::remap(cv_ptrLeft->image,imLeft,M1l,M2l,cv::INTER_LINEAR);
         cv::remap(cv_ptrRight->image,imRight,M1r,M2r,cv::INTER_LINEAR);
-        mpSLAM->TrackStereo(imLeft,imRight,cv_ptrLeft->header.stamp.toSec());
+        trackingResult = mpSLAM->TrackStereo(imLeft,imRight,cv_ptrLeft->header.stamp.toSec());
     }
     else
     {
-        mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
+        trackingResult = mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
+
+        auto vKeys = mpSLAM->GetTrackedKeyPointsUn();
+        auto vMPs = mpSLAM->GetTrackedMapPoints();
+        const int N = vKeys.size();
+        auto leftImageToSave = cv_ptrLeft->image.clone();
+        auto rightImageToSave = cv_ptrRight->image.clone();
+
+        for(int i=0; i<N; i++)
+        {
+            if(vMPs[i])
+            {
+                cv::circle(leftImageToSave,vKeys[i].pt,1,cv::Scalar(0,255,0),-1);
+                cv::circle(rightImageToSave,vKeys[i].pt,1,cv::Scalar(0,255,0),-1);
+            }
+        }
+
+        static int num = 0;
+
+        std::stringstream ss;
+        ss << std::setfill('0') << std::setw(6) << num;
+        cv::imwrite("./data/left" + ss.str() + ".jpg", leftImageToSave);
+        cv::imwrite("./data/right" + ss.str() + ".jpg", rightImageToSave);
+
+        num++;
     }
 
+    if (trackingResult.empty())
+    {
+        ROS_INFO("Tracking lost");
+        return;
+    }
+
+    cv::Mat cvRotCamToInit = trackingResult.rowRange(0,3).colRange(0,3).t();
+    cv::Mat cvTransCamToInit = -cvRotCamToInit * trackingResult.rowRange(0,3).col(3);
+
+    tf::Matrix3x3 orbToRosCoord(
+            0, 0, 1,
+            1, 0, 0,
+            0, 1, 0);
+    tf::Matrix3x3 rot(
+            cvRotCamToInit.at<float>(0,0), cvRotCamToInit.at<float>(0,1), cvRotCamToInit.at<float>(0,2),
+            cvRotCamToInit.at<float>(1,0), cvRotCamToInit.at<float>(1,1), cvRotCamToInit.at<float>(1,2),
+            cvRotCamToInit.at<float>(2,0), cvRotCamToInit.at<float>(2,1), cvRotCamToInit.at<float>(2,2));
+    tf::Quaternion q;
+    (orbToRosCoord * rot).getRotation(q);
+
+    tf::Quaternion qBase;
+    qBase.setRPY(0, -M_PI_2, 0);
+    tf::Quaternion rosQ = q * qBase;
+
+    tf::Vector3 trans = tf::Vector3(cvTransCamToInit.at<float>(0,0), cvTransCamToInit.at<float>(1,0), cvTransCamToInit.at<float>(2,0));
+    tf::Vector3 rosTrans = orbToRosCoord * trans;
+
+    tf::Transform transform;
+    transform.setRotation(rosQ);
+    transform.setOrigin(rosTrans);
+
+    _transformBroadcaster.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "camera_link"));
+
+    geometry_msgs::PoseWithCovarianceStamped poseCovStamped;
+    poseCovStamped.header.frame_id = "map";
+    poseCovStamped.header.seq = g_seq;
+    poseCovStamped.header.stamp = ros::Time::now();
+    poseCovStamped.pose.pose.position.x = rosTrans.x();
+    poseCovStamped.pose.pose.position.y = rosTrans.y();
+    poseCovStamped.pose.pose.position.z = rosTrans.z();
+    tf::quaternionTFToMsg(rosQ, poseCovStamped.pose.pose.orientation);
+    // clang-format off
+    poseCovStamped.pose.covariance = {
+        1e-4, 0,    0,    0,    0,    0,
+        0,    1e-4, 0,    0,    0,    0,
+        0,    0,    1e-4, 0,    0,    0,
+        0,    0,    0,    1e-6, 0,    0,
+        0,    0,    0,    0,    1e-6, 0,
+        0,    0,    0,    0,    0,    1e-6
+    };
+    // clang-format on
+
+    g_pubPose.publish(poseCovStamped);
+    g_seq++;
+
+//    g_ofs << trans[0] << "," << trans[1] << "," << trans[2] << "," << q[0] << "," << q[1] << "," << q[2] << "," << q[3] << std::endl;
 }
 
 
