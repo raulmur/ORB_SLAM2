@@ -62,7 +62,7 @@ int main(int argc, char **argv)
     ImageGrabber igb(&SLAM);
 
     ros::NodeHandle nodeHandler;
-    ros::Subscriber sub = nodeHandler.subscribe("/camera/infra1/image_rect_raw", 1, &ImageGrabber::GrabImage,&igb);
+    ros::Subscriber sub = nodeHandler.subscribe("/zed2/zed_node/rgb/image_rect_color", 1, &ImageGrabber::GrabImage,&igb);
 
     ros::spin();
 
