@@ -22,3 +22,5 @@ build/
 *~
 lib/
 
+.vscode
+.clang-format
