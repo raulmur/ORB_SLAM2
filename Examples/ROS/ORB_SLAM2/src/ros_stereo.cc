@@ -230,21 +230,23 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     tf::Quaternion rosQ = q * qBase;
 
     tf::Vector3 trans = tf::Vector3(cvTransCamToInit.at<float>(0,0), cvTransCamToInit.at<float>(1,0), cvTransCamToInit.at<float>(2,0));
-    tf::Vector3 rosTrans = orbToRosCoord * trans;
+    tf::Vector3 rosTransCam = orbToRosCoord * trans;
 
     tf::Transform transform;
     transform.setRotation(rosQ);
-    transform.setOrigin(rosTrans);
+    transform.setOrigin(rosTransCam);
 
-    _transformBroadcaster.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "camera_link"));
+    // Convert camera pose to vehicle pose, assuming camera and vehicle face the same direction.
+    tf::Vector3 transCamToBase = tf::Vector3(-0.08, 0, 0);
+    tf::Vector3 rosTransBase = transform * transCamToBase;
 
     geometry_msgs::PoseWithCovarianceStamped poseCovStamped;
     poseCovStamped.header.frame_id = "map";
     poseCovStamped.header.seq = g_seq;
     poseCovStamped.header.stamp = ros::Time::now();
-    poseCovStamped.pose.pose.position.x = rosTrans.x();
-    poseCovStamped.pose.pose.position.y = rosTrans.y();
-    poseCovStamped.pose.pose.position.z = rosTrans.z();
+    poseCovStamped.pose.pose.position.x = rosTransBase.x();
+    poseCovStamped.pose.pose.position.y = rosTransBase.y();
+    poseCovStamped.pose.pose.position.z = rosTransBase.z();
     tf::quaternionTFToMsg(rosQ, poseCovStamped.pose.pose.orientation);
     // clang-format off
     poseCovStamped.pose.covariance = {
