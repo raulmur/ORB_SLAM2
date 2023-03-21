@@ -648,7 +648,7 @@ namespace g2o {
       destColumnMap.insert(sparseRowSorted[0]);
       for (size_t j = 1; j < sparseRowSorted.size(); ++j) {
         typename SparseBlockMatrix<MatrixType>::IntBlockMap::iterator hint = destColumnMap.end();
-        --hint; // cppreference says the element goes after the hint (until C++11)
+        --hint; // cppreference says the element goes after the hint (until c++14)
         destColumnMap.insert(hint, sparseRowSorted[j]);
       }
     }
