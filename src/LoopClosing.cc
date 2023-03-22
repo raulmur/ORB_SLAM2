@@ -23,6 +23,7 @@
 #include "Sim3Solver.h"
 
 #include "Converter.h"
+#include "unistd.h"
 
 #include "Optimizer.h"
 
@@ -30,7 +31,9 @@
 
 #include<mutex>
 #include<thread>
-
+#include <opencv2/imgproc/types_c.h>
+#include <opencv2/opencv.hpp>
+using namespace cv;
 
 namespace ORB_SLAM2
 {

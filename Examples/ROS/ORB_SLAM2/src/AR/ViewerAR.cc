@@ -19,6 +19,7 @@
 */
 
 #include "ViewerAR.h"
+#include "unistd.h"
 
 #include <opencv2/highgui/highgui.hpp>
 

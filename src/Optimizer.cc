@@ -27,12 +27,16 @@
 #include "Thirdparty/g2o/g2o/core/robust_kernel_impl.h"
 #include "Thirdparty/g2o/g2o/solvers/linear_solver_dense.h"
 #include "Thirdparty/g2o/g2o/types/types_seven_dof_expmap.h"
+#include "unistd.h"
 
 #include<Eigen/StdVector>
 
 #include "Converter.h"
 
 #include<mutex>
+#include <opencv2/imgproc/types_c.h>
+#include <opencv2/opencv.hpp>
+using namespace cv;
 
 namespace ORB_SLAM2
 {

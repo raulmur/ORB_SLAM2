@@ -51,6 +51,7 @@
 #include <iostream>
 
 #include "PnPsolver.h"
+#include "unistd.h"
 
 #include <vector>
 #include <cmath>

@@ -29,6 +29,7 @@
 #include"Converter.h"
 #include"Map.h"
 #include"Initializer.h"
+#include "unistd.h"
 
 #include"Optimizer.h"
 #include"PnPsolver.h"
@@ -36,7 +37,9 @@
 #include<iostream>
 
 #include<mutex>
-
+#include <opencv2/imgproc/types_c.h>
+#include <opencv2/opencv.hpp>
+using namespace cv;
 
 using namespace std;
 
