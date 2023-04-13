@@ -28,8 +28,8 @@
 namespace ORB_SLAM2
 {
 
-LocalMapping::LocalMapping(Map *pMap, const float bMonocular):
-    mbMonocular(bMonocular), mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap),
+LocalMapping::LocalMapping(Map *pMap):
+    mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap),
     mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true)
 {
 }
@@ -173,11 +173,7 @@ void LocalMapping::MapPointCulling()
     list<MapPoint*>::iterator lit = mlpRecentAddedMapPoints.begin();
     const unsigned long int nCurrentKFid = mpCurrentKeyFrame->mnId;
 
-    int nThObs;
-    if(mbMonocular)
-        nThObs = 2;
-    else
-        nThObs = 3;
+    int nThObs = 3;
     const int cnThObs = nThObs;
 
     while(lit!=mlpRecentAddedMapPoints.end())
@@ -208,8 +204,7 @@ void LocalMapping::CreateNewMapPoints()
 {
     // Retrieve neighbor keyframes in covisibility graph
     int nn = 10;
-    if(mbMonocular)
-        nn=20;
+
     const vector<KeyFrame*> vpNeighKFs = mpCurrentKeyFrame->GetBestCovisibilityKeyFrames(nn);
 
     ORBmatcher matcher(0.6,false);
@@ -246,19 +241,9 @@ void LocalMapping::CreateNewMapPoints()
         cv::Mat vBaseline = Ow2-Ow1;
         const float baseline = cv::norm(vBaseline);
 
-        if(!mbMonocular)
-        {
-            if(baseline<pKF2->mb)
-            continue;
-        }
-        else
-        {
-            const float medianDepthKF2 = pKF2->ComputeSceneMedianDepth(2);
-            const float ratioBaselineDepth = baseline/medianDepthKF2;
 
-            if(ratioBaselineDepth<0.01)
-                continue;
-        }
+        if(baseline<pKF2->mb)
+        continue;
 
         // Compute Fundamental Matrix
         cv::Mat F12 = ComputeF12(mpCurrentKeyFrame,pKF2);
@@ -455,8 +440,7 @@ void LocalMapping::SearchInNeighbors()
 {
     // Retrieve neighbor keyframes
     int nn = 10;
-    if(mbMonocular)
-        nn=20;
+
     const vector<KeyFrame*> vpNeighKFs = mpCurrentKeyFrame->GetBestCovisibilityKeyFrames(nn);
     vector<KeyFrame*> vpTargetKFs;
     for(vector<KeyFrame*>::const_iterator vit=vpNeighKFs.begin(), vend=vpNeighKFs.end(); vit!=vend; vit++)
@@ -655,11 +639,9 @@ void LocalMapping::KeyFrameCulling()
             {
                 if(!pMP->isBad())
                 {
-                    if(!mbMonocular)
-                    {
-                        if(pKF->mvDepth[i]>pKF->mThDepth || pKF->mvDepth[i]<0)
-                            continue;
-                    }
+
+                    if(pKF->mvDepth[i]>pKF->mThDepth || pKF->mvDepth[i]<0)
+                        continue;
 
                     nMPs++;
                     if(pMP->Observations()>thObs)

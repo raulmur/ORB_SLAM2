@@ -21,6 +21,9 @@
 
 #ifndef SYSTEM_H
 #define SYSTEM_H
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include<string>
 #include<thread>
@@ -51,7 +54,6 @@ class System
 public:
     // Input sensor
     enum eSensor{
-        MONOCULAR=0,
         STEREO=1,
         RGBD=2
     };
@@ -71,11 +73,6 @@ public:
     // Input depthmap: Float (CV_32F).
     // Returns the camera pose (empty if tracking fails).
     cv::Mat TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const double &timestamp);
-
-    // Proccess the given monocular frame
-    // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
-    // Returns the camera pose (empty if tracking fails).
-    cv::Mat TrackMonocular(const cv::Mat &im, const double &timestamp);
 
     // This stops local mapping thread (map building) and performs only camera tracking.
     void ActivateLocalizationMode();

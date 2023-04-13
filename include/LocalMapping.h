@@ -40,7 +40,7 @@ class Map;
 class LocalMapping
 {
 public:
-    LocalMapping(Map* pMap, const float bMonocular);
+    LocalMapping(Map* pMap);
 
     void SetLoopCloser(LoopClosing* pLoopCloser);
 
@@ -86,8 +86,6 @@ protected:
     cv::Mat ComputeF12(KeyFrame* &pKF1, KeyFrame* &pKF2);
 
     cv::Mat SkewSymmetricMatrix(const cv::Mat &v);
-
-    bool mbMonocular;
 
     void ResetIfRequested();
     bool mbResetRequested;
