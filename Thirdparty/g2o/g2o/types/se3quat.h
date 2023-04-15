@@ -236,7 +236,6 @@ namespace g2o {
         Matrix3d V;
         if (theta<0.00001)
         {
-          //TODO: CHECK WHETHER THIS IS CORRECT!!!
           R = (Matrix3d::Identity() + Omega + Omega*Omega);
 
           V = R;

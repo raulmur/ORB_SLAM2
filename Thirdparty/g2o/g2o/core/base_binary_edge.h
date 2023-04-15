@@ -61,7 +61,7 @@ namespace g2o {
 
       BaseBinaryEdge() : BaseEdge<D,E>(),
       _hessianRowMajor(false),
-      _hessian(0, VertexXiType::Dimension, VertexXjType::Dimension), // HACK we map to the null pointer for initializing the Maps
+      _hessian(0, VertexXiType::Dimension, VertexXjType::Dimension), // we map to the null pointer for initializing the Maps
       _hessianTransposed(0, VertexXjType::Dimension, VertexXiType::Dimension),
       _jacobianOplusXi(0, D, Di), _jacobianOplusXj(0, D, Dj)
       {
