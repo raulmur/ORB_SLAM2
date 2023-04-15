@@ -2,11 +2,11 @@
 
 #include "STrack.h"
 
-class BYTETrack
+class ByteTrack
 {
 public:
-	BYTETrack(int frame_rate = 30, int track_buffer = 30);
-	~BYTETrack();
+	ByteTrack(int frame_rate = 30, int track_buffer = 30);
+	~ByteTrack();
 
 	std::vector<STrack> update(const std::vector<Detection> &objects);
 	cv::Scalar get_color(int idx);
