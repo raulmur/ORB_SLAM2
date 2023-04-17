@@ -3,29 +3,30 @@
 namespace ORB_SLAM2
 {
 
-ObjectTracking::ObjectTracking(const std::string &modelPath, const bool isGPU, const cv::Size& size, const float confidence_threshold, const float iou_threshold, const float max_cosine_distance, const int nn_budget)
+ObjectTracking::ObjectTracking(const std::string &modelPath, const bool useGPU, const cv::Size &size, const float confidenceThreshold, const float iouThreshold, const float maxCosineDistance, const int nnBudget)
 {
-    mpDetector = new YOLO(modelPath, isGPU, size);
-    mpByteTracker = new ByteTrack(max_cosine_distance, nn_budget);
-
-    mbIsGPU = isGPU;
+    mbIsGPU = useGPU;
     mSize = size;
-    mConfidenceThreshold = confidence_threshold;
-    mIOUThreshold = iou_threshold;
-    mMaxCosineDistance = max_cosine_distance;
-    mNNBudget = nn_budget;
+    mConfidenceThreshold = confidenceThreshold;
+    mIOUThreshold = iouThreshold;
+    mMaxCosineDistance = maxCosineDistance;
+    mNNBudget = nnBudget;
 
+    mpDetector = new YOLO(modelPath, mbIsGPU, mSize);
+    mpByteTracker = new BYTETrack(mMaxCosineDistance, mNNBudget);
 }
 
-ObjectTracking::~ObjectTracking()
-{
-    delete mpDetector;
-    delete mpByteTracker;
-}
 
 void ObjectTracking::Run()
 {
-    std::vector<Detection> results = mpDetector->detect(mImage, mConfidenceThreshold, mIOUThreshold);
+    track(mImage);
 }
 
+void ObjectTracking::track(cv::Mat &image)
+{
+    // use YOLO detector
+    mDetections = mpDetector->detect(image, mConfidenceThreshold, mIOUThreshold);
+    // use ByteTrack tracker
+    mTrackResults = mpByteTracker->update(mDetections);
+}
 }
