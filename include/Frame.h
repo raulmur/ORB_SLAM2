@@ -23,12 +23,11 @@
 
 #include<vector>
 
-#include "MapPoint.h"
 #include "Thirdparty/DBoW2/DBoW2/BowVector.h"
 #include "Thirdparty/DBoW2/DBoW2/FeatureVector.h"
 #include "ORBVocabulary.h"
-#include "KeyFrame.h"
 #include "ORBextractor.h"
+#include "Se2.h"
 
 #include <opencv2/opencv.hpp>
 
@@ -56,6 +55,9 @@ public:
 
     // Constructor for Monocular cameras.
     Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+
+    // Constructor for Odometry-Monocular
+    Frame(const cv::Mat &imGray, const Se2 &odo, const double timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, cv::Mat &extParaBc, const float &bf, const float &thDepth);
 
     // Extract ORB on the image. 0 for left image and 1 for right image.
     void ExtractORB(int flag, const cv::Mat &im);
@@ -99,6 +101,13 @@ public:
     cv::Mat UnprojectStereo(const int &i);
 
 public:
+    // Odometry measurement
+    Se2 odom;
+
+    // Extrinsic parameter
+    cv::Mat Tbc;
+    cv::Mat Tcb;
+
     // Vocabulary used for relocalization.
     ORBVocabulary* mpORBvocabulary;
 

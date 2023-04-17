@@ -53,6 +53,7 @@ private:
     float mPointSize;
     float mCameraSize;
     float mCameraLineWidth;
+    float mRatio;
 
     cv::Mat mCameraPose;
 

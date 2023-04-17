@@ -1,3 +1,13 @@
+Adaptation with odometry assistance. See `Examples/OdomMono`.
+
+If you use this repo for academic publication, please cite:
+
+- Fan Zheng, Hengbo Tang, Yun-Hui Liu. "Odometry-Vision-Based Ground Vehicle Motion Estimation With SE(2)-Constrained SE(3) Poses". IEEE Transactions on Cybernetics, vol. 49, no. 7, 2019. \[[code](https://github.com/izhengfan/se2clam)\]
+- Fan Zheng, Yun-Hui Liu. "Visual-Odometric Localization and Mapping for Ground Vehicles Using SE(2)-XYZ Constraints". Proc. IEEE International Conference on Robotics and Automation (ICRA), 2019. \[[code](https://github.com/izhengfan/se2lam)\]
+
+
+---
+
 # ORB-SLAM2
 **Authors:** [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
 

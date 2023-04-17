@@ -120,6 +120,10 @@ public:
     // The following variables are accesed from only 1 thread or never change (no mutex needed).
 public:
 
+    Se2 odom;
+    cv::Mat Tbc;
+
+
     static long unsigned int nNextId;
     long unsigned int mnId;
     const long unsigned int mnFrameId;
@@ -189,6 +193,12 @@ public:
     const cv::Mat mK;
 
 
+    // LETS BEGIN HERE
+    KeyFrame* mpLastKF;
+    void SetPoseByOdomTo(KeyFrame* refKF);
+    // END
+
+
     // The following variables need to be accessed trough a mutex to be thread safe.
 protected:
 
@@ -231,6 +241,8 @@ protected:
     std::mutex mMutexPose;
     std::mutex mMutexConnections;
     std::mutex mMutexFeatures;
+
+
 };
 
 } //namespace ORB_SLAM

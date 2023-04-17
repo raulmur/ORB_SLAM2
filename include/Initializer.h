@@ -43,6 +43,16 @@ public:
                     cv::Mat &R21, cv::Mat &t21, vector<cv::Point3f> &vP3D, vector<bool> &vbTriangulated);
 
 
+    // LETS BEGIN HERE
+    bool InitializeWithOdom(const Frame &CurrentFrame, const vector<int> &vMatches12,
+                            cv::Mat &R21, cv::Mat &t21, vector<cv::Point3f> &vP3D, vector<bool> &vbTriangulated);
+
+    Se2 odom1;
+    Se2 odom2;
+    cv::Mat Tbc;
+    // END
+
+
 private:
 
     void FindHomography(vector<bool> &vbMatchesInliers, float &score, cv::Mat &H21);
@@ -60,6 +70,11 @@ private:
 
     bool ReconstructH(vector<bool> &vbMatchesInliers, cv::Mat &H21, cv::Mat &K,
                       cv::Mat &R21, cv::Mat &t21, vector<cv::Point3f> &vP3D, vector<bool> &vbTriangulated, float minParallax, int minTriangulated);
+
+    // LETS BEGIN HERE
+    bool ReconstructWithOdom(vector<bool> &vbMatchesInliers, cv::Mat &K,
+                      cv::Mat &R21, cv::Mat &t21, vector<cv::Point3f> &vP3D, vector<bool> &vbTriangulated, float minParallax, int minTriangulated);
+    // END
 
     void Triangulate(const cv::KeyPoint &kp1, const cv::KeyPoint &kp2, const cv::Mat &P1, const cv::Mat &P2, cv::Mat &x3D);
 
