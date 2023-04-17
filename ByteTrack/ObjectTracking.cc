@@ -13,7 +13,7 @@ ObjectTracking::ObjectTracking(const std::string &modelPath, const bool useGPU, 
     mNNBudget = nnBudget;
 
     mpDetector = new YOLO(modelPath, mbIsGPU, mSize);
-    mpByteTracker = new BYTETrack(mMaxCosineDistance, mNNBudget);
+    mpByteTracker = new ByteTrack(mMaxCosineDistance, mNNBudget);
 }
 
 

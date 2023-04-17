@@ -5,7 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/usr/include/eigen3",
-                "${workspaceFolder}/Thirdparty/onnxruntime-linux-x64-gpu-1.11.0/include",
+                "${workspaceFolder}/ByteTrack/onnxruntime-linux-x64-gpu-1.11.0/include",
                 "${workspaceFolder}/ByteTrack",
                 "${workspaceFolder}/include"
             ],

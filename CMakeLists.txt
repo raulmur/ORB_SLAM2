@@ -7,8 +7,8 @@ ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
-# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3 -march=native")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3")
 
 # # Check C++11 or C++0x support
 # include(CheckCXXCompilerFlag)
@@ -39,16 +39,13 @@ endif()
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 
-set(ONNXRUNTIME_DIR ${PROJECT_SOURCE_DIR}/Thirdparty/onnxruntime-linux-x64-gpu-1.11.0)
 
 include_directories(
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
 ${EIGEN3_INCLUDE_DIRS}
 ${Pangolin_INCLUDE_DIRS}
-
 ${PROJECT_SOURCE_DIR}/ByteTrack
-${ONNXRUNTIME_DIR}/include
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
@@ -83,17 +80,17 @@ ${Pangolin_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
 ${PROJECT_SOURCE_DIR}/ByteTrack/lib/libByteTrack.so
-${ONNXRUNTIME_DIR}/lib/libonnxruntime.so
+${PROJECT_SOURCE_DIR}/ByteTrack/onnxruntime-linux-x64-gpu-1.11.0/lib/libonnxruntime.so
 )
 
-# Build examples
-
+# Build RGB-D examples
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
 
 add_executable(rgbd_tum
 Examples/RGB-D/rgbd_tum.cc)
 target_link_libraries(rgbd_tum ${PROJECT_NAME})
 
+# Build Stereo examples
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Stereo)
 
 add_executable(stereo_kitti
@@ -104,14 +101,10 @@ add_executable(stereo_euroc
 Examples/Stereo/stereo_euroc.cc)
 target_link_libraries(stereo_euroc ${PROJECT_NAME})
 
+# Build example of ByteTrack for testing
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/ByteTrack)
 
-add_executable(testByteTrack Examples/ByteTrack/testByteTrack.cc)
-
-target_link_libraries(testByteTrack
-${PROJECT_NAME}
-${PROJECT_SOURCE_DIR}/ByteTrack/lib/libByteTrack.so
-${OpenCV_LIBS}
-${ONNXRUNTIME_DIR}/lib/libonnxruntime.so
-)
+add_executable(testByteTrack
+Examples/ByteTrack/testByteTrack.cc)
+target_link_libraries(testByteTrack ${PROJECT_NAME})
 

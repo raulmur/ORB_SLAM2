@@ -4,7 +4,7 @@
 #include <opencv2/opencv.hpp>
 
 #include "ByteTrack/detector.h"
-#include "ByteTrack/BYTETrack.h"
+#include "ByteTrack/ByteTrack.h"
 
 namespace ORB_SLAM2
 {
@@ -28,7 +28,7 @@ class ObjectTracking
 
     public:
         YOLO *mpDetector;
-        BYTETrack *mpByteTracker;
+        ByteTrack *mpByteTracker;
 
         bool mbIsGPU;
         cv::Size mSize;

@@ -1,8 +1,8 @@
-#include "BYTETrack.h"
+#include "ByteTrack.h"
 #include "lapjv.h"
 #include <fstream>
 
-BYTETrack::BYTETrack(int frame_rate, int track_buffer)
+ByteTrack::ByteTrack(int frame_rate, int track_buffer)
 {
     track_thresh = 0.5;
     high_thresh = 0.6;
@@ -12,11 +12,11 @@ BYTETrack::BYTETrack(int frame_rate, int track_buffer)
     max_time_lost = int(frame_rate / 30.0 * track_buffer);
 }
 
-BYTETrack::~BYTETrack()
+ByteTrack::~ByteTrack()
 {
 }
 
-std::vector<STrack> BYTETrack::update(const std::vector<Detection> &objects)
+std::vector<STrack> ByteTrack::update(const std::vector<Detection> &objects)
 {
 
     ////////////////// Step 1: Get detections //////////////////
@@ -240,7 +240,7 @@ std::vector<STrack> BYTETrack::update(const std::vector<Detection> &objects)
     return output_stracks;
 }
 
-std::vector<STrack *> BYTETrack::joint_stracks(std::vector<STrack *> &tlista, std::vector<STrack> &tlistb)
+std::vector<STrack *> ByteTrack::joint_stracks(std::vector<STrack *> &tlista, std::vector<STrack> &tlistb)
 {
     std::map<int, int> exists;
     std::vector<STrack *> res;
@@ -261,7 +261,7 @@ std::vector<STrack *> BYTETrack::joint_stracks(std::vector<STrack *> &tlista, st
     return res;
 }
 
-std::vector<STrack> BYTETrack::joint_stracks(std::vector<STrack> &tlista, std::vector<STrack> &tlistb)
+std::vector<STrack> ByteTrack::joint_stracks(std::vector<STrack> &tlista, std::vector<STrack> &tlistb)
 {
     std::map<int, int> exists;
     std::vector<STrack> res;
@@ -282,7 +282,7 @@ std::vector<STrack> BYTETrack::joint_stracks(std::vector<STrack> &tlista, std::v
     return res;
 }
 
-std::vector<STrack> BYTETrack::sub_stracks(std::vector<STrack> &tlista, std::vector<STrack> &tlistb)
+std::vector<STrack> ByteTrack::sub_stracks(std::vector<STrack> &tlista, std::vector<STrack> &tlistb)
 {
     std::map<int, STrack> stracks;
     for (int i = 0; i < tlista.size(); i++)
@@ -308,7 +308,7 @@ std::vector<STrack> BYTETrack::sub_stracks(std::vector<STrack> &tlista, std::vec
     return res;
 }
 
-void BYTETrack::remove_duplicate_stracks(std::vector<STrack> &resa, std::vector<STrack> &resb, std::vector<STrack> &stracksa, std::vector<STrack> &stracksb)
+void ByteTrack::remove_duplicate_stracks(std::vector<STrack> &resa, std::vector<STrack> &resb, std::vector<STrack> &stracksa, std::vector<STrack> &stracksb)
 {
     std::vector<std::vector<float>> pdist = iou_distance(stracksa, stracksb);
     std::vector<std::pair<int, int>> pairs;
@@ -353,7 +353,7 @@ void BYTETrack::remove_duplicate_stracks(std::vector<STrack> &resa, std::vector<
     }
 }
 
-void BYTETrack::linear_assignment(std::vector<std::vector<float>> &cost_matrix, int cost_matrix_size, int cost_matrix_size_size, float thresh,
+void ByteTrack::linear_assignment(std::vector<std::vector<float>> &cost_matrix, int cost_matrix_size, int cost_matrix_size_size, float thresh,
                                   std::vector<std::vector<int>> &matches, std::vector<int> &unmatched_a, std::vector<int> &unmatched_b)
 {
     if (cost_matrix.size() == 0)
@@ -396,7 +396,7 @@ void BYTETrack::linear_assignment(std::vector<std::vector<float>> &cost_matrix, 
     }
 }
 
-std::vector<std::vector<float>> BYTETrack::ious(std::vector<std::vector<float>> &atlbrs, std::vector<std::vector<float>> &btlbrs)
+std::vector<std::vector<float>> ByteTrack::ious(std::vector<std::vector<float>> &atlbrs, std::vector<std::vector<float>> &btlbrs)
 {
     std::vector<std::vector<float>> ious;
     if (atlbrs.size() * btlbrs.size() == 0)
@@ -439,7 +439,7 @@ std::vector<std::vector<float>> BYTETrack::ious(std::vector<std::vector<float>> 
     return ious;
 }
 
-std::vector<std::vector<float>> BYTETrack::iou_distance(std::vector<STrack *> &atracks, std::vector<STrack> &btracks, int &dist_size, int &dist_size_size)
+std::vector<std::vector<float>> ByteTrack::iou_distance(std::vector<STrack *> &atracks, std::vector<STrack> &btracks, int &dist_size, int &dist_size_size)
 {
     std::vector<std::vector<float>> cost_matrix;
     if (atracks.size() * btracks.size() == 0)
@@ -476,7 +476,7 @@ std::vector<std::vector<float>> BYTETrack::iou_distance(std::vector<STrack *> &a
     return cost_matrix;
 }
 
-std::vector<std::vector<float>> BYTETrack::iou_distance(std::vector<STrack> &atracks, std::vector<STrack> &btracks)
+std::vector<std::vector<float>> ByteTrack::iou_distance(std::vector<STrack> &atracks, std::vector<STrack> &btracks)
 {
     std::vector<std::vector<float>> atlbrs, btlbrs;
     for (int i = 0; i < atracks.size(); i++)
@@ -503,7 +503,7 @@ std::vector<std::vector<float>> BYTETrack::iou_distance(std::vector<STrack> &atr
     return cost_matrix;
 }
 
-double BYTETrack::lapjv(const std::vector<std::vector<float>> &cost, std::vector<int> &rowsol, std::vector<int> &colsol,
+double ByteTrack::lapjv(const std::vector<std::vector<float>> &cost, std::vector<int> &rowsol, std::vector<int> &colsol,
                         bool extend_cost, float cost_limit, bool return_cost)
 {
     std::vector<std::vector<float>> cost_c;
@@ -662,7 +662,7 @@ double BYTETrack::lapjv(const std::vector<std::vector<float>> &cost, std::vector
     return opt;
 }
 
-cv::Scalar BYTETrack::get_color(int idx)
+cv::Scalar ByteTrack::get_color(int idx)
 {
     idx += 3;
     return cv::Scalar(37 * idx % 255, 17 * idx % 255, 29 * idx % 255);
