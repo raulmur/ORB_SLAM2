@@ -9,6 +9,7 @@
   <depend package="roscpp"/>
   <depend package="tf"/>
   <depend package="sensor_msgs"/>
+  <depend package="std_msgs"/>
   <depend package="image_transport"/>
   <depend package="cv_bridge"/>
 

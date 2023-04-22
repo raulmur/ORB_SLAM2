@@ -25,7 +25,7 @@
 #include<chrono>
 
 #include<ros/ros.h>
-#include<std_msgs/Float32MultiArray.h>
+#include<std_msgs/Float64MultiArray.h>
 #include<std_msgs/MultiArrayDimension.h>
 #include <tf/tf.h>
 #include <tf/transform_broadcaster.h>
@@ -131,7 +131,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     g_pubPose = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("/cube/data/vslam_localization/pose", 1);
-    g_pubInfo = nh.advertise<std_msgs::Float32MultiArray>("/cube/data/vslam_localization/info", 1);
+    g_pubInfo = nh.advertise<std_msgs::Float64MultiArray>("/cube/data/vslam_localization/info", 1);
 
     message_filters::Subscriber<sensor_msgs::Image> left_sub(nh, "/camera/left/image_raw", 1);
     message_filters::Subscriber<sensor_msgs::Image> right_sub(nh, "/camera/right/image_raw", 1);
