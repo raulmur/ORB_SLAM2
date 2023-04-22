@@ -164,7 +164,12 @@ void Tracking::SetViewer(Viewer *pViewer)
 }
 
 
-cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRectRight, const double &timestamp)
+cv::Mat Tracking::GrabImageStereo(
+    const cv::Mat &imRectLeft,
+    const cv::Mat &imRectRight,
+    const double &timestamp,
+    double& numberOfMatches,
+    bool& isLost)
 {
     mImGray = imRectLeft;
     cv::Mat imGrayRight = imRectRight;
@@ -199,6 +204,9 @@ cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRe
     mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
 
     Track();
+
+    numberOfMatches = getNumberOfMatchesInFrame();
+    isLost = isLost();
 
     return mCurrentFrame.mTcw.clone();
 }
