@@ -123,12 +123,12 @@ public:
     inline double getNumberOfMatchesInFrame()
     {
         return mnMatchesInliers;
-    }
+    };
 
-    inline bool isLost
+    inline bool isFrameLost()
     {
         return mState == eTrackingState::LOST;
-    }
+    };
 
 protected:
 

@@ -206,7 +206,7 @@ cv::Mat Tracking::GrabImageStereo(
     Track();
 
     numberOfMatches = getNumberOfMatchesInFrame();
-    isLost = isLost();
+    isLost = isFrameLost();
 
     return mCurrentFrame.mTcw.clone();
 }
