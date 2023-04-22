@@ -11,8 +11,6 @@
   <depend package="sensor_msgs"/>
   <depend package="image_transport"/>
   <depend package="cv_bridge"/>
-  <depend package="message_generation"/>
-  <depend package="message_runtime"/>
 
 
 </package>
